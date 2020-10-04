@@ -18,20 +18,22 @@ def parseTcpprobe(tcpprobeFile):
         for line in f.readlines():
             info = line.strip().split(' ')
             try:
+                # StatusList对齐时间戳使用int(timestamp)
+                # TcpprobeStatusList使用int(timestamp * 1e6)
                 timestamp = float(info[0])
                 srtt = int(float(info[9]) / 1000)
                 ############################################
                 # 计算connStartTime, startTime与endTime
                 if calcTime.connStartTime == -1:
-                    calcTime.connStartTime = timestamp
+                    calcTime.connStartTime = int(timestamp)
                 if calcTime.startTimes[calcTime.TCPPROBE] == -1:
-                    calcTime.startTimes[calcTime.TCPPROBE] = timestamp
-                calcTime.endTimes[calcTime.TCPPROBE] = timestamp
+                    calcTime.startTimes[calcTime.TCPPROBE] = int(timestamp)
+                calcTime.endTimes[calcTime.TCPPROBE] = int(timestamp)
                 ############################################
                 
                 # 解析数据写入TcpprobeStatusList
                 tcpprobeStatus = Status.TcpprobeStatus()
-                tcpprobeStatus.timestamp = timestamp
+                tcpprobeStatus.timestamp = int(timestamp * 1e6)
                 if 'ffff' in info[1]: 
                     tcpprobeStatus.src = info[1].split('[')[1].split(']')[0].split(':')[3]
                     tcpprobeStatus.srcPort = int(info[1].split(':')[4])
