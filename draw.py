@@ -2,7 +2,7 @@ from draw_function.analysisApCover import drawConnLevel, drawNotConnLevel, drawA
 from draw_function.analysisDrop import drawDrop
 from draw_function.analysisHandover import drawHandover
 from draw_function.analysisRtt import analysisRtt, drawCDFForAllAgvData, drawCDFForOneAgvData
-from draw_function.analysisMptcp import drawTcp
+from draw_function.analysisMptcp import drawSubflowUseTime, drawMptcp
 
 from draw_function.analysisDataHole import drawEmptyCDF
 
@@ -22,6 +22,7 @@ if __name__ == '__main__':
         csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
         csvFile = os.path.join(csvPath, 'data.csv')
         scanCsvFile = os.path.join(csvPath, 'scanData.csv')
+        tcpprobeCsvFile = os.path.join(csvPath, 'tcpprobeData.csv')
         if os.path.isdir(csvPath):
             # #####################################################
             # print("掉线分析")
@@ -55,7 +56,10 @@ if __name__ == '__main__':
             if not os.path.isdir(mptcpDir):
                 os.makedirs(mptcpDir)
             print("统计当前子流状态变动")
-            drawTcp(csvFile, mptcpDir)
+            drawSubflowUseTime(tcpprobeCsvFile, mptcpDir)
+            print('统计子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt')
+            mergeDiffCsvFile = os.path.join(mptcpDir, 'mergeDiff.csv')
+            drawMptcp(tcpprobeCsvFile, mergeDiffCsvFile, mptcpDir)
             #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
