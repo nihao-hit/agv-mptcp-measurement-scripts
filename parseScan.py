@@ -81,7 +81,7 @@ def parseScan(scanFile):
                 # 使用scan文件的conn数据，减轻conn文件测量空洞的问题
                 # 由于所有数据直接在ConnStatusList末尾插入，没有按照时间戳排序，
                 # 因此从connData.csv文件读取后需要进行这一操作
-                etime = int(float((re.findall('(?<=etime\": ).*?(?=,)', scan)[0])) * 1e6)
+                etime = int(float((re.findall('(?<=etime\": ).*?(?=,)', scan)[0])) * 1e3)
                 apMac = re.findall('(?<=Access ).*?(?= )', scan)[0]
                 if re.findall('Not-Associated', scan):
                     apMac = 'Not-Associated'
