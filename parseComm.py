@@ -13,16 +13,20 @@ def parseComm(commFile):
     with gzip.open(commFile, 'r') as f:
         for line in f.readlines():
             try:
+                #####################################################
+                # 从文件中提取数据，赋值变量
                 line = str(line, encoding="utf-8")
                 curTimestamp = int(float(re.findall('(?<=curTimestamp=).*?(?=,)', line)[0]) / 1000)
-                ############################################
+                #####################################################
+                #####################################################
                 # 计算connStartTime, startTime与endTime
                 if calcTime.connStartTime == -1:
                     calcTime.connStartTime = curTimestamp
                 if calcTime.startTimes[calcTime.COMM] == -1:
                     calcTime.startTimes[calcTime.COMM] = curTimestamp
                 calcTime.endTimes[calcTime.COMM] = curTimestamp
-                ############################################
+                #####################################################
+                #####################################################
                 pos = curTimestamp - calcTime.connStartTime
                 # 避免出现负数的pos污染最后时间戳的数据，直接丢弃这部分数据
                 if pos < 0:
@@ -57,9 +61,12 @@ def parseComm(commFile):
                 
                 Status.sList[pos].speed = float(re.findall('(?<=speed=).*?(?=,)', line)[0])
                 Status.sList[pos].withBucket = int(re.findall('(?<=withBucket=).*?(?=,)', line)[0])
+                #####################################################
             except:
                     count += 1
     print("try-except错误次数：{}".format(count))
+
+
 
 
 def fillComm(sList, startTime, fillDir):
