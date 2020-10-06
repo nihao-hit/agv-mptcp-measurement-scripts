@@ -1,5 +1,6 @@
+# 时间戳精度为s
 class Status:
-    ########################################
+    #####################################################
     # comm数据
     agvCode = ''            #1
     dspStatus = ''          #2
@@ -14,9 +15,8 @@ class Status:
 
     speed = 0.0             #10
     withBucket = -1         #11
-    #########################################
-
-    ##################################
+    #####################################################
+    #####################################################
     # conn数据
     W0APMac = ''            #12
     W0channel = 0.0         #13
@@ -25,49 +25,34 @@ class Status:
     W1APMac = ''            #15
     W1channel = 0.0         #16
     W1level = 0             #17
-
-    # deltaW0level = 0
-    # deltaW1level = 0
-    # minlevel = 0
-    # maxlevel = 0
-    ###############################################
-
-    #############################################
+    #####################################################
+    #####################################################
     # ping151
     W0pingrtt = 0           #18
-    #############################################
-    
-    ##############################################
+    #####################################################
+    #####################################################
     # ping127
     W1pingrtt = 0           #19
-    ##############################################
-
-    # W1APChange = 0
-    # W0APChange = 0
-
-    # deltaSrc = 0
-    # deltaSrcPort = 0
-
-    ########################################
+    #####################################################
+    #####################################################
     # scan数据，用于统计AP覆盖情况
-    scanW0APCount = 0       #22
+    scanW0APCount = 0       #20
     # SNR高于某个阈值的AP数量
     # scanW0APEff = 0
-    scanW0APLevelMin = 0    #23
-    scanW0APMacMin = ''     #24
-    scanW0APLevelMax = 0    #25
-    scanW0APMacMax = ''     #26
+    scanW0APLevelMin = 0    #21
+    scanW0APMacMin = ''     #22
+    scanW0APLevelMax = 0    #23
+    scanW0APMacMax = ''     #24
 
-    scanW1APCount = 0       #27
+    scanW1APCount = 0       #25
     # SNR高于某个阈值的AP数量
     # scanW1APEff = 0
-    scanW1APLevelMin = 0    #28
-    scanW1APMacMin = ''     #29
-    scanW1APLevelMax = 0    #30
-    scanW1APMacMax = ''     #31
-    ###############################################
-
-    ########################################
+    scanW1APLevelMin = 0    #26
+    scanW1APMacMin = ''     #27
+    scanW1APLevelMax = 0    #28
+    scanW1APMacMax = ''     #29
+    #####################################################
+    #####################################################
     # tcpprobe数据，用于统计drop
     src = ''                #30
     srcPort = 0             #31
@@ -87,10 +72,11 @@ class Status:
     map_subseq = 0          #45
     snt_isn = 0             #46
     rcv_isn = 0             #47
-    ########################################
+    #####################################################
+
 
     def __init__(self):
-        ########################################
+        #####################################################
         # comm数据
         self.agvCode = ''            #1
         self.dspStatus = ''          #2
@@ -105,9 +91,8 @@ class Status:
 
         self.speed = 0.0             #10
         self.withBucket = -1         #11
-        #########################################
-
-        ##################################
+        #####################################################
+        #####################################################
         # conn数据
         self.W0APMac = ''            #12
         self.W0channel = 0.0         #13
@@ -116,49 +101,34 @@ class Status:
         self.W1APMac = ''            #15
         self.W1channel = 0.0         #16
         self.W1level = 0             #17
-
-        # deltaW0level = 0
-        # deltaW1level = 0
-        # minlevel = 0
-        # maxlevel = 0
-        ###############################################
-
-        #############################################
+        #####################################################
+        #####################################################
         # ping151
         self.W0pingrtt = 0           #18
-        #############################################
-        
-        ##############################################
+        #####################################################
+        #####################################################
         # ping127
         self.W1pingrtt = 0           #19
-        ##############################################
-        
-        # W1APChange = 0
-        # W0APChange = 0
-
-        # deltaSrc = 0
-        # deltaSrcPort = 0
-
-        ########################################
+        #####################################################
+        #####################################################
         # scan数据，用于统计AP覆盖情况
-        self.scanW0APCount = 0       #22
+        self.scanW0APCount = 0       #20
         # SNR高于某个阈值的AP数量
         # scanW0APEff = 0
-        self.scanW0APLevelMin = 0    #23
-        self.scanW0APMacMin = ''     #24
-        self.scanW0APLevelMax = 0    #25
-        self.scanW0APMacMax = ''     #26
+        self.scanW0APLevelMin = 0    #21
+        self.scanW0APMacMin = ''     #22
+        self.scanW0APLevelMax = 0    #23
+        self.scanW0APMacMax = ''     #24
 
-        self.scanW1APCount = 0       #27
+        self.scanW1APCount = 0       #25
         # SNR高于某个阈值的AP数量
         # scanW1APEff = 0
-        self.scanW1APLevelMin = 0    #28
-        self.scanW1APMacMin = ''     #29
-        self.scanW1APLevelMax = 0    #30
-        self.scanW1APMacMax = ''     #31
-        ###############################################
-
-        ########################################
+        self.scanW1APLevelMin = 0    #26
+        self.scanW1APMacMin = ''     #27
+        self.scanW1APLevelMax = 0    #28
+        self.scanW1APMacMax = ''     #29
+        #####################################################
+        #####################################################
         # tcpprobe数据，用于统计drop
         self.src = ''                #30
         self.srcPort = 0             #31
@@ -178,7 +148,7 @@ class Status:
         self.map_subseq = 0          #45
         self.snt_isn = 0             #46
         self.rcv_isn = 0             #47
-        ########################################
+        #####################################################
 
     def __setitem__(self, k, v):
         self.k = v
@@ -192,7 +162,42 @@ class Status:
     def keys(self):
         return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
 
+# 时间戳精度为us
+class ConnStatus:
+    timestamp = 0
 
+    W0APMac = ''            #12
+    W0channel = 0.0         #13
+    W0level = 0             #14
+
+    W1APMac = ''            #15
+    W1channel = 0.0         #16
+    W1level = 0             #17
+
+    def __init__(self):
+        self.timestamp = 0
+
+        self.W0APMac = ''            #12       
+        self.W0channel = 0.0         #13       
+        self.W0level = 0             #14  
+
+        self.W1APMac = ''            #15
+        self.W1channel = 0.0         #16
+        self.W1level = 0             #17
+    
+    def __setitem__(self, k, v):
+        self.k = v
+
+    def __getitem__(self, k):
+        return getattr(self, k)
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def keys(self):
+        return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
+
+# 时间戳精度为s
 class ScanStatus:
     timestamp = 0
     # 在解析comm文件时赋值
@@ -233,9 +238,10 @@ class ScanStatus:
     def keys(self):
         return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
 
-
+# 时间戳精度为us
 class TcpprobeStatus:
-    timestamp = 0.0
+    timestamp = 0
+
     src = ''                #30
     srcPort = 0             #31
     dst = ''                #32
@@ -256,7 +262,7 @@ class TcpprobeStatus:
     rcv_isn = 0             #47
 
     def __init__(self):
-        self.timestamp = 0.0
+        self.timestamp = 0
 
         self.src = ''                #30
         self.srcPort = 0             #31
@@ -290,8 +296,14 @@ class TcpprobeStatus:
         return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
 
 
-# 对每台车提取数据都需要重置变量
+# 对每台车提取数据都需要重置以下全局变量
+#####################################################
+# 时间戳精度为s，预分配大小
 sList = [Status() for _ in range(86400*15)]
 scanStatusList = [ScanStatus() for _ in range(86400*15)]
-# tcpprobe文件1s有多条数据，不能提前分配数组大小
+#####################################################
+#####################################################
+# 时间戳精度为us，不能预分配大小
+ConnStatusList = []
 TcpprobeStatusList = []
+#####################################################

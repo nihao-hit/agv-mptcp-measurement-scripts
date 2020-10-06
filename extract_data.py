@@ -24,9 +24,6 @@ import time
 import copy
 import numpy as np
 
-# from parseTcpdump import parseTcpdump
-
-
 def rmExtractedFiles(path):
     shutil.rmtree(path)
 
@@ -83,6 +80,8 @@ def writeDataIntoStatusList(dataPath):
 
 
 def writeStatusIntoCsv(csvPath):
+    #####################################################
+    print('s级时间戳对齐后的sList写入data.csv文件')
     headers = [
                'agvCode', 'dspStatus', 'destPosX', 'destPosY', 'curPosX', 'curPosY', 'curTimestamp', 'direction', 'aggregation', 'speed', 'withBucket', 
                'W0APMac', 'W0channel', 'W0level', 'W1APMac', 'W1channel', 'W1level',
@@ -97,8 +96,9 @@ def writeStatusIntoCsv(csvPath):
         for s in Status.sList:
             f_csv.writerow(dict(s))
         # f_csv.writerows(Status.sList[sliceStart : sliceEnd])
-
-    # scan数据单独写入csv
+    #####################################################
+    #####################################################
+    print('s级时间戳对齐后的scanStatusList写入scanData.csv文件')
     # ['timestamp', 'posX', 'posY', w0ApCount', 'w1ApCount', 'w0ApMac', 'w0Channel', 'w0Level', 'w1ApMac', 'w1Channel', 'w1Level']
     with open(os.path.join(csvPath, 'scanData.csv'), 'w') as f:
         for s in Status.scanStatusList:
@@ -109,8 +109,20 @@ def writeStatusIntoCsv(csvPath):
                     s['w0ApMac'] + s['w0Channel'] + s['w0Level'] + \
                         s['w1ApMac'] + s['w1Channel'] + s['w1Level']
             f.write(','.join(map(str, seq)) + '\n')
-    
-    # tcpprobe数据单独写入csv
+    #####################################################
+    #####################################################
+    print('时间戳精度为us的ConnStatusList写入connData.csv')
+    connHeaders = [
+               'timestamp', 'W0APMac','W0channel','W0level','W1APMac','W1channel','W1level'
+              ]
+    with open(os.path.join(csvPath, 'connData.csv'), 'w', newline='') as f:
+        f_csv = csv.DictWriter(f, connHeaders)
+        f_csv.writeheader()
+        for s in Status.ConnStatusList:
+            f_csv.writerow(dict(s))
+    #####################################################
+    #####################################################
+    print('时间戳精度为us的TcpprobeStatusList写入tcpprobeData.csv')
     tcpprobeHeaders = [
                'timestamp', 'src','srcPort','dst','dstPort','length','snd_nxt','snd_una','snd_cwnd','ssthresh','snd_wnd','srtt','rcv_wnd','path_index','map_data_len','map_data_seq','map_subseq','snt_isn','rcv_isn'
               ]
@@ -119,10 +131,11 @@ def writeStatusIntoCsv(csvPath):
         f_csv.writeheader()
         for s in Status.TcpprobeStatusList:
             f_csv.writerow(dict(s))
+    #####################################################
 
 
 if __name__ == '__main__':
-    for i in range(1, 42):
+    for i in range(1, 2):
         fileName = '30.113.151.' + str(i)
         path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
         tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -130,28 +143,28 @@ if __name__ == '__main__':
         if os.path.isdir(path):
             if not os.path.isdir(dataPath):
                 os.makedirs(dataPath)
-
-            # 重置全局变量sList,scanStatusList,TcpprobeStatusList,connStartTime,startTimes,endTimes
+            #####################################################
+            print('重置全局变量sList, scanStatusList, ConnStatusList, TcpprobeStatusList')
+            print('connStartTime, startTimes, endTimes')
             Status.sList = [Status.Status() for _ in range(86400*15)]
             Status.scanStatusList = [Status.ScanStatus() for _ in range(86400*15)]
+
+            Status.ConnStatusList = []
             Status.TcpprobeStatusList = []
+
             calcTime.connStartTime = -1
             calcTime.startTimes = [-1 for i in range(6)]
             calcTime.endTimes = [-1 for i in range(6)]
-            
-            #########################################
+            #####################################################
+            #####################################################
             print('提取压缩包文件，放入tmpPath')
             extractOneAgv(path, tmpPath) 
-            ########################################
-            
-            
-            #########################################
-            print('解析文件数据，写入StatusList, ScanStatusList, TcpprobeStatusList')
+            #####################################################
+            #####################################################
+            print('解析文件数据，写入StatusList, ScanStatusList, ConnStatusList, TcpprobeStatusList')
             writeDataIntoStatusList(dataPath)
-            ###########################################
-
-
-            ##########################################
+            #####################################################
+            #####################################################
             print('对齐最大开始时间戳与最小结束时间戳')
             startTime = max(list(filter(lambda x: x != -1, calcTime.startTimes)))
             endTime = min(list(filter(lambda x: x != -1, calcTime.endTimes)))
@@ -159,12 +172,9 @@ if __name__ == '__main__':
             sliceEnd = endTime - calcTime.connStartTime + 1
             Status.sList = Status.sList[sliceStart : sliceEnd]
             Status.scanStatusList = Status.scanStatusList[sliceStart : sliceEnd]
-            # Status.TcpprobeStatusList = Status.TcpprobeStatusList[sliceStart : sliceEnd]
             print('startTime = {}, endTime = {}'.format(startTime, endTime))
-            ################################################
-
-
-            #########################################
+            #####################################################
+            #####################################################
             print('填补StatusList与ScanStatusList缺失数据')
             fillDir = os.path.join(tmpPath, 'fillDir')
             if not os.path.isdir(fillDir):
@@ -175,16 +185,13 @@ if __name__ == '__main__':
             fillPing151ForEvent(Status.sList, startTime, fillDir)
             fillPing127ForEvent(Status.sList, startTime, fillDir)
             fillTcpprobeForEvent(Status.sList, startTime, fillDir)
-            ###########################################
-
-
-            ##########################################
+            #####################################################
+            #####################################################
             print('将StatusList与ScanStatusList写入csv文件')
             csvPath = tmpPath
             writeStatusIntoCsv(csvPath)
-            ############################################
-
-
-            # ##########################################
+            #####################################################
+            #####################################################
             # print('删除data文件夹及下属所有解压文件')
             # rmExtractedFiles(dataPath)
+            #####################################################

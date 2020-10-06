@@ -15,21 +15,9 @@ def parseConn(connFile):
         connList = connList.split('||')
         for conn in connList:
             try:
-                time = int(float(re.findall('(?<=time\": ).*?(?=,)', conn)[0]))
-    
-                ############################################
-                # 计算connStartTime, startTime与endTime
-                if calcTime.connStartTime == -1:
-                    calcTime.connStartTime = time
-                if calcTime.startTimes[calcTime.CONN] == -1:
-                    calcTime.startTimes[calcTime.CONN] = time
-                calcTime.endTimes[calcTime.CONN] = time
-                ############################################
-
-                pos = time - calcTime.connStartTime
-                # 避免出现负数的pos污染最后时间戳的数据，直接丢弃这部分数据
-                if pos < 0:
-                    continue
+                #####################################################
+                # 从文件中提取数据，赋值变量
+                time = float(re.findall('(?<=time\": ).*?(?=,)', conn)[0])
                 apMac = re.findall('(?<=Access ).*?(?= )', conn)[0]
                 # Quality=100/100 level=78/100 level=0/100}"}||
                 # Quality=33/70 level=-77 }"}||
@@ -47,6 +35,41 @@ def parseConn(connFile):
                     tmp = int(re.findall('(?<=level=).*?(?=/\d+ )', conn)[0])
                     level = int(tmp * 70 / 100 - 110)
                     channel = float(re.findall('(?<=Frequency:).*?(?= )', conn)[0])
+                #####################################################
+                #####################################################
+                # 计算connStartTime, startTime与endTime
+                if calcTime.connStartTime == -1:
+                    calcTime.connStartTime = int(time)
+                if calcTime.startTimes[calcTime.CONN] == -1:
+                    calcTime.startTimes[calcTime.CONN] = int(time)
+                calcTime.endTimes[calcTime.CONN] = int(time)
+                #####################################################
+                #####################################################
+                # 解析数据写入ConnStatusList
+                connStatus = Status.ConnStatus()
+
+                connStatus.timestamp = int(time * 1e6)
+
+                if re.findall('(?<=dev\": \").*?(?=\")', conn)[0] == 'wlan0':
+                    connStatus.W0APMac = apMac
+                    connStatus.W0level = level
+                    connStatus.W0channel = channel
+                elif re.findall('(?<=dev\": \").*?(?=\")', conn)[0] == 'wlan1':
+                    connStatus.W1APMac = apMac
+                    connStatus.W1level = level
+                    connStatus.W1channel = channel
+                else:
+                    pass
+
+                Status.ConnStatusList.append(connStatus)
+                #####################################################
+                #####################################################
+                # 解析数据写入StatusList
+                pos = int(time) - calcTime.connStartTime
+                # 避免出现负数的pos污染最后时间戳的数据，直接丢弃这部分数据
+                if pos < 0:
+                    continue
+                
                 if re.findall('(?<=dev\": \").*?(?=\")', conn)[0] == 'wlan0':
                     if Status.sList[pos].W0level == 0 or Status.sList[pos].W0level < level:
                         Status.sList[pos].W0APMac = apMac
@@ -59,9 +82,11 @@ def parseConn(connFile):
                         Status.sList[pos].W1channel = channel
                 else:
                     pass
+                #####################################################
             except:
                     count += 1
     print("try-except错误次数：{}".format(count))
+
 
 
 # 统计缺失时段
