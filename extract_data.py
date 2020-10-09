@@ -205,66 +205,66 @@ if __name__ == '__main__':
     # print('**********第一阶段结束**********')
     # ###############################################################################
 
-    # # 由于StatusList, ScanStatusList都需要对齐s级时间戳，因此在一起处理
-    # # 由于需要scan文件中的conn数据进行补充，因此ConnStatusList也需要在一起处理
-    # ###############################################################################
-    # print('**********第二阶段：解析文件，提取StatusList, ScanStatusList, ConnStatusList写入data.csv, scanData.csv, connData.csv**********')
-    # #####################################################
-    # for i in range(1, 2):
-    #     fileName = '30.113.151.' + str(i)
-    #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
-    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
-    #     dataPath = os.path.join(tmpPath, 'data')
-    #     if os.path.isdir(path):
-    #         if not os.path.isdir(dataPath):
-    #             os.makedirs(dataPath)
-    #         #####################################################
-    #         print('重置全局变量sList, scanStatusList, ConnStatusList')
-    #         print('connStartTime, startTimes, endTimes')
-    #         Status.sList = [Status.Status() for _ in range(86400*15)]
-    #         Status.scanStatusList = [Status.ScanStatus() for _ in range(86400*15)]
+    # 由于StatusList, ScanStatusList都需要对齐s级时间戳，因此在一起处理
+    # 由于需要scan文件中的conn数据进行补充，因此ConnStatusList也需要在一起处理
+    ###############################################################################
+    print('**********第二阶段：解析文件，提取StatusList, ScanStatusList, ConnStatusList写入data.csv, scanData.csv, connData.csv**********')
+    #####################################################
+    for i in range(1, 2):
+        fileName = '30.113.151.' + str(i)
+        path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
+        tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+        dataPath = os.path.join(tmpPath, 'data')
+        if os.path.isdir(path):
+            if not os.path.isdir(dataPath):
+                os.makedirs(dataPath)
+            #####################################################
+            print('重置全局变量sList, scanStatusList, ConnStatusList')
+            print('connStartTime, startTimes, endTimes')
+            Status.sList = [Status.Status() for _ in range(86400*15)]
+            Status.scanStatusList = [Status.ScanStatus() for _ in range(86400*15)]
             
-    #         Status.ConnStatusList = []
+            Status.ConnStatusList = []
 
-    #         calcTime.connStartTime = -1
-    #         calcTime.startTimes = [-1 for i in range(6)]
-    #         calcTime.endTimes = [-1 for i in range(6)]
-    #         #####################################################
-    #         #####################################################
-    #         print('解析文件数据，写入StatusList, ScanStatusList, ConnStatusList')
-    #         writeDataIntoStatusList(dataPath)
-    #         #####################################################
-    #         #####################################################
-    #         print('对齐最大开始时间戳与最小结束时间戳')
-    #         startTime = max(list(filter(lambda x: x != -1, calcTime.startTimes)))
-    #         endTime = min(list(filter(lambda x: x != -1, calcTime.endTimes)))
-    #         sliceStart = startTime - calcTime.connStartTime
-    #         sliceEnd = endTime - calcTime.connStartTime + 1
-    #         Status.sList = Status.sList[sliceStart : sliceEnd]
-    #         Status.scanStatusList = Status.scanStatusList[sliceStart : sliceEnd]
-    #         print('startTime = {}, endTime = {}'.format(startTime, endTime))
-    #         #####################################################
-    #         #####################################################
-    #         print('填补StatusList缺失数据')
-    #         fillDir = os.path.join(tmpPath, 'fillDir')
-    #         if not os.path.isdir(fillDir):
-    #             os.mkdir(fillDir)
-    #         fillComm(Status.sList, startTime, fillDir)
-    #         fillConn(Status.sList, startTime, fillDir)
-    #         fillScan(Status.scanStatusList, startTime)
-    #         fillPing151ForEvent(Status.sList, startTime, fillDir)
-    #         fillPing127ForEvent(Status.sList, startTime, fillDir)
-    #         fillTcpprobeForEvent(Status.sList, startTime, fillDir)
-    #         #####################################################
-    #         #####################################################
-    #         print('将StatusList与ScanStatusList, ConnStatusList写入csv文件')
-    #         csvPath = tmpPath
-    #         writeStatusIntoCsv(csvPath)
-    #         writeScanStatusIntoCsv(csvPath)
-    #         writeConnStatusIntoCsv(csvPath)
-    #         #####################################################
-    # print('**********第二阶段结束**********')
-    # ###############################################################################
+            calcTime.connStartTime = -1
+            calcTime.startTimes = [-1 for i in range(6)]
+            calcTime.endTimes = [-1 for i in range(6)]
+            #####################################################
+            #####################################################
+            print('解析文件数据，写入StatusList, ScanStatusList, ConnStatusList')
+            writeDataIntoStatusList(dataPath)
+            #####################################################
+            #####################################################
+            print('对齐最大开始时间戳与最小结束时间戳')
+            startTime = max(list(filter(lambda x: x != -1, calcTime.startTimes)))
+            endTime = min(list(filter(lambda x: x != -1, calcTime.endTimes)))
+            sliceStart = startTime - calcTime.connStartTime
+            sliceEnd = endTime - calcTime.connStartTime + 1
+            Status.sList = Status.sList[sliceStart : sliceEnd]
+            Status.scanStatusList = Status.scanStatusList[sliceStart : sliceEnd]
+            print('startTime = {}, endTime = {}'.format(startTime, endTime))
+            #####################################################
+            #####################################################
+            print('填补StatusList缺失数据')
+            fillDir = os.path.join(tmpPath, 'fillDir')
+            if not os.path.isdir(fillDir):
+                os.mkdir(fillDir)
+            fillComm(Status.sList, startTime, fillDir)
+            fillConn(Status.sList, startTime, fillDir)
+            fillScan(Status.scanStatusList, startTime)
+            fillPing151ForEvent(Status.sList, startTime, fillDir)
+            fillPing127ForEvent(Status.sList, startTime, fillDir)
+            fillTcpprobeForEvent(Status.sList, startTime, fillDir)
+            #####################################################
+            #####################################################
+            print('将StatusList与ScanStatusList, ConnStatusList写入csv文件')
+            csvPath = tmpPath
+            writeStatusIntoCsv(csvPath)
+            writeScanStatusIntoCsv(csvPath)
+            writeConnStatusIntoCsv(csvPath)
+            #####################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
 
 
     # ###############################################################################
