@@ -7,7 +7,7 @@ from parseScan import parseScan, fillScan
 from parsePing127 import parsePing127, fillPing127ForEvent
 from parsePing151 import parsePing151, fillPing151ForEvent
 
-from parseComm import parseComm, fillComm
+from parseComm import parseComm, fillComm, parseCommForCommStatusList
 
 from parseTcpprobe import parseTcpprobeForStatusList, parseTcpprobeForTcpprobeStatusList, fillTcpprobeForEvent
 
@@ -80,6 +80,20 @@ def writeDataIntoStatusList(dataPath):
             parseTcpprobeForStatusList(dataFile)
 
 
+def writeDataIntoCommStatusList(dataPath):
+    dataFiles = os.listdir(dataPath)
+    # 排序以保证按照时间顺序解析文件，startTimes与connStartTime正确
+    dataFiles.sort()
+    for dataFile in dataFiles:
+        dataFile = os.path.join(dataPath, dataFile)
+        # tmp = ['communication.log.2019-08-05-1', 'conn.1564932739', 'ping127.1564932739', 'ping151.1564932739', 'scan.1564932739']
+        # for tmpStr in tmp:
+        #     if tmpStr in dataFile:
+        print(dataFile)
+        if 'communication' in dataFile:
+            parseCommForCommStatusList(dataFile)
+
+
 def writeDataIntoTcpprobeStatusList(dataPath):
     dataFiles = os.listdir(dataPath)
     # 排序以保证按照时间顺序解析文件，startTimes与connStartTime正确
@@ -98,7 +112,7 @@ def writeStatusIntoCsv(csvPath):
     #####################################################
     print('s级时间戳对齐后的sList写入data.csv文件')
     headers = [
-               'agvCode', 'dspStatus', 'destPosX', 'destPosY', 'curPosX', 'curPosY', 'curTimestamp', 'direction', 'aggregation', 'speed', 'withBucket', 
+               'agvCode', 'dspStatus', 'destPosX', 'destPosY', 'curPosX', 'curPosY', 'curTimestamp', 'direction', 'speed', 'withBucket', 'jobSn',
                'W0APMac', 'W0channel', 'W0level', 'W1APMac', 'W1channel', 'W1level',
                'W0pingrtt', 'W1pingrtt',
                'scanW0APCount', 'scanW0APLevelMin', 'scanW0APMacMin', 'scanW0APLevelMax', 'scanW0APMacMax', 
@@ -109,6 +123,21 @@ def writeStatusIntoCsv(csvPath):
         f_csv = csv.DictWriter(f, headers)
         f_csv.writeheader()
         for s in Status.sList:
+            f_csv.writerow(dict(s))
+        # f_csv.writerows(Status.sList[sliceStart : sliceEnd])
+    #####################################################
+
+
+def writeCommStatusIntoCsv(csvPath):
+    #####################################################
+    print('ms级时间戳对齐后的CommStatusList写入commData.csv文件')
+    headers = [
+               'agvCode', 'dspStatus', 'destPosX', 'destPosY', 'curPosX', 'curPosY', 'curTimestamp', 'direction', 'speed', 'withBucket', 'jobSn'
+              ]
+    with open(os.path.join(csvPath, 'commData.csv'), 'w', newline='') as f:
+        f_csv = csv.DictWriter(f, headers)
+        f_csv.writeheader()
+        for s in Status.CommStatusList:
             f_csv.writerow(dict(s))
         # f_csv.writerows(Status.sList[sliceStart : sliceEnd])
     #####################################################
@@ -239,7 +268,35 @@ if __name__ == '__main__':
 
 
     # ###############################################################################
-    # print('**********第三阶段：解析文件，提取TcpprobeStatusList写入tcpprobeData.csv**********')
+    # print('**********第三阶段：解析文件，提取CommStatusList写入commData.csv**********')
+    # #####################################################
+    # for i in range(1, 2):
+    #     fileName = '30.113.151.' + str(i)
+    #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
+    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+    #     dataPath = os.path.join(tmpPath, 'data')
+    #     if os.path.isdir(path):
+    #         if not os.path.isdir(dataPath):
+    #             os.makedirs(dataPath)
+    #         #####################################################
+    #         print('重置全局变量CommStatusList')
+    #         Status.CommStatusList = []
+    #         #####################################################
+    #         #####################################################
+    #         print('解析文件数据，写入CommStatusList')
+    #         writeDataIntoCommStatusList(dataPath)
+    #         #####################################################
+    #         #####################################################
+    #         print('将CommStatusList写入csv文件')
+    #         csvPath = tmpPath
+    #         writeCommStatusIntoCsv(csvPath)
+    #         #####################################################
+    # print('**********第三阶段结束**********')
+    # ###############################################################################
+
+
+    # ###############################################################################
+    # print('**********第四阶段：解析文件，提取TcpprobeStatusList写入tcpprobeData.csv**********')
     # #####################################################
     # for i in range(1, 2):
     #     fileName = '30.113.151.' + str(i)
@@ -262,12 +319,68 @@ if __name__ == '__main__':
     #         csvPath = tmpPath
     #         writeTcpprobeStatusIntoCsv(csvPath)
     #         #####################################################
-    # print('**********第三阶段结束**********')
+    # print('**********第四阶段结束**********')
     # ###############################################################################
 
 
     # ###############################################################################
-    # print('**********第四阶段：删除data文件夹下的解压文件，减轻磁盘压力**********')
+    # print('**********第五阶段：对connData.csv与commData.csv进行去重处理**********')
+    # #####################################################
+    # for i in range(1, 2):
+    #     fileName = '30.113.151.' + str(i)
+    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+    #     if os.path.isdir(tmpPath):
+    #         #####################################################
+    #         print('对commData.csv去重')
+    #         commDf = pd.read_csv(os.path.join(tmpPath, 'commData.csv'), 
+    #                              usecols=['agvCode', 'dspStatus', 'destPosX', 'destPosY', 
+    #                                       'curPosX', 'curPosY', 'curTimestamp', 'direction', 
+    #                                       'speed', 'withBucket', 'jobSn'],
+    #                              dtype={'agvCode' : str, 'dspStatus' : str, 
+    #                                     'destPosX' : int, 'destPosY' : int, 
+    #                                     'curPosX' : int, 'curPosY' : int, 
+    #                                     'curTimestamp' : int, 'direction' : float, 
+    #                                     'speed' : float, 'withBucket' : int, 
+    #                                     'jobSn' : int},
+    #                              na_filter=False)
+    #         print(commDf.describe())
+    #         commDf['second'] = (commDf['curTimestamp'] / 1000).astype(int)
+    #         commDf.drop_duplicates(subset=['agvCode', 'dspStatus', 'destPosX', 'destPosY', 
+    #                                        'curPosX', 'curPosY', 'second', 'direction', 
+    #                                        'speed', 'withBucket', 'jobSn'], keep='first', inplace=True)
+    #         commDf.reset_index(drop=True, inplace=True)
+    #         print(commDf.describe())
+    #         commDf.to_csv(os.path.join(tmpPath, 'commData.csv'))
+    #         #####################################################
+    #         #####################################################
+    #         print('对connData.csv去重')
+    #         connDf = pd.read_csv(os.path.join(tmpPath, 'connData.csv'), na_filter=False, 
+    #                              usecols=['timestamp', 
+    #                                       'W0APMac', 'W0channel', 'W0level',
+    #                                       'W1APMac', 'W1channel', 'W1level'],
+    #                           dtype={'timestamp' : int, 
+    #                                  'W0APMac' : str,
+    #                                  'W0channel' : float,
+    #                                  'W0level': int, 
+    #                                  'W1APMac' : str,
+    #                                  'W1channel' : float,
+    #                                  'W1level': int})
+    #         print(connDf.describe())
+    #         connDf['second'] = (connDf['timestamp'] / 1000).astype(int)
+    #         connDf.drop_duplicates(subset=['second',
+    #                                        'W0APMac', 'W0channel', 'W0level', 
+    #                                        'W1APMac', 'W1channel', 'W1level'], keep='first', inplace=True)
+    #         connDf.reset_index(drop=True, inplace=True)
+    #         print(connDf.describe())
+    #         connDf.to_csv(os.path.join(tmpPath, 'connData.csv'))
+    #         #####################################################
+    # #####################################################
+    # print('**********第五阶段结束**********')
+    # ###############################################################################
+
+
+    # ###############################################################################
+    # print('**********第六阶段：删除data文件夹下的解压文件，减轻磁盘压力**********')
     # #####################################################
     # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
@@ -276,5 +389,5 @@ if __name__ == '__main__':
     #     print('删除data文件夹及下属所有解压文件')
     #     rmExtractedFiles(dataPath)
     # #####################################################
-    # print('**********第四阶段结束**********')
+    # print('**********第六阶段结束**********')
     # ###############################################################################

@@ -37,30 +37,65 @@ def parseComm(commFile):
                 Status.sList[pos].destPosY = int(float(re.findall('(?<=destPosY=).*?(?=,)', line)[0]) / 1000)
                 Status.sList[pos].curPosX = int(float(re.findall('(?<=curPosX=).*?(?=,)', line)[0]) / 1000)
                 Status.sList[pos].curPosY = int(float(re.findall('(?<=curPosY=).*?(?=,)', line)[0]) / 1000)
+                Status.sList[pos].curTimestamp = curTimestamp
+                Status.sList[pos].direction = float(re.findall('(?<=direction=).*?(?=,)', line)[0])
+                Status.sList[pos].speed = float(re.findall('(?<=speed=).*?(?=,)', line)[0])
+                Status.sList[pos].withBucket = int(re.findall('(?<=withBucket=).*?(?=,)', line)[0])
+                Status.sList[pos].jobSn = int(re.findall('(?<=jobSn=).*?(?=,)', line)[0])
+                
                 # 在解析comm文件时赋值
                 Status.scanStatusList[pos].curPosX = int(float(re.findall('(?<=curPosX=).*?(?=,)', line)[0]) / 1000)
                 Status.scanStatusList[pos].curPosY = int(float(re.findall('(?<=curPosY=).*?(?=,)', line)[0]) / 1000)
-                Status.sList[pos].curTimestamp = curTimestamp
                 
-                direction = float(re.findall('(?<=direction=).*?(?=,)', line)[0])
-                if direction < 0.8:
-                    Status.sList[pos].direction = 'up'
-                    Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2)
-                elif direction < 2.3:
-                    Status.sList[pos].direction = 'left'
-                    Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2) + 1
-                elif direction < 3.9:
-                    Status.sList[pos].direction = 'down'
-                    Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2) + 2
-                elif direction < 5.4:
-                    Status.sList[pos].direction = 'right'
-                    Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2) + 3
-                else:
-                    Status.sList[pos].direction = 'up'
-                    Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2)
-                
-                Status.sList[pos].speed = float(re.findall('(?<=speed=).*?(?=,)', line)[0])
-                Status.sList[pos].withBucket = int(re.findall('(?<=withBucket=).*?(?=,)', line)[0])
+                # direction = float(re.findall('(?<=direction=).*?(?=,)', line)[0])
+                # if direction < 0.8:
+                #     Status.sList[pos].direction = 'up'
+                #     Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2)
+                # elif direction < 2.3:
+                #     Status.sList[pos].direction = 'left'
+                #     Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2) + 1
+                # elif direction < 3.9:
+                #     Status.sList[pos].direction = 'down'
+                #     Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2) + 2
+                # elif direction < 5.4:
+                #     Status.sList[pos].direction = 'right'
+                #     Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2) + 3
+                # else:
+                #     Status.sList[pos].direction = 'up'
+                #     Status.sList[pos].aggregation = (Status.sList[pos].curPosX << 10) + (Status.sList[pos].curPosY << 2)
+                #####################################################
+            except:
+                    count += 1
+    print("try-except错误次数：{}".format(count))
+
+
+
+
+def parseCommForCommStatusList(commFile):
+    count = 0
+    with gzip.open(commFile, 'r') as f:
+        for line in f.readlines():
+            try:
+                #####################################################
+                # 从文件中提取数据，赋值变量
+                line = str(line, encoding="utf-8")
+                #####################################################
+                #####################################################
+                commStatus = Status.CommStatus()
+
+                commStatus.agvCode = re.findall('(?<=agvId=AGV-).*?(?=,)', line)[0]
+                commStatus.dspStatus = re.findall('(?<=dspStatus=).*?(?=,)', line)[0]
+                commStatus.destPosX = int(float(re.findall('(?<=destPosX=).*?(?=,)', line)[0]) / 1000)
+                commStatus.destPosY = int(float(re.findall('(?<=destPosY=).*?(?=,)', line)[0]) / 1000)
+                commStatus.curPosX = int(float(re.findall('(?<=curPosX=).*?(?=,)', line)[0]) / 1000)
+                commStatus.curPosY = int(float(re.findall('(?<=curPosY=).*?(?=,)', line)[0]) / 1000)
+                commStatus.curTimestamp = int(re.findall('(?<=curTimestamp=).*?(?=,)', line)[0])
+                commStatus.direction = float(re.findall('(?<=direction=).*?(?=,)', line)[0])
+                commStatus.speed = float(re.findall('(?<=speed=).*?(?=,)', line)[0])
+                commStatus.withBucket = int(re.findall('(?<=withBucket=).*?(?=,)', line)[0])
+                commStatus.jobSn = int(re.findall('(?<=jobSn=).*?(?=,)', line)[0])
+
+                Status.CommStatusList.append(commStatus)
                 #####################################################
             except:
                     count += 1
