@@ -3,6 +3,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd 
 import time
+import datetime
 import os
 import sys
 import math
@@ -51,6 +52,10 @@ def drawComm(csvFile, tmpDir):
                                         pow(row['curPosY'] - row['destPosY'], 2)
                                                                 )),
                                       axis=1)
+	
+    print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
+    taskDf['startDate'] = taskDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start']), axis=1)
+    taskDf['endDate'] = taskDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end']), axis=1)
     #####################################################
     #####################################################
     print('准备任务耗时CDF数据')
