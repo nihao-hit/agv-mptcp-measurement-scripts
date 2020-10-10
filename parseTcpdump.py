@@ -4,6 +4,7 @@ import re
 import math
 import os
 import time
+import datetime
 import pandas as pd
 import functools
 
@@ -41,7 +42,7 @@ def parseTcpdump(dataPath):
         subprocess.call('echo mptcpNum: {} >> {}'.format(mptcpNum, staticsFile), shell=True)
         subprocess.call('mptcpcrunch -c {} >> {}'.format(pcapFile, staticsFile), shell=True)
         subprocess.call('mptcpcrunch -s {} >> {}'.format(pcapFile, staticsFile), shell=True)
-        subprocess.call('echo "\|\|" >> {}'.format(staticsFile), shell=True)
+        subprocess.call('echo "||" >> {}'.format(staticsFile), shell=True)
 
         subXplDir = os.path.join(xplDir, os.path.splitext(os.path.split(pcapFile)[1])[0])
         if not os.path.isdir(subXplDir):
@@ -49,3 +50,25 @@ def parseTcpdump(dataPath):
         p = subprocess.Popen('cd {};mptcpplot -a -j {}'.format(subXplDir, pcapFile), shell=True)
         p.wait()
     #####################################################
+
+
+def parseStatics(staticsFile, tmpDir):
+    count = 0
+    mptcpStatusList = []
+    with open(staticsFile, 'r') as f:
+        mptcpList = f.read()
+        mptcpList = list(filter(lambda content: len(content) != 0, mptcpList.split('||')))
+        for mptcp in mptcpList:
+            try:
+                mptcpNum = int(re.findall(r'(?<=mptcpNum: )\d+(?=\n)', mptcp)[0])
+                first_timestamp = int(float(re.findall(r'(?<=first_timestamp: )\d+\.\d+(?= )', mptcp)[0]) * 1e3)
+                last_timestamp = int(float(re.findall(r'(?<=last_timestamp: )\d+\.\d+(?= )', mptcp)[0]) * 1e3)
+                mptcpStatusList.append([mptcpNum, first_timestamp, last_timestamp])
+            except:
+                count += 1
+    mptcpDf = pd.DataFrame(mptcpStatusList, columns=['mptcpNum', 'first_timestamp', 'last_timestamp'])
+    mptcpDf['duration'] = mptcpDf['last_timestamp'] - mptcpDf['first_timestamp']
+    mptcpDf['startDate'] = mptcpDf.apply(lambda row : datetime.datetime.fromtimestamp(row['first_timestamp'] / 1000), axis=1)
+    mptcpDf['endDate'] = mptcpDf.apply(lambda row : datetime.datetime.fromtimestamp(row['last_timestamp'] / 1000), axis=1)
+    mptcpDf.to_csv(os.path.join(tmpDir, 'mptcpData.csv'))
+    print("try-except错误次数：{}".format(count))
