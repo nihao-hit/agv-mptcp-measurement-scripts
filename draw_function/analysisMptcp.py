@@ -6,18 +6,19 @@ import seaborn as sns
 import numpy as np
 import pandas as pd 
 import time
+import datetime
 import os
 import sys
 
 from Status import ScanStatus
 
 # 通过端口号，path_index，初始序列号区分当前使用子流
-def drawSubflowUseTime(csvFile, tmpDir):
+def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
-    print('读入csv文件为dataframe')
-    df = pd.read_csv(csvFile, usecols=['timestamp', 'src', 'srcPort', 'dst', 'dstPort', 
+    print('读入tcpprobeData.csv文件为dataframe')
+    df = pd.read_csv(tcpprobeCsvFile, usecols=['timestamp', 'src', 'srcPort', 'dst', 'dstPort', 
                                        'length', 
                                        'snd_nxt', 'snd_una', 
                                        'snd_cwnd', 'ssthresh',
@@ -32,32 +33,13 @@ def drawSubflowUseTime(csvFile, tmpDir):
                                    'path_index':int, 'map_data_len':int, 'map_data_seq':int, 'map_subseq':int,
                                    'snt_isn':int, 'rcv_isn':int})
     #####################################################
-    # #####################################################
-    # print('将30.113.151.替换为151, 30.113.127.替换为127，方便统计时间序列上src的变化')
-    # df.loc['151' in df['src']] = 151
-    # df.loc['127' in df['src']] = 127
-    # #####################################################
     #####################################################
-    # print('提取src, timestamp，观察src在时间序列上的变化，并记录每个值的起始时间戳')
-    # src = pd.Series(data=list(df['src']), index=df['timestamp'])
-    # srcDiff = src.replace(0, np.nan).dropna().diff().replace(0, np.nan).dropna()
-    # srcDiff = pd.concat([src[:1], srcDiff])
-    # srcDiff = srcDiff.cumsum().astype(int)
-    # srcDiff.columns = ['timestamp', 'path_index']
-
     print('提取srcPort, timestamp，观察srcPort在时间序列上的变化，并记录每个值的起始时间戳')
     srcPort = pd.Series(data=list(df['srcPort']), index=df['timestamp'])
     srcPortDiff = srcPort.replace(0, np.nan).dropna().diff().replace(0, np.nan).dropna()
     srcPortDiff = pd.concat([srcPort[:1], srcPortDiff])
     srcPortDiff = srcPortDiff.cumsum().astype(int)
     srcPortDiff.columns = ['timestamp', 'srcPort']
-
-#     print('提取dstPort, timestamp，观察dstPort在时间序列上的变化，并记录每个值的起始时间戳')
-#     dstPort = pd.Series(data=list(df['dstPort']), index=df['timestamp'])
-#     dstPortDiff = dstPort.replace(0, np.nan).dropna().diff().replace(0, np.nan).dropna()
-#     dstPortDiff = pd.concat([dstPort[:1], dstPortDiff])
-#     dstPortDiff = dstPortDiff.cumsum().astype(int)
-#     dstPortDiff.columns = ['timestamp', 'dstPort']
     #####################################################
     #####################################################
     print('提取path_index, timestamp，观察path_index在时间序列上的变化，并记录每个值的起始时间戳')
@@ -66,24 +48,6 @@ def drawSubflowUseTime(csvFile, tmpDir):
     path_indexDiff = pd.concat([path_index[:1], path_indexDiff])
     path_indexDiff = path_indexDiff.cumsum().astype(int)
     path_indexDiff.columns = ['timestamp', 'path_index']
-
-#     print('提取map_data_len, timestamp，观察map_data_len在时间序列上的变化，并记录每个值的起始时间戳')
-#     map_data_len = pd.Series(data=list(df['map_data_len']), index=df['timestamp'])
-#     map_data_lenDiff = map_data_len.replace(0, np.nan).dropna().diff().replace(0, np.nan).dropna()
-#     map_data_lenDiff = pd.concat([map_data_len[:1], map_data_lenDiff])
-#     map_data_lenDiff = map_data_lenDiff.cumsum().astype(int)
-
-#     print('提取map_data_seq, timestamp，观察map_data_seq在时间序列上的变化，并记录每个值的起始时间戳')
-#     map_data_seq = pd.Series(data=list(df['map_data_seq']), index=df['timestamp'])
-#     map_data_seqDiff = map_data_seq.replace(0, np.nan).dropna().diff().replace(0, np.nan).dropna()
-#     map_data_seqDiff = pd.concat([map_data_seq[:1], map_data_seqDiff])
-#     map_data_seqDiff = map_data_seqDiff.cumsum().astype(int)
-
-#     print('提取map_subseq, timestamp，观察map_subseq在时间序列上的变化，并记录每个值的起始时间戳')
-#     map_subseq = pd.Series(data=list(df['map_subseq']), index=df['timestamp'])
-#     map_subseqDiff = map_subseq.replace(0, np.nan).dropna().diff().replace(0, np.nan).dropna()
-#     map_subseqDiff = pd.concat([map_subseq[:1], map_subseqDiff])
-#     map_subseqDiff = map_subseqDiff.cumsum().astype(int)
     #####################################################
     #####################################################
     print('提取snt_isn, timestamp，观察snt_isn在时间序列上的变化，并记录每个值的起始时间戳')
@@ -112,7 +76,14 @@ def drawSubflowUseTime(csvFile, tmpDir):
     #####################################################
     #####################################################
     print('构造tcp子流连续使用时长CDF数据')
-    subflowDuration = pd.DataFrame([(mergeDiff.iloc[i]['timestamp'], mergeDiff.iloc[i + 1]['timestamp'] - mergeDiff.iloc[i]['timestamp']) for i in range(len(mergeDiff)-1)], columns=['timestamp', 'duration'])
+    subflowDuration = pd.DataFrame([(mergeDiff.iloc[i]['timestamp'], 
+                                     mergeDiff.iloc[i + 1]['timestamp'], 
+                                     mergeDiff.iloc[i + 1]['timestamp'] - mergeDiff.iloc[i]['timestamp']
+                                    ) for i in range(len(mergeDiff)-1)], columns=['timestamp', 'nextTimestamp', 'duration'])
+    print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
+    subflowDuration['startDate'] = subflowDuration.apply(lambda row : datetime.datetime.fromtimestamp(row['timestamp'] / 1000), axis=1)
+    subflowDuration['nextStartDate'] = subflowDuration.apply(lambda row : datetime.datetime.fromtimestamp(row['nextTimestamp'] / 1000), axis=1)
+
     subflowDurationGroup = subflowDuration.merge(df[['timestamp', 'src']], on='timestamp', how='left').groupby('src')
     w0SubflowDuration = 0
     w1SubflowDuration = 0
