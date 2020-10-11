@@ -51,27 +51,27 @@ if __name__ == '__main__':
             # print("w0rtt，w1rtt，w0rtt与w1rtt最小值，srtt的CDF")
             # drawCDFForOneAgvData(csvFile, analysisRttDir)
             # #####################################################
-            # #####################################################
-            # print('mptcp分析')
-            # mptcpDir = os.path.join(csvPath, 'anlysisMptcp')
-            # print(mptcpDir)
-            # if not os.path.isdir(mptcpDir):
-            #     os.makedirs(mptcpDir)
-            # print("统计当前子流状态变动")
-            # drawSubflowUseTime(tcpprobeCsvFile, mptcpDir)
+            #####################################################
+            print('mptcp分析')
+            mptcpDir = os.path.join(csvPath, 'anlysisMptcp')
+            print(mptcpDir)
+            if not os.path.isdir(mptcpDir):
+                os.makedirs(mptcpDir)
+            print("统计当前子流状态变动")
+            drawSubflowUseTime(tcpprobeCsvFile, mptcpDir)
             # print('统计子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt')
             # mergeDiffCsvFile = os.path.join(mptcpDir, 'mergeDiff.csv')
             # drawMptcp(tcpprobeCsvFile, mergeDiffCsvFile, mptcpDir)
+            #####################################################
             # #####################################################
-            #####################################################
-            print('应用分析')
-            commDir = os.path.join(csvPath, 'anlysisComm')
-            print(commDir)
-            if not os.path.isdir(commDir):
-                os.makedirs(commDir)
-            print("粗粒度分析")
-            drawComm(csvFile, commDir)
-            #####################################################
+            # print('应用分析')
+            # commDir = os.path.join(csvPath, 'anlysisComm')
+            # print(commDir)
+            # if not os.path.isdir(commDir):
+            #     os.makedirs(commDir)
+            # print("粗粒度分析")
+            # drawComm(csvFile, commDir)
+            # #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
     

@@ -11,6 +11,8 @@ from parseComm import parseComm, fillComm, parseCommForCommStatusList
 
 from parseTcpprobe import parseTcpprobeForStatusList, parseTcpprobeForTcpprobeStatusList, fillTcpprobeForEvent
 
+from parseTcpdump import parseTcpdump, parseStatics
+
 import shutil
 import re
 import os
@@ -205,66 +207,66 @@ if __name__ == '__main__':
     # print('**********第一阶段结束**********')
     # ###############################################################################
 
-    # 由于StatusList, ScanStatusList都需要对齐s级时间戳，因此在一起处理
-    # 由于需要scan文件中的conn数据进行补充，因此ConnStatusList也需要在一起处理
-    ###############################################################################
-    print('**********第二阶段：解析文件，提取StatusList, ScanStatusList, ConnStatusList写入data.csv, scanData.csv, connData.csv**********')
-    #####################################################
-    for i in range(1, 2):
-        fileName = '30.113.151.' + str(i)
-        path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
-        tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
-        dataPath = os.path.join(tmpPath, 'data')
-        if os.path.isdir(path):
-            if not os.path.isdir(dataPath):
-                os.makedirs(dataPath)
-            #####################################################
-            print('重置全局变量sList, scanStatusList, ConnStatusList')
-            print('connStartTime, startTimes, endTimes')
-            Status.sList = [Status.Status() for _ in range(86400*15)]
-            Status.scanStatusList = [Status.ScanStatus() for _ in range(86400*15)]
+    # # 由于StatusList, ScanStatusList都需要对齐s级时间戳，因此在一起处理
+    # # 由于需要scan文件中的conn数据进行补充，因此ConnStatusList也需要在一起处理
+    # ###############################################################################
+    # print('**********第二阶段：解析文件，提取StatusList, ScanStatusList, ConnStatusList写入data.csv, scanData.csv, connData.csv**********')
+    # #####################################################
+    # for i in range(1, 2):
+    #     fileName = '30.113.151.' + str(i)
+    #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
+    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+    #     dataPath = os.path.join(tmpPath, 'data')
+    #     if os.path.isdir(path):
+    #         if not os.path.isdir(dataPath):
+    #             os.makedirs(dataPath)
+    #         #####################################################
+    #         print('重置全局变量sList, scanStatusList, ConnStatusList')
+    #         print('connStartTime, startTimes, endTimes')
+    #         Status.sList = [Status.Status() for _ in range(86400*15)]
+    #         Status.scanStatusList = [Status.ScanStatus() for _ in range(86400*15)]
             
-            Status.ConnStatusList = []
+    #         Status.ConnStatusList = []
 
-            calcTime.connStartTime = -1
-            calcTime.startTimes = [-1 for i in range(6)]
-            calcTime.endTimes = [-1 for i in range(6)]
-            #####################################################
-            #####################################################
-            print('解析文件数据，写入StatusList, ScanStatusList, ConnStatusList')
-            writeDataIntoStatusList(dataPath)
-            #####################################################
-            #####################################################
-            print('对齐最大开始时间戳与最小结束时间戳')
-            startTime = max(list(filter(lambda x: x != -1, calcTime.startTimes)))
-            endTime = min(list(filter(lambda x: x != -1, calcTime.endTimes)))
-            sliceStart = startTime - calcTime.connStartTime
-            sliceEnd = endTime - calcTime.connStartTime + 1
-            Status.sList = Status.sList[sliceStart : sliceEnd]
-            Status.scanStatusList = Status.scanStatusList[sliceStart : sliceEnd]
-            print('startTime = {}, endTime = {}'.format(startTime, endTime))
-            #####################################################
-            #####################################################
-            print('填补StatusList缺失数据')
-            fillDir = os.path.join(tmpPath, 'fillDir')
-            if not os.path.isdir(fillDir):
-                os.mkdir(fillDir)
-            fillComm(Status.sList, startTime, fillDir)
-            fillConn(Status.sList, startTime, fillDir)
-            fillScan(Status.scanStatusList, startTime)
-            fillPing151ForEvent(Status.sList, startTime, fillDir)
-            fillPing127ForEvent(Status.sList, startTime, fillDir)
-            fillTcpprobeForEvent(Status.sList, startTime, fillDir)
-            #####################################################
-            #####################################################
-            print('将StatusList与ScanStatusList, ConnStatusList写入csv文件')
-            csvPath = tmpPath
-            writeStatusIntoCsv(csvPath)
-            writeScanStatusIntoCsv(csvPath)
-            writeConnStatusIntoCsv(csvPath)
-            #####################################################
-    print('**********第二阶段结束**********')
-    ###############################################################################
+    #         calcTime.connStartTime = -1
+    #         calcTime.startTimes = [-1 for i in range(6)]
+    #         calcTime.endTimes = [-1 for i in range(6)]
+    #         #####################################################
+    #         #####################################################
+    #         print('解析文件数据，写入StatusList, ScanStatusList, ConnStatusList')
+    #         writeDataIntoStatusList(dataPath)
+    #         #####################################################
+    #         #####################################################
+    #         print('对齐最大开始时间戳与最小结束时间戳')
+    #         startTime = max(list(filter(lambda x: x != -1, calcTime.startTimes)))
+    #         endTime = min(list(filter(lambda x: x != -1, calcTime.endTimes)))
+    #         sliceStart = startTime - calcTime.connStartTime
+    #         sliceEnd = endTime - calcTime.connStartTime + 1
+    #         Status.sList = Status.sList[sliceStart : sliceEnd]
+    #         Status.scanStatusList = Status.scanStatusList[sliceStart : sliceEnd]
+    #         print('startTime = {}, endTime = {}'.format(startTime, endTime))
+    #         #####################################################
+    #         #####################################################
+    #         print('填补StatusList缺失数据')
+    #         fillDir = os.path.join(tmpPath, 'fillDir')
+    #         if not os.path.isdir(fillDir):
+    #             os.mkdir(fillDir)
+    #         fillComm(Status.sList, startTime, fillDir)
+    #         fillConn(Status.sList, startTime, fillDir)
+    #         fillScan(Status.scanStatusList, startTime)
+    #         fillPing151ForEvent(Status.sList, startTime, fillDir)
+    #         fillPing127ForEvent(Status.sList, startTime, fillDir)
+    #         fillTcpprobeForEvent(Status.sList, startTime, fillDir)
+    #         #####################################################
+    #         #####################################################
+    #         print('将StatusList与ScanStatusList, ConnStatusList写入csv文件')
+    #         csvPath = tmpPath
+    #         writeStatusIntoCsv(csvPath)
+    #         writeScanStatusIntoCsv(csvPath)
+    #         writeConnStatusIntoCsv(csvPath)
+    #         #####################################################
+    # print('**********第二阶段结束**********')
+    # ###############################################################################
 
 
     # ###############################################################################
@@ -379,15 +381,33 @@ if __name__ == '__main__':
     # ###############################################################################
 
 
+    ###############################################################################
+    print('**********第六阶段：解析tcpdump文件**********')
+    #####################################################
+    print('解析tcpdump文件')
+    for i in range(1, 2):
+        fileName = '30.113.151.' + str(i)
+        path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
+        tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+        dataPath = os.path.join(tmpPath, 'data')
+        parseTcpdump(dataPath)
+        staticsFile = os.path.join(tmpPath, 'mptcpData/statics.txt')
+        parseStatics(staticsFile, tmpPath)
+    #####################################################
+    print('**********第六阶段结束**********')
+    ###############################################################################
+
+
     # ###############################################################################
-    # print('**********第六阶段：删除data文件夹下的解压文件，减轻磁盘压力**********')
+    # print('**********第七阶段：删除data文件夹下的解压文件，减轻磁盘压力**********')
     # #####################################################
+    # print('删除data文件夹及下属所有解压文件')
     # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
     #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
+    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
     #     dataPath = os.path.join(tmpPath, 'data')
-    #     print('删除data文件夹及下属所有解压文件')
     #     rmExtractedFiles(dataPath)
     # #####################################################
-    # print('**********第六阶段结束**********')
+    # print('**********第七阶段结束**********')
     # ###############################################################################
