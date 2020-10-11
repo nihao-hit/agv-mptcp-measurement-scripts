@@ -37,6 +37,8 @@ def parseTcpdump(dataPath):
     print('使用mptcpcrunch工具统计单条mptcp连接的信息')
     print('使用mptcpplot工具生成time sequence graph文件')
     pcapFileList = sorted(list(map(lambda fileName : os.path.join(pcapDir, fileName), os.listdir(pcapDir))))
+    # 为了解决多次调用parseTcpdump对statics.txt文件的追加内容bug，在这里重置文件
+    subprocess.call('echo > {}'.format(staticsFile), shell=True)
     for pcapFile in pcapFileList:
         mptcpNum = re.findall(r'\d+', os.path.split(pcapFile)[1])[0]
         subprocess.call('echo mptcpNum: {} >> {}'.format(mptcpNum, staticsFile), shell=True)
@@ -70,5 +72,7 @@ def parseStatics(staticsFile, tmpDir):
     mptcpDf['duration'] = mptcpDf['last_timestamp'] - mptcpDf['first_timestamp']
     mptcpDf['startDate'] = mptcpDf.apply(lambda row : datetime.datetime.fromtimestamp(row['first_timestamp'] / 1000), axis=1)
     mptcpDf['endDate'] = mptcpDf.apply(lambda row : datetime.datetime.fromtimestamp(row['last_timestamp'] / 1000), axis=1)
+    mptcpDf.sort_values(by='mptcpNum', inplace=True)
+    # mptcpDf需要按mptcpNum排序，即按时间轴顺序.
     mptcpDf.to_csv(os.path.join(tmpDir, 'mptcpData.csv'))
     print("try-except错误次数：{}".format(count))
