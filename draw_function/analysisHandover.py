@@ -4,6 +4,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd 
 import time
+import datetime
 import os
 import sys
 
@@ -34,7 +35,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                                      'W0level': int, 
                                      'W1APMac' : str,
                                      'W1level': int,})
-    connDf.sort_values(by='timestamp', inplace=True).reset_index(drop=True)
+    connDf.sort_values(by='timestamp', inplace=True)
+    connDf.reset_index(drop=True, inplace=True)
     # print(connDf.describe())
     #####################################################
     #####################################################
@@ -167,6 +169,15 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                                              'rtt1', 'rtt2',
                                              'posX', 'posY', 
                                              'flag'])
+    
+    #####################################################
+    #####################################################
+    print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
+    w0HoDf['startDate'] = w0HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start'] / 1000), axis=1)
+    w0HoDf['endDate'] = w0HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end'] / 1000), axis=1)
+
+    w1HoDf['startDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start'] / 1000), axis=1)
+    w1HoDf['endDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end'] / 1000), axis=1)
     #####################################################
     #####################################################
     print('构造漫游热力图数据')
@@ -205,11 +216,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     print('构造After rtt / Before rtt的CDF数据')
     print('过滤掉sys.maxsize与-sys.maxsize-1，注意过滤数量．')
-    w0HoRtt = w0HoDf[['start', 'rtt1', 'rtt2']].merge(pd.DataFrame(w0RTTSampleTuple, columns=['rtt1SampleTime', 'rtt2SampleTime']), left_index=True)
+    w0HoRtt = w0HoDf[['start', 'rtt1', 'rtt2']].merge(pd.DataFrame(w0RTTSampleTuple, columns=['rtt1SampleTime', 'rtt2SampleTime']), left_index=True, right_index=True)
     w0HoRtt = w0HoRtt[(w0HoRtt['rtt1'] != -sys.maxsize - 1) & (w0HoRtt['rtt2'] != sys.maxsize)]
     w0RTTRatio = (w0HoRtt['rtt2'] / w0HoRtt['rtt1']).quantile(ratio)
 
-    w1HoRtt = w1HoDf[['start', 'rtt1', 'rtt2']].merge(pd.DataFrame(w1RTTSampleTuple, columns=['rtt1SampleTime', 'rtt2SampleTime']), left_index=True)
+    w1HoRtt = w1HoDf[['start', 'rtt1', 'rtt2']].merge(pd.DataFrame(w1RTTSampleTuple, columns=['rtt1SampleTime', 'rtt2SampleTime']), left_index=True, right_index=True)
     w1HoRtt = w1HoRtt[(w1HoRtt['rtt1'] != -sys.maxsize - 1) & (w1HoRtt['rtt2'] != sys.maxsize)]
     w1RTTRatio = (w1HoRtt['rtt2'] / w1HoRtt['rtt1']).quantile(ratio)
     #####################################################
