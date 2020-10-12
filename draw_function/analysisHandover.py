@@ -231,17 +231,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     print('非图表型统计数据构造')
     statics = dict()
-    statics['w0HoCount'] = len(w0HoDf)
-    w0HoFlagCategory = dict(list(w0HoDf.groupby('flag')))
-    statics['w0HoFlag=0Count'] = len(w0HoFlagCategory[0])
-    statics['w0HoFlag=1Count'] = len(w0HoFlagCategory[1])
-    statics['w0HoFlag=2Count'] = len(w0HoFlagCategory[2])
-
-    statics['w1HoCount'] = len(w1HoDf)
-    w1HoFlagCategory = dict(list(w1HoDf.groupby('flag')))
-    statics['w1HoFlag=0Count'] = len(w1HoFlagCategory[0])
-    statics['w1HoFlag=1Count'] = len(w1HoFlagCategory[1])
-    statics['w1HoFlag=2Count'] = len(w1HoFlagCategory[2])
+    for k, v in w0DurationCategory.items():
+        tmp = dict()
+        for k1, v1 in v.groupby('flag'):
+            tmp[k1] = v1['snrGain'].describe()
+        statics[k] = tmp
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -270,7 +264,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('将非图表型统计数据写入文件')
-    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
+    pd.DataFrame(statics).to_csv(os.path.join(tmpDir, 'statics.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
