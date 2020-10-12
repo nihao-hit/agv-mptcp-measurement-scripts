@@ -1,4 +1,4 @@
-# drawHandover : 画单台车的WLAN0与WLAN1漫游热力图，漫游SNR对比CDF，漫游RTT对比CDF，漫游时长CDF
+# drawHandover : 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游SNR增益CDF
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -8,7 +8,7 @@ import datetime
 import os
 import sys
 
-# 画单台车的WLAN0与WLAN1漫游热力图，漫游SNR对比CDF，漫游RTT对比CDF，漫游时长CDF
+# 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游SNR增益CDF
 def drawHandover(csvFile, connCsvFile, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -178,6 +178,10 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
     w1HoDf['startDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start'] / 1000), axis=1)
     w1HoDf['endDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end'] / 1000), axis=1)
+    
+    print('构造SNR增益列')
+    w0HoDf['snrGain'] = w0HoDf['level2'] - w0HoDf['level1']
+    w1HoDf['snrGain'] = w1HoDf['level2'] - w1HoDf['level1']
     #####################################################
     #####################################################
     print('构造漫游热力图数据')
@@ -196,6 +200,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
         .pivot(index='posY', columns='posX', values='count').fillna(0).astype(int).values
     #####################################################
     ratio = np.arange(0, 1.01, 0.01)
+    bins = [0, 200, 1000, 5000, sys.maxsize]
+    labels = ['<=200ms', '200ms-1s', '1s-5s', '>5s']
+    w0DurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index())))
     #####################################################
     print('构造漫游时长CDF数据')
     w0DurationRatio = w0HoDf['duration'].quantile(ratio)
@@ -203,10 +210,18 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('构造漫游时长柱状图数据')
-    bins = [0, 200, 1000, 5000, sys.maxsize]
-    labels = ['<=200ms', '200ms-1s', '1s-5s', '>5s']
     w0DurationBarData = pd.cut(w0HoDf['duration'], bins=bins, labels=labels).value_counts().sort_index() / len(w0HoDf)
     w1DurationBarData = pd.cut(w1HoDf['duration'], bins=bins, labels=labels).value_counts().sort_index() / len(w1HoDf)
+    #####################################################
+    #####################################################
+    print('构造WLAN0漫游时长分类，漫游类型柱状图数据')
+    print('WLAN1因为数据缺失的问题没有研究意义')
+    w0DurationTypeCategory = dict()
+    for k, v in w0DurationCategory.items():
+        tmp = dict()
+        for k1, v1 in v.groupby('flag'):
+            tmp[k1] = len(v1)
+        w0DurationTypeCategory[k] = tmp
     #####################################################
     #####################################################
     print('构造After snr - Before snr的CDF数据')
@@ -214,15 +229,19 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1SNRRatio = (w1HoDf['level2'] - w1HoDf['level1']).quantile(ratio)
     #####################################################
     #####################################################
-    print('构造After rtt / Before rtt的CDF数据')
-    print('过滤掉sys.maxsize与-sys.maxsize-1，注意过滤数量．')
-    w0HoRtt = w0HoDf[['start', 'rtt1', 'rtt2']].merge(pd.DataFrame(w0RTTSampleTuple, columns=['rtt1SampleTime', 'rtt2SampleTime']), left_index=True, right_index=True)
-    w0HoRtt = w0HoRtt[(w0HoRtt['rtt1'] != -sys.maxsize - 1) & (w0HoRtt['rtt2'] != sys.maxsize)]
-    w0RTTRatio = (w0HoRtt['rtt2'] / w0HoRtt['rtt1']).quantile(ratio)
+    print('非图表型统计数据构造')
+    statics = dict()
+    statics['w0HoCount'] = len(w0HoDf)
+    w0HoFlagCategory = dict(list(w0HoDf.groupby('flag')))
+    statics['w0HoFlag=0Count'] = len(w0HoFlagCategory[0])
+    statics['w0HoFlag=1Count'] = len(w0HoFlagCategory[1])
+    statics['w0HoFlag=2Count'] = len(w0HoFlagCategory[2])
 
-    w1HoRtt = w1HoDf[['start', 'rtt1', 'rtt2']].merge(pd.DataFrame(w1RTTSampleTuple, columns=['rtt1SampleTime', 'rtt2SampleTime']), left_index=True, right_index=True)
-    w1HoRtt = w1HoRtt[(w1HoRtt['rtt1'] != -sys.maxsize - 1) & (w1HoRtt['rtt2'] != sys.maxsize)]
-    w1RTTRatio = (w1HoRtt['rtt2'] / w1HoRtt['rtt1']).quantile(ratio)
+    statics['w1HoCount'] = len(w1HoDf)
+    w1HoFlagCategory = dict(list(w1HoDf.groupby('flag')))
+    statics['w1HoFlag=0Count'] = len(w1HoFlagCategory[0])
+    statics['w1HoFlag=1Count'] = len(w1HoFlagCategory[1])
+    statics['w1HoFlag=2Count'] = len(w1HoFlagCategory[2])
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -231,9 +250,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     ###############################################################################
     print('**********第二阶段：将关键统计数据写入文件**********')
     #####################################################
-    print('将漫游事件全部数据写入文件')
-    w0HoDf.to_csv(os.path.join(tmpDir, 'WLAN0漫游统计信息.csv'))
-    w1HoDf.to_csv(os.path.join(tmpDir, 'WLAN1漫游统计信息.csv'))
+    print('将漫游时段汇总写入文件')
+    w0HoDf.to_csv(os.path.join(tmpDir, 'WLAN0漫游时段汇总.csv'))
+    w1HoDf.to_csv(os.path.join(tmpDir, 'WLAN1漫游时段汇总.csv'))
     #####################################################
     #####################################################
     print('将漫游时长CDF信息写入文件')
@@ -241,18 +260,17 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1DurationRatio.to_csv(os.path.join(tmpDir, 'WLAN1漫游时长CDF信息.csv'))
     #####################################################
     #####################################################
+    print('将WLAN0漫游类型分类信息写入文件')
+    pd.DataFrame(w0DurationTypeCategory).to_csv(os.path.join(tmpDir, 'WLAN0漫游类型分类信息.csv'))
+    #####################################################
+    #####################################################
     print('将漫游SNR增益信息写入文件')
     w0SNRRatio.to_csv(os.path.join(tmpDir, 'WLAN0漫游SNR增益信息.csv'))
     w1SNRRatio.to_csv(os.path.join(tmpDir, 'WLAN1漫游SNR增益信息.csv'))
     #####################################################
     #####################################################
-    print('将漫游后RTT比漫游前RTT的CDF信息写入文件')
-    w0RTTRatio.to_csv(os.path.join(tmpDir, 'WLAN0漫游前RTT比漫游后RTT的CDF信息.csv'))
-    w1RTTRatio.to_csv(os.path.join(tmpDir, 'WLAN1漫游前RTT比漫游后RTT的CDF信息.csv'))
-
-    print('将过滤后漫游前后RTT采样信息写入文件')
-    w0HoRtt.to_csv(os.path.join(tmpDir, '过滤后WLAN0漫游前后RTT采样信息.csv'))
-    w1HoRtt.to_csv(os.path.join(tmpDir, '过滤后WLAN1漫游前后RTT采样信息.csv'))
+    print('将非图表型统计数据写入文件')
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
@@ -292,34 +310,38 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.xlim([0, 264])
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
     # 每个刻度5次漫游
     cbarMaxTick = max(list(map(max, w0HoMap)))
     ax = sns.heatmap(w0HoMap, cmap="Blues", vmin=0, 
-                     cbar_kws={'ticks': range(0, cbarMaxTick+5, 5)})
+                     cbar_kws={'ticks': range(0, cbarMaxTick+5, 5), 'label' : '漫游次数'})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
     # 逆置Y轴
     ax.invert_yaxis()
 
-    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游热力图.png'), dpi=150)
+    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游热力图.png'), dpi=100)
     plt.pause(1)
     plt.close()
     plt.pause(1)
     #####################################################
     #####################################################
     print("画WLAN1漫游热力图")
-    plt.title('WLAN１漫游热力图')
+    plt.title('WLAN1漫游热力图')
     plt.xlim([0, 264])
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
     # 每个刻度5次漫游
     cbarMaxTick = max(list(map(max, w1HoMap)))
     ax = sns.heatmap(w1HoMap, cmap="Blues", vmin=0, 
-                     cbar_kws={'ticks': range(0, cbarMaxTick+5, 5)})
+                     cbar_kws={'ticks': range(0, cbarMaxTick+5, 5), 'label' : '漫游次数'})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
     # 逆置Y轴
     ax.invert_yaxis()
 
-    plt.savefig(os.path.join(tmpDir, 'WLAN１漫游热力图.png'), dpi=150)
+    plt.savefig(os.path.join(tmpDir, 'WLAN1漫游热力图.png'), dpi=100)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -335,7 +357,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.title('漫游时长CDF')
     plt.xlim([0, 5000])
     plt.xticks([0, 200, 1000, 5000], ['0', '200ms', '1s', '5s'])
-    plt.xlabel('漫游时长(ms)')
+    plt.xlabel('漫游时长')
 
     plt.ylim([0, 1])
     # range不能迭代float
@@ -354,9 +376,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     print("设置标注")
     plt.legend([cdfW0HoDuration, cdfW1HoDuration],
             ['WLAN0', 
-             'WLAN1'],
-            loc='lower right')
-    
+            'WLAN1'],
+            loc='upper right')
+
     plt.savefig(os.path.join(tmpDir, '漫游时长CDF.png'), dpi=200)
     plt.pause(1)
     plt.close()
@@ -372,11 +394,15 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     print("设置漫游时长分类柱状图坐标轴")
     plt.title('漫游时长分类柱状图')
 
+    plt.xlabel('漫游时长分类')
+    plt.ylabel('比例')
+
     width = 0.3
     x = np.arange(len(w0DurationBarData))
 
     plt.bar(x, list(w0DurationBarData), width=width, label='WLAN0', tick_label=labels)
     plt.bar(x + width, list(w1DurationBarData), width=width, label='WLAN1')
+    plt.legend()
     #####################################################
     #####################################################
     figName = os.path.join(tmpDir, '漫游时长分类柱状图.png')
@@ -391,34 +417,38 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
 
     ###############################################################################
-    print('**********第六阶段：画WLAN0与WLAN1漫游SNR对比CDF**********')
+    print('**********第六阶段：画WLAN0漫游类型分类柱状图**********')
     #####################################################
-    print("设置漫游SNR对比CDF坐标轴")
-    plt.title('漫游SNR对比CDF')
-    # plt.xlim([-10, 10])
-    plt.xlabel('漫游增益(dBm)')
+    print("设置WLAN0漫游类型分类柱状图坐标轴")
+    plt.title('WLAN0漫游类型分类柱状图')
 
-    plt.ylim([0, 1])
-    # range不能迭代float
-    # TypeError: 'float' object cannot be interpreted as an integer
-    plt.yticks([i for i in np.arange(0.0, 1.1, 0.1)])
+    plt.xlabel('漫游时长分类')
+    plt.ylabel('漫游次数')
+
+    flag0, flag1, flag2 = [], [], []
+    for k, v in w0DurationTypeCategory.items():
+        flag0.append(v.setdefault(0, 0))
+        flag1.append(v.setdefault(1, 0))
+        flag2.append(v.setdefault(2, 0))
+
+    width = 0.3
+    x = np.arange(len(labels)) - width / 2
+
+    plt.bar(x, flag0, width=width, label='ap1->not-associated->ap2')
+    plt.bar(x + width, flag1, width=width, label='ap1->not-associated->ap1', tick_label=labels)
+    plt.bar(x + 2 * width, flag2, width=width, label='ap1->ap2')
+    plt.legend()
+
+    # 显示数值
+    for xi in range(len(x)):
+        plt.text(x[xi], flag0[xi] + 10, '{}'.format(flag0[xi]), ha='center', va= 'bottom')
+        plt.text(x[xi] + width, flag1[xi] + 10, '{}'.format(flag1[xi]), ha='center', va= 'bottom')
+        plt.text(x[xi] + 2 * width, flag2[xi] + 10, '{}'.format(flag2[xi]), ha='center', va= 'bottom')
     #####################################################
     #####################################################
-    print("画WLAN0漫游SNR对比CDF")
-    cdfW0HoSNR, = plt.plot(list(w0SNRRatio), list(w0SNRRatio.index), c='red')
-    #####################################################
-    #####################################################
-    print("画WLAN1漫游SNR对比CDF")
-    cdfW1HoSNR, = plt.plot(list(w1SNRRatio), list(w1SNRRatio.index), c='blue')
-    #####################################################
-    #####################################################
-    print("设置标注")
-    plt.legend([cdfW0HoSNR, cdfW1HoSNR],
-            ['WLAN0', 
-             'WLAN1'],
-            loc='lower right')
-    
-    plt.savefig(os.path.join(tmpDir, '漫游SNR对比CDF.png'), dpi=200)
+    figName = os.path.join(tmpDir, 'WLAN0漫游类型分类柱状图.png')
+    print('保存到：', figName)
+    plt.savefig(figName, dpi=200)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -428,14 +458,12 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
 
     ###############################################################################
-    print('**********第七阶段：画WLAN0与WLAN1漫游RTT对比CDF**********')
+    print('**********第七阶段：画WLAN0与WLAN1漫游SNR增益CDF**********')
     #####################################################
-    print("设置漫游RTT对比CDF坐标轴")
-    plt.title('漫游RTT对比CDF')
-    plt.xlim([0, 50])
-    plt.xlabel('漫游前RTT / 漫游后RTT')
-    # plt.xticks([0, 1, 5, 10, 20, 30, 50],
-    #            ['0', '1', '5', '10', '20', '30', '50'])
+    print("设置漫游SNR增益CDF坐标轴")
+    plt.title('漫游SNR增益CDF')
+    # plt.xlim([-10, 10])
+    plt.xlabel('漫游增益(dBm)')
 
     plt.ylim([0, 1])
     # range不能迭代float
@@ -443,21 +471,21 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.yticks([i for i in np.arange(0.0, 1.1, 0.1)])
     #####################################################
     #####################################################
-    print("画WLAN0漫游RTT对比CDF")
-    cdfW0HoRTT, = plt.plot(list(w0RTTRatio), list(w0RTTRatio.index), c='red')
+    print("画WLAN0漫游SNR增益CDF")
+    cdfW0HoSNR, = plt.plot(list(w0SNRRatio), list(w0SNRRatio.index), c='red')
     #####################################################
     #####################################################
-    print("画WLAN1漫游RTT对比CDF")
-    cdfW1HoRTT, = plt.plot(list(w1RTTRatio), list(w1RTTRatio.index), c='blue')
+    print("画WLAN1漫游SNR增益CDF")
+    cdfW1HoSNR, = plt.plot(list(w1SNRRatio), list(w1SNRRatio.index), c='blue')
     #####################################################
     #####################################################
     print("设置标注")
-    plt.legend([cdfW0HoRTT, cdfW1HoRTT],
+    plt.legend([cdfW0HoSNR, cdfW1HoSNR],
             ['WLAN0', 
              'WLAN1'],
             loc='lower right')
     
-    plt.savefig(os.path.join(tmpDir, '漫游RTT对比CDF.png'), dpi=200)
+    plt.savefig(os.path.join(tmpDir, '漫游SNR增益CDF.png'), dpi=200)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -468,63 +496,54 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
 
 # # 提取漫游时长各分类的时段，画SNR, 传输层时延，序列号，速度的散点图　
-# def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, connCsvFile, tcpprobeCsvFile, tmpDir):
+# def drawHandoverFineGrained(w0HoCsvFile, connCsvFile, tmpDir):
 #     ###############################################################################
 #     print('**********第一阶段：准备数据**********')
 #     #####################################################
-#     print('读取单台车的WLAN0漫游统计信息.csv文件')
+#     print('读取单台车的WLAN0漫游时段汇总.csv文件')
 #     w0HoDf = pd.read_csv(w0HoCsvFile, na_filter=False, usecols=['start', 'end', 'duration'],
 #                               dtype={'start' : int, 
 #                                      'end' : int,
 #                                      'duration' : int})
-
-#     print('读取单台车的WLAN1漫游统计信息.csv文件')
-#     w1HoDf = pd.read_csv(w1HoCsvFile, na_filter=False, usecols=['start', 'end', 'duration'],
-#                               dtype={'start' : int, 
-#                                      'end' : int,
-#                                      'duration' : int})               
 #     #####################################################
 #     #####################################################
 #     print('读取单台车的connData.csv数据')
 #     print('由于从scan文件提取的conn数据没有顺序，因此这里必须按时间戳排序')
 #     connDf = pd.read_csv(connCsvFile, na_filter=False, usecols=['timestamp', 
-#                                                             'W0APMac', 'W0level',
-#                                                             'W1APMac', 'W1level'],
+#                                                                 'W0APMac', 'W0level'],
 #                               dtype={'timestamp' : int, 
 #                                      'W0APMac' : str,
-#                                      'W0level': int, 
-#                                      'W1APMac' : str,
-#                                      'W1level': int,})
-#     connDf.sort_values(by='timestamp', inplace=True).reset_index(drop=True)
+#                                      'W0level': int})
+#     connDf = connDf.sort_values(by='timestamp').reset_index(drop=True)
 #     # print(connDf.describe())
-#     #####################################################
-#     #####################################################
-#     print('读取单台车的tcpprobeData.csv数据')
-#     tcpprobeDf = pd.read_csv(tcpprobeCsvFile, na_filter=False, usecols=['timestamp', 
-#                                                             'W0APMac', 'W0level',
-#                                                             'W1APMac', 'W1level'],
-#                               dtype={'timestamp' : int, 
-#                                      'W0APMac' : str,
-#                                      'W0level': int, 
-#                                      'W1APMac' : str,
-#                                      'W1level': int,})
 #     #####################################################
 #     #####################################################
 #     print('按漫游时长各分类提取时段数据')
 #     bins = [0, 200, 1000, 5000, sys.maxsize]
 #     labels = ['<=200ms', '200ms-1s', '1s-5s', '>5s']
-#     w0HoGroup = list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index()))
-#     for category, w0HoCategory in w0HoGroup:
-#         print(category)
-#         fileDir = os.path.join(tmpDir, category)
+#     w0HoDurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index())))
+#     hoList = w0HoDurationCategory['<=200ms']
+#     for ho in hoList:
+#         fileDir = os.path.join(tmpDir, '<=200ms')
 #         if not os.path.isdir(fileDir):
 #             os.makedirs(fileDir)
-#         for _, oneW0Ho in w0HoCategory.iterrows():
-#             connDf['bin'] = pd.cut(connDf['timestamp'], [oneW0Ho['start'], oneW0Ho['end']])
-#             oneW0HoconnDf = list(connDf.groupby('bin'))[0][1]
-#             if 0 not in list(oneW0HoconnDf['W0level']):
-#                 plt.scatter(list(oneW0HoconnDf['timestamp']), list(oneW0HoconnDf['W0level']), c='red', s=0.2, label='WLAN0')
-#                 plt.savefig(os.path.join(fileDir, 'WLAN0-{}.png'.format(list(oneW0Ho[['start', 'end']]))), dpi=200)
+#         connDf['bin'] = pd.cut(connDf['timestamp'], [ho['start'], ho['end']])
+#         oneW0HoconnDf = list(connDf.groupby('bin'))[0][1]
+#         if 0 not in list(oneW0HoconnDf['W0level']):
+#             plt.scatter(list(oneW0HoconnDf['timestamp']), list(oneW0HoconnDf['W0level']), c='red', s=0.2, label='WLAN0')
+#             plt.savefig(os.path.join(fileDir, 'WLAN0-{}.png'.format(list(oneW0Ho[['start', 'end']]))), dpi=200)
+#     # for category, w0HoCategory in w0HoGroup:
+#     #     print(category)
+#         # fileDir = os.path.join(tmpDir, category)
+#         # if not os.path.isdir(fileDir):
+#         #     os.makedirs(fileDir)
+#     #     # 将漫游
+#     #     for _, oneW0Ho in w0HoCategory.iterrows():
+#     #         connDf['bin'] = pd.cut(connDf['timestamp'], [oneW0Ho['start'], oneW0Ho['end']])
+#     #         oneW0HoconnDf = list(connDf.groupby('bin'))[0][1]
+#     #         if 0 not in list(oneW0HoconnDf['W0level']):
+#     #             plt.scatter(list(oneW0HoconnDf['timestamp']), list(oneW0HoconnDf['W0level']), c='red', s=0.2, label='WLAN0')
+#     #             plt.savefig(os.path.join(fileDir, 'WLAN0-{}.png'.format(list(oneW0Ho[['start', 'end']]))), dpi=200)
 #     #####################################################
 #     print('**********第一阶段结束**********')
 #     ###############################################################################
