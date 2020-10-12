@@ -352,7 +352,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.xlim([0, 5000])
     plt.xticks([0, 200, 1000, 5000], ['0', '200ms', '1s', '5s'])
     plt.xlabel('漫游时长')
-
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
     plt.ylim([0, 1])
     # range不能迭代float
     # TypeError: 'float' object cannot be interpreted as an integer
@@ -390,6 +391,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
     plt.xlabel('漫游时长分类')
     plt.ylabel('比例')
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
 
     width = 0.3
     x = np.arange(len(w0DurationBarData))
@@ -418,6 +421,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
     plt.xlabel('漫游时长分类')
     plt.ylabel('漫游次数')
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
 
     flag0, flag1, flag2 = [], [], []
     for k, v in w0DurationTypeCategory.items():
@@ -458,6 +463,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.title('漫游SNR增益CDF')
     # plt.xlim([-10, 10])
     plt.xlabel('漫游增益(dBm)')
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
 
     plt.ylim([0, 1])
     # range不能迭代float
