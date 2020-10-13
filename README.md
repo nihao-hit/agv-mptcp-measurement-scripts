@@ -1,5 +1,3 @@
-# 9月25日
-
 ## scan文件分析
 
 1. quality与level分析
@@ -9,8 +7,10 @@
    4. 假设wlan1的level是按照quality的计算公式得出，那么将其还原为接收信号强度。
 2. scan文件空洞分析
    1. scan文件交替测量WLAN0与WLAN1，空洞定义为既没有测量WLAN0，也没有测量WLAN1的时段，分为两种情况：两次测量的间隙，以及脚本宕掉。
-3. 使用scan文件中的conn数据进行填补，减轻conn文件测量空洞的问题。
-   1. 填补方法为填充etime时刻。
+3. 测量机制的书面化描述：使用`iw scan`工具交替测量附近的WLAN0与WLAN1基站，测量时间一般为几秒，测量间隔一般为几十毫秒．
+4. 数据解析
+   1. 解析时间戳精度为秒，由于测量时间为数秒，因此一次测量结果用于填充这数秒的数据．
+   2. 使用scan文件中的conn数据进行填补，减轻conn文件测量空洞的问题。填补方法为填充etime时刻。
 
 ## conn文件分析
 
@@ -18,7 +18,10 @@
 2. conn文件空洞分析
    1. conn文件也是交替测量WLAN0与WLAN1，但是对WLAN0，几乎每秒都有多个测量数据，对WLAN1，则往往数秒才有一个数据。因此分别统计WLAN0与WLAN1的空洞。
    2. 同样空洞有两种情况：两次测量的间隙，以及脚本宕掉。
-3. 如何区分未关联基站与空洞：只将'Not-Associated'认为未关联基站。
+3. 测量机制的书面化描述：使用`iw config`工具交替测量当前连接的WLAN0与WLAN1基站，测量时间可忽略不计，对WLAN0，测量间隔一般为几百毫秒；对WLAN1，测量间隔达到了数秒．
+4. 数据解析
+   1. 解析时间戳精度为毫秒，以秒为精度对齐时，选择1s内多次测量结果中SNR最大的数据．
+5. 如何区分未关联基站与空洞：只将'Not-Associated'认为未关联基站。
 
 ## 基站覆盖分析
 
@@ -32,11 +35,18 @@
    3. AP1->AP2，统计数据中flag=2
    4. ~~AP1->' '->AP2~~
 2. 粗粒度分析
-   1. 漫游时长CDF、漫游时长分类柱状图。**需要阅读漫游协议确定合适的分类**
-   2. 漫游SNR增益CDF、漫游SNR增益分类柱状图
-   3. 漫游RTT对比CDF、二分类（RTT减小、RTT增大）不需要单独画
+   1. 漫游热力图
+   2. 漫游时长CDF,漫游时长分类柱状图,
+   3. 漫游类型分类柱状图,
+   4. 漫游SNR增益CDF
 3. 细粒度分析
-   1. 提取漫游时长各分类的时段，画SNR、传输层时延、序列号、速度的散点图
+   1. 通常flag=1类型的漫游导致SNR增益较小或为负，且flag=1的漫游后往往紧接着发生flag=0的漫游，间隔在1s以内．
+   2. 漫游事件全景图
+   3. 漫游事件SNR分析图
+      1. 漫游事件的时间戳精度为ms，而scan得到的基站数据时间戳精度为s，且往往采样周期长达数秒，ping得到的时延数据采样周期为1s．综合以上情况将分析图时间戳精度设置为s．
+      2. 如何从1号车WLAN0的2800多次漫游事件中选择**表现力最好**且能**发现问题**的图片
+         1. 手动过滤：可保证发现问题
+         2. 程序过滤：设置过滤条件例如数据完整性，保证表现力．
 4. 漫游SNR对比可简单使用关联基站时刻的SNR值。
 5. 而漫游RTT对比则复杂一些，由于ping时延存在滞后性，
    1. ~~使用关联基站时刻后2s的最大值与最小值分别表征漫游前RTT与漫游后RTT，~~问题：漫游前后RTT都存在很多填充值。
@@ -50,10 +60,12 @@
 1. tcpprobe工具依赖内核jprobe机制在`tcp_rcv_established()`函数入口处插入探测函数，记录当前TCP状态；
 2. 由于`tcp_rcv_established()`函数是处理处于established状态的TCP连接收包，因此观察不到TCP连接的建立与关闭。
 3. tcpprobe文件只能获得MPTCP连接当前正在使用的TCP子流的状态信息，且由于map_data_len、map_data_seq、map_subseq全为0，不能反推MPTCP连接的状态信息。
-4. tcpprobe文件字段与TCP状态信息对应关系分析
+4. 数据解析
+   1. 解析时间戳精度为毫秒，以秒为精度对齐时，选择1s内多次测量结果中srtt最小的数据．
+5. tcpprobe文件字段与TCP状态信息对应关系分析
    1. `u8 mptcp_tcp_sock::path_index`与`unsigned long mptcp_cb::path_index_bits`相对应。path_index_bits是位图，相应位置1表示某条子流标志1 << path_index；meta-sk，master-sk，slave-sk的path_index从0，1，2递增，但是master-sk与slave-sk可能变动。在`mptcp_add_sock()`中给path_index赋新值并记录到path_index_bits，在`mptcp_del_sock()`中清除path_index_bits对应子流的掩码；因此不同时间的不同子流可能有相同path_index。
    2. `u32 mptcp_tcp_sock::snt_isn`与`u32 mptcp_tcp_sock::rcv_isn`等于`u32 tcp_sock::snt_isn`与`u32 tcp_sock::rcv_isn`。
-5. 确定tcpprobe工具的启动参数
+6. 确定tcpprobe工具的启动参数
    1. 目测服务器端口有两个：7070和7001，其中根据tcpdump文件7001端口的数据极少，可能一个文件就几十个，而tcpprobe文件中没有7001的数据。
    2. 目测tcpprobe文件1s内有好几个收包。
    3. 因此tcpprobe工具应该是运行在AGV上，通过dport=7070来监听与服务器的连接，通过full=1记录每一个收包。
@@ -124,6 +136,7 @@ conn文件和comm文件都需要去重处理
    2. 通过tcpdump文件提取mptcp连接时段
    3. 通过comm文件提取一次任务时段
    4. 通过conn文件提取一次漫游时段
+2. 漫游
 
 ## tcpdump文件分析
 
