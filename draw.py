@@ -1,6 +1,6 @@
 from draw_function.analysisApCover import drawConnLevel, drawNotConnLevel, drawApCover
 from draw_function.analysisDrop import drawDrop
-from draw_function.analysisHandover import drawHandover
+from draw_function.analysisHandover import drawHandover, drawHandoverFineGrained
 from draw_function.analysisRtt import analysisRtt, drawCDFForAllAgvData, drawCDFForOneAgvData
 from draw_function.analysisMptcp import drawSubflowUseTime, drawMptcp
 from draw_function.analysisComm import drawComm
@@ -38,7 +38,10 @@ if __name__ == '__main__':
             # handoverDir = os.path.join(csvPath, 'handover')
             # if not os.path.isdir(handoverDir):
             #     os.makedirs(handoverDir)
+            # w0HoCsvFile = os.path.join(handoverDir, 'WLAN0漫游时段汇总.csv')
+            # w1HoCsvFile = os.path.join(handoverDir, 'WLAN1漫游时段汇总.csv')
             # drawHandover(csvFile, connCsvFile, handoverDir)
+            # drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, handoverDir)
             # #####################################################
             # #####################################################
             # print('时延分析')
@@ -51,21 +54,21 @@ if __name__ == '__main__':
             # print("w0rtt，w1rtt，w0rtt与w1rtt最小值，srtt的CDF")
             # drawCDFForOneAgvData(csvFile, analysisRttDir)
             # #####################################################
-            #####################################################
-            print('mptcp分析')
-            mptcpDir = os.path.join(csvPath, 'anlysisMptcp')
-            print(mptcpDir)
-            if not os.path.isdir(mptcpDir):
-                os.makedirs(mptcpDir)
-            print("统计当前子流状态变动")
-            drawSubflowUseTime(tcpprobeCsvFile, mptcpDir)
+            # #####################################################
+            # print('mptcp分析')
+            # mptcpDir = os.path.join(csvPath, 'analysisMptcp')
+            # print(mptcpDir)
+            # if not os.path.isdir(mptcpDir):
+            #     os.makedirs(mptcpDir)
+            # print("统计当前子流状态变动")
+            # drawSubflowUseTime(tcpprobeCsvFile, mptcpDir)
             # print('统计子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt')
             # mergeDiffCsvFile = os.path.join(mptcpDir, 'mergeDiff.csv')
             # drawMptcp(tcpprobeCsvFile, mergeDiffCsvFile, mptcpDir)
             #####################################################
             # #####################################################
             # print('应用分析')
-            # commDir = os.path.join(csvPath, 'anlysisComm')
+            # commDir = os.path.join(csvPath, 'analysisComm')
             # print(commDir)
             # if not os.path.isdir(commDir):
             #     os.makedirs(commDir)
