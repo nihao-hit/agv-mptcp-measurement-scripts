@@ -1,4 +1,5 @@
 # drawHandover : 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游SNR增益CDF
+# drawHandoverFineGrained : 画漫游事件全景图，漫游事件SNR分析图　
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -496,55 +497,214 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
 
 
-# # 提取漫游时长各分类的时段，画SNR, 传输层时延，序列号，速度的散点图　
-# def drawHandoverFineGrained(w0HoCsvFile, connCsvFile, tmpDir):
-#     ###############################################################################
-#     print('**********第一阶段：准备数据**********')
-#     #####################################################
-#     print('读取单台车的WLAN0漫游时段汇总.csv文件')
-#     w0HoDf = pd.read_csv(w0HoCsvFile, na_filter=False, usecols=['start', 'end', 'duration'],
-#                               dtype={'start' : int, 
-#                                      'end' : int,
-#                                      'duration' : int})
-#     #####################################################
-#     #####################################################
-#     print('读取单台车的connData.csv数据')
-#     print('由于从scan文件提取的conn数据没有顺序，因此这里必须按时间戳排序')
-#     connDf = pd.read_csv(connCsvFile, na_filter=False, usecols=['timestamp', 
-#                                                                 'W0APMac', 'W0level'],
-#                               dtype={'timestamp' : int, 
-#                                      'W0APMac' : str,
-#                                      'W0level': int})
-#     connDf = connDf.sort_values(by='timestamp').reset_index(drop=True)
-#     # print(connDf.describe())
-#     #####################################################
-#     #####################################################
-#     print('按漫游时长各分类提取时段数据')
-#     bins = [0, 200, 1000, 5000, sys.maxsize]
-#     labels = ['<=200ms', '200ms-1s', '1s-5s', '>5s']
-#     w0HoDurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index())))
-#     hoList = w0HoDurationCategory['<=200ms']
-#     for ho in hoList:
-#         fileDir = os.path.join(tmpDir, '<=200ms')
-#         if not os.path.isdir(fileDir):
-#             os.makedirs(fileDir)
-#         connDf['bin'] = pd.cut(connDf['timestamp'], [ho['start'], ho['end']])
-#         oneW0HoconnDf = list(connDf.groupby('bin'))[0][1]
-#         if 0 not in list(oneW0HoconnDf['W0level']):
-#             plt.scatter(list(oneW0HoconnDf['timestamp']), list(oneW0HoconnDf['W0level']), c='red', s=0.2, label='WLAN0')
-#             plt.savefig(os.path.join(fileDir, 'WLAN0-{}.png'.format(list(oneW0Ho[['start', 'end']]))), dpi=200)
-#     # for category, w0HoCategory in w0HoGroup:
-#     #     print(category)
-#         # fileDir = os.path.join(tmpDir, category)
-#         # if not os.path.isdir(fileDir):
-#         #     os.makedirs(fileDir)
-#     #     # 将漫游
-#     #     for _, oneW0Ho in w0HoCategory.iterrows():
-#     #         connDf['bin'] = pd.cut(connDf['timestamp'], [oneW0Ho['start'], oneW0Ho['end']])
-#     #         oneW0HoconnDf = list(connDf.groupby('bin'))[0][1]
-#     #         if 0 not in list(oneW0HoconnDf['W0level']):
-#     #             plt.scatter(list(oneW0HoconnDf['timestamp']), list(oneW0HoconnDf['W0level']), c='red', s=0.2, label='WLAN0')
-#     #             plt.savefig(os.path.join(fileDir, 'WLAN0-{}.png'.format(list(oneW0Ho[['start', 'end']]))), dpi=200)
-#     #####################################################
-#     print('**********第一阶段结束**********')
-#     ###############################################################################
+# 画漫游事件全景图，漫游事件SNR分析图　
+def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpDir):
+    ###############################################################################
+    print('**********第一阶段：准备数据**********')
+    #####################################################
+    print('读取单台车的WLAN0漫游时段汇总.csv文件')
+    w0HoDf = pd.read_csv(w0HoCsvFile, na_filter=False, usecols=['start', 'end', 'duration', 'flag'],
+                            dtype={'start' : int, 
+                                    'end' : int,
+                                    'duration' : int,
+                                    'flag' : int})
+    #####################################################
+    #####################################################
+    print('读取单台车的WLAN1漫游时段汇总.csv文件')
+    w1HoDf = pd.read_csv(w1HoCsvFile, na_filter=False, usecols=['start', 'end', 'duration', 'flag'],
+                            dtype={'start' : int, 
+                                    'end' : int,
+                                    'duration' : int,
+                                    'flag' : int})
+    #####################################################
+    #####################################################
+    print('读取单台车的data.csv数据')
+    df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 
+                                                        'W0APMac', 'W0level',
+                                                        'scanW0APMacMax', 'scanW0APLevelMax',
+                                                        'W0pingrtt'],
+                              dtype={'curTimestamp' : int, 
+                                     'W0APMac' : str,
+                                     'W0level' : int,
+                                     'scanW0APMacMax' : str,
+                                     'scanW0APLevelMax' : int,
+                                     'W0pingrtt' : int})
+    #####################################################
+    #####################################################
+    print('读取单台车的connData.csv数据')
+    print('由于从scan文件提取的conn数据没有顺序，因此这里必须按时间戳排序')
+    connDf = pd.read_csv(connCsvFile, na_filter=False, usecols=['timestamp', 
+                                                                'W0APMac', 'W0level'],
+                            dtype={'timestamp' : int, 
+                                    'W0APMac' : str,
+                                    'W0level': int})
+    connDf = connDf.sort_values(by='timestamp').reset_index(drop=True)
+    #####################################################
+    print('**********第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第二阶段：画漫游事件全景图**********')
+    startTime = connDf.iloc[0]['timestamp']
+    endTime = connDf.iloc[-1]['timestamp']
+    #####################################################
+    # 设置标题
+    plt.title('WLAN0漫游事件全景图')
+    # 设置坐标轴
+    xticks = [i for i in range(startTime, endTime + 1800 * 1000, 3600 * 1000)]
+    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1000)) for i in xticks]
+    plt.xticks(xticks, xlabels, rotation=45)
+    plt.yticks([0, 1])
+    plt.xlim([startTime, endTime])
+    plt.ylim([0, 1])
+    plt.xlabel('日期')
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (360.0, 4.8)
+    #　画图
+    for i in range(len(w0HoDf)):
+    #     label = 'ap1->ap2'
+    #     c = 'green'
+    #     if w0HoDf.iloc[i]['flag'] == 0:
+    #         label = 'ap1->not-associated->ap2'
+    #         c = 'red'
+    #     if w0HoDf.iloc[i]['flag'] == 1:
+    #         label = 'ap1->not-associated->ap1'
+    #         c = 'blue'
+    #     plt.vlines(w0HoDf.iloc[i]['start'], 0, 1, colors=c, label=label)
+        plt.vlines(w0HoDf.iloc[i]['start'], 0, 1)
+    # plt.legend()
+    # # 调整图像避免截断xlabel
+    # plt.tight_layout()
+    # 保存图片
+    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游事件全景图.png'), dpi=100)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    #####################################################
+    # 设置标题
+    plt.title('WLAN1漫游事件全景图')
+    # 设置坐标轴
+    xticks = [i for i in range(startTime, endTime + 1800 * 1000, 3600 * 1000)]
+    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1000)) for i in xticks]
+    plt.xticks(xticks, xlabels, rotation=45)
+    plt.yticks([0, 1])
+    plt.xlim([startTime, endTime])
+    plt.ylim([0, 1])
+    plt.xlabel('日期')
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (360.0, 4.8)
+    #　画图
+    for i in range(len(w1HoDf)):
+        plt.vlines(w1HoDf.iloc[i]['start'], 0, 1)
+    # # 调整图像避免截断xlabel
+    # plt.tight_layout()
+    # 保存图片
+    plt.savefig(os.path.join(tmpDir, 'WLAN1漫游事件全景图.png'), dpi=100)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第三阶段：画漫游事件SNR与时延分析图**********')
+    #####################################################
+    print('按漫游时长各分类提取时段数据进行分析')
+    bins = [0, 200, 1000, 5000, sys.maxsize]
+    labels = ['<=200ms', '200ms-1s', '1s-5s', '>5s']
+    w0HoDurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index())))
+    #####################################################
+    #####################################################
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
+    #####################################################
+    #####################################################
+    for durationLabel, hoList in w0HoDurationCategory.items():
+        fileDir = os.path.join(tmpDir, durationLabel)
+        if not os.path.isdir(fileDir):
+            os.makedirs(fileDir)
+        for _, ho in hoList.iterrows():
+            #####################################################
+            # 提取分析时段为[漫游开始时刻-10s, 漫游结束时刻+10s]
+            hoStartTime = int(ho['start'] / 1000)
+            hoEndTime = int(ho['end'] / 1000)
+            analysisStartTime = hoStartTime - 10
+            analysisEndTime = hoEndTime + 10
+            df['bin'] = pd.cut(df['curTimestamp'], [analysisStartTime, analysisEndTime])
+            oneW0HoDf = list(df.groupby('bin'))[0][1]
+            #####################################################
+            #####################################################
+            # 对分析时段内的conn SNR数据再次按照AP分组，并过滤零值
+            hoConnDf = oneW0HoDf[(oneW0HoDf['W0APMac'] != '') & (oneW0HoDf['W0level'] != 0)]
+            hoConnApGroup = dict(list(hoConnDf.groupby('W0APMac', sort=False)))
+            # 对分析时段内的scan SNR数据再次按照AP分组，并过滤零值
+            hoScanDf = oneW0HoDf[(oneW0HoDf['scanW0APMacMax'] != '') & (oneW0HoDf['scanW0APLevelMax'] != 0)]
+            hoScanApGroup = dict(list(hoScanDf.groupby('scanW0APMacMax', sort=False)))
+            # 准备时延数据，并过滤零值
+            hoRttDf = oneW0HoDf[oneW0HoDf['W0pingrtt'] % 1000 != 0]
+            #####################################################
+            #####################################################
+            # 设置标题
+            plt.title('漫游事件SNR与时延分析图')
+            #####################################################
+            #####################################################
+            # 设置第一个坐标坐标轴
+            plt.xlim([analysisStartTime, analysisEndTime])
+            plt.xticks(list(oneW0HoDf['curTimestamp']), rotation=45)
+            plt.xlabel('时间(s)')
+            plt.ylabel('SNR(dBm)')
+            # 为每个ap分配一种颜色
+            colors = ['red', 'orange', 'green', 'blue', 'purple', 'black']
+            colorsMap = dict()
+            idx = 0
+            for k in list(hoConnApGroup.keys()) + list(hoScanApGroup.keys()):
+                if k not in colorsMap:
+                    colorsMap[k] = idx
+                    idx += 1
+            # 画conn　SNR折线图与scan SNR折线图
+            for k, v in hoConnApGroup.items():
+                plt.plot(list(v['curTimestamp']), list(v['W0level']), 
+                        c=colors[colorsMap[k]], marker='+', ms=4, label='conn: ' + k)
+            for k, v in hoScanApGroup.items():
+                plt.plot(list(v['curTimestamp']), list(v['scanW0APLevelMax']), 
+                        c=colors[colorsMap[k]], marker='x', ms=4, label='scan: ' + k)
+            #####################################################
+            #####################################################
+            # 提取所有在此时段的漫游事件并画竖线
+            innerHoList = w0HoDf[(w0HoDf['start'] >= analysisStartTime * 1000) & (w0HoDf['start'] <= analysisEndTime * 1000)]
+            for _, innerHo in innerHoList.iterrows():
+                label = 'ap1->ap2'
+                c = 'green'
+                if innerHo['flag'] == 0:
+                    label = 'ap1->not-associated->ap2'
+                    c = 'red'
+                if innerHo['flag'] == 1:
+                    label = 'ap1->not-associated->ap1'
+                    c = 'blue'
+                width = int(innerHo['duration'] / 1000) if innerHo['duration'] >= 1000 else 1
+                plt.axvline(int(innerHo['start'] / 1000), lw=width, color=c, label=label)
+            #####################################################
+            # 显示标注
+            plt.legend()
+            # #####################################################
+            # # 设置第二个坐标轴
+            # ax2 = plt.twinx()
+            # ax2.set_ylabel('时延(ms)')
+            # ax2.plot(list(hoRttDf['curTimestamp']), list(hoRttDf['W0pingrtt']), c='purple', marker='|', ms=4, label='时延')
+            # # 显示标注
+            # ax2.legend()
+            # #####################################################
+            #####################################################
+            # 保存图片
+            plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(analysisStartTime, analysisEndTime)), dpi=200)
+            plt.pause(1)
+            plt.close()
+            plt.pause(1)
+            #####################################################
+    #####################################################
+    print('**********第三阶段结束**********')
+    ###############################################################################
