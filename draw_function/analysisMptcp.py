@@ -70,16 +70,27 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
         .merge(path_indexDiff.to_frame(name='path_index').reset_index(), on='timestamp', how='outer') \
         .merge(snt_isnDiff.to_frame(name='snt_isn').reset_index(), on='timestamp', how='outer') \
         .merge(rcv_isnDiff.to_frame(name='rcv_isn').reset_index(), on='timestamp', how='outer') \
-        .replace(np.nan, 0).astype(int)
+        .replace(np.nan, 0).astype(int) \
+        .drop_duplicates(subset=['timestamp'], keep='first')
     if mergeDiff.iloc[-1]['timestamp'] != df.iloc[-1]['timestamp']:
         mergeDiff = mergeDiff.append(df.iloc[-1][['timestamp', 'srcPort', 'path_index', 'snt_isn', 'rcv_isn']]).reset_index(drop=True)
     #####################################################
     #####################################################
-    print('构造tcp子流连续使用时长CDF数据')
+    print('提取TCP子流连续使用时段')
     subflowDuration = pd.DataFrame([(mergeDiff.iloc[i]['timestamp'], 
-                                     mergeDiff.iloc[i + 1]['timestamp'], 
+                                     mergeDiff.iloc[i + 1]['timestamp'],
                                      mergeDiff.iloc[i + 1]['timestamp'] - mergeDiff.iloc[i]['timestamp']
-                                    ) for i in range(len(mergeDiff)-1)], columns=['timestamp', 'nextTimestamp', 'duration'])
+                                     ) for i in range(len(mergeDiff)-1)], columns=['timestamp', 'nextTimestamp', 'duration'])
+    #                                 ) for i in range(len(mergeDiff)-1)], columns=['timestamp', 'nextTimestamp'])
+    
+    # print('由于tcpprobeData.csv时间轴不连续，因此统计duration稍微复杂一点：')
+    # print('不能直接使用nextTimestamp - timestamp．')
+    # print('而应该将数据按TCP子流连续使用时段分组，再将时间戳精度降低到秒，去重后计算总秒数．')
+    # print('由于降低了时间戳精度，不到１秒也会按１秒算，因此这个总秒数会偏大一些．')
+    # print('对１号车，有４ｗ多次TCP子流切换，大约增加４ｗ多秒．')
+    # df['bin'] = pd.cut(df['timestamp'], bins=list(mergeDiff['timestamp']), right=False)
+    # subflowDuration['duration'] = list(map(lambda subflowDf : (subflowDf['timestamp'] / 1000).astype(int).drop_duplicates().count(), dict(list(df.groupby('bin'))).values()))
+    
     print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
     subflowDuration['startDate'] = subflowDuration.apply(lambda row : datetime.datetime.fromtimestamp(row['timestamp'] / 1000), axis=1)
     subflowDuration['nextStartDate'] = subflowDuration.apply(lambda row : datetime.datetime.fromtimestamp(row['nextTimestamp'] / 1000), axis=1)
@@ -94,17 +105,26 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
             w1SubflowDuration = group
 
     ratio = np.arange(0, 1.01, 0.01)
+    #####################################################
+    #####################################################
+    print('构造tcp子流连续使用时长CDF数据')
     subflowDurationRatio = subflowDuration['duration'].quantile(ratio)
     w0SubflowDurationRatio = w0SubflowDuration['duration'].quantile(ratio)
     w1SubflowDurationRatio = w1SubflowDuration['duration'].quantile(ratio)
     #####################################################
     #####################################################
     print('构造tcp子流连续使用时长柱状图数据')
-    bins = [0, 1, 60, 60 * 10, 60 * 60, sys.maxsize]
+    bins = [0, 1000, 60 * 1000, 60 * 10 * 1000, 60 * 60 * 1000, sys.maxsize]
     labels = ['<=1s', '1s-1min', '1min-10min', '10min-1h', '>1h']
     subflowDurationBarData = pd.cut(subflowDuration['duration'], bins=bins, labels=labels).value_counts().sort_index() / len(subflowDuration)
     w0SubflowDurationBarData = pd.cut(w0SubflowDuration['duration'], bins=bins, labels=labels).value_counts().sort_index() / len(w0SubflowDuration)
     w1SubflowDurationBarData = pd.cut(w1SubflowDuration['duration'], bins=bins, labels=labels).value_counts().sort_index() / len(w1SubflowDuration)
+    #####################################################
+    #####################################################
+    print('非图表型统计数据构造')
+    statics = dict()
+    for name, group in subflowDurationGroup:
+        statics[name] = group['duration'].describe().astype(int)
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -117,15 +137,24 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
     mergeDiff.to_csv(os.path.join(tmpDir, 'mergeDiff.csv'))
     #####################################################
     #####################################################
-    print('将tcp子流连续使用时长CDF数据统计信息写入文件')
+    print('将tcp子流连续使用时段信息写入文件')
     subflowDuration.to_csv(os.path.join(tmpDir, 'subflowDuration.csv'))
-    subflowDurationRatio.to_csv(os.path.join(tmpDir, 'subflowDurationRatio.csv'))
 
     w0SubflowDuration.to_csv(os.path.join(tmpDir, 'w0SubflowDuration.csv'))
-    w0SubflowDurationRatio.to_csv(os.path.join(tmpDir, 'w0SubflowDurationRatio.csv'))
 
     w1SubflowDuration.to_csv(os.path.join(tmpDir, 'w1SubflowDuration.csv'))
+    #####################################################
+    #####################################################
+    print('将tcp子流连续使用时长CDF数据统计信息写入文件')
+    subflowDurationRatio.to_csv(os.path.join(tmpDir, 'subflowDurationRatio.csv'))
+
+    w0SubflowDurationRatio.to_csv(os.path.join(tmpDir, 'w0SubflowDurationRatio.csv'))
+
     w1SubflowDurationRatio.to_csv(os.path.join(tmpDir, 'w1SubflowDurationRatio.csv'))
+    #####################################################
+    #####################################################
+    print('将非图表型统计数据写入文件')
+    pd.DataFrame(statics).to_csv(os.path.join(tmpDir, 'statics.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
@@ -135,13 +164,17 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
     print('**********第三阶段：画WLAN0与WLAN1使用时长占比饼状图**********')
     #####################################################
     print('构造饼状图数据')
-    pieData = df['src'].to_frame(name='src').dropna().groupby('src').size().to_frame('count').reset_index()
+    pieData = dict()
+    pieData['WLAN0'] = w0SubflowDuration['duration'].sum() / subflowDuration['duration'].sum()
+    pieData['WLAN1'] = w1SubflowDuration['duration'].sum() / subflowDuration['duration'].sum()
     #####################################################
     #####################################################
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
     print('画饼状图')
     plt.title('WLAN0与WLAN1使用时长占比饼状图')
 
-    plt.pie(list(pieData['count']), labels=list(pieData['src']), autopct='%1.2f%%')
+    plt.pie(pieData.values(), labels=pieData.keys(), autopct='%1.f%%')
     #####################################################
     #####################################################
     figName = os.path.join(tmpDir, 'WLAN0与WLAN1使用时长占比饼状图.png')
@@ -156,13 +189,16 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
 
 
     ###############################################################################
-    print('**********第四阶段：画tcp子流连续使用时长CDF图**********')
+    print('**********第四阶段：画TCP子流连续使用时长CDF图**********')
     #####################################################
-    print('画CDF图前的初始化：设置标题、坐标轴')
-    plt.title('tcp子流连续使用时长CDF')
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
 
-    # plt.xlim(left=0)
-    plt.xlabel('时长')
+    print('画CDF图前的初始化：设置标题、坐标轴')
+    plt.title('TCP子流连续使用时长CDF')
+
+    plt.xlim([0, 10000])
+    plt.xlabel('时长(ms)')
 
     plt.ylim([0, 1])
     plt.yticks(np.arange(0, 1.1, 0.1))
@@ -186,7 +222,7 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
             loc='lower right')
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, 'tcp子流连续使用时长CDF.png')
+    figName = os.path.join(tmpDir, 'TCP子流连续使用时长CDF.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
@@ -198,20 +234,23 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
 
 
     ###############################################################################
-    print('**********第五阶段：画tcp子流连续使用时长分类柱状图**********')
+    print('**********第五阶段：画TCP子流连续使用时长分类柱状图**********')
     #####################################################
-    print('画tcp子流连续使用时长分类柱状图')
-    plt.title('tcp子流连续使用时长分类柱状图')
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
+    print('画TCP子流连续使用时长分类柱状图')
+    plt.title('TCP子流连续使用时长分类柱状图')
 
     width = 0.3
     x = np.arange(len(subflowDurationBarData)) - width
 
     plt.bar(x, list(subflowDurationBarData), width=width, label='WLAN0+WLAN1')
     plt.bar(x + width, list(w0SubflowDurationBarData), width=width, label='WLAN0', tick_label=labels)
-    plt.bar(x + 2 * width, list(w1SubflowDurationBarData), width=width, label='WLAN0')
+    plt.bar(x + 2 * width, list(w1SubflowDurationBarData), width=width, label='WLAN1')
+    plt.legend()
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, 'tcp子流连续使用时长分类柱状图.png')
+    figName = os.path.join(tmpDir, 'TCP子流连续使用时长分类柱状图.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
