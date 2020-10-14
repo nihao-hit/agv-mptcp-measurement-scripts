@@ -664,7 +664,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             for k in list(hoConnApGroup.keys()) + list(hoScanApGroup.keys()):
                 if k not in colorsMap:
                     colorsMap[k] = idx
-                    idx += 1
+                    idx = (idx + 1) % len(colors)
             # 画conn　SNR折线图与scan SNR折线图
             for k, v in hoConnApGroup.items():
                 plt.plot(list(v['curTimestamp']), list(v['W0level']), 
