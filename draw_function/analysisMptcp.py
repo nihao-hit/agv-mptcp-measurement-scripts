@@ -1,5 +1,7 @@
 # drawSubflowUseTime : 通过端口号，path_index，初始序列号区分当前使用子流
+#                      WLAN0与WLAN1使用时长占比饼状图, TCP子流连续使用时长CDF图, TCP子流连续使用时长分类柱状图
 # drawMptcp : 提取一段子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt进行分析
+#             可通过subflowLenTuple参数选择子流长度
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import seaborn as sns
@@ -13,6 +15,7 @@ import sys
 from Status import ScanStatus
 
 # 通过端口号，path_index，初始序列号区分当前使用子流
+# WLAN0与WLAN1使用时长占比饼状图, TCP子流连续使用时长CDF图, TCP子流连续使用时长分类柱状图
 def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -263,12 +266,18 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
 
 
 # 提取一段子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt进行分析
-def drawMptcp(csvFile, mergeDiffCsvFile, tmpDir):
+# 可通过subflowLenTuple参数选择子流长度
+def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoCsvFile, tmpDir, subflowLenTuple):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
+    print('读取单台车的data.csv数据')
+    df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 'W0pingrtt'],
+                              dtype={'curTimestamp' : int, 'W0pingrtt' : int})
+    #####################################################
+    #####################################################
     print('读入tcpprobeData.csv文件为dataframe')
-    df = pd.read_csv(csvFile, usecols=['timestamp', 'src', 'srcPort', 'dst', 'dstPort', 
+    tcpprobeDf = pd.read_csv(tcpprobeCsvFile, usecols=['timestamp', 'src', 'srcPort', 'dst', 'dstPort', 
                                        'length', 
                                        'snd_nxt', 'snd_una', 
                                        'snd_cwnd', 'ssthresh',
@@ -284,201 +293,244 @@ def drawMptcp(csvFile, mergeDiffCsvFile, tmpDir):
                                    'snt_isn':int, 'rcv_isn':int})
     #####################################################
     #####################################################
-    print('读入mergeDiff.csv文件为dataframe')
-    mergeDiff = pd.read_csv(mergeDiffCsvFile, usecols=['timestamp', 'srcPort', 'path_index', 'snt_isn', 'rcv_isn'],
-                            dtype={'timestamp':int, 'srcPort':int,
-                                   'path_index':int,
-                                   'snt_isn':int, 'rcv_isn':int})
+    print('读入w0SubflowDuration.csv文件为dataframe')
+    w0SubflowDuration = pd.read_csv(w0SubflowDurationCsvFile, usecols=['timestamp', 'nextTimestamp', 'duration'],
+                            dtype={'timestamp':int,
+                                   'nextTimestamp':int,
+                                   'duration':int})
+    #####################################################
+    #####################################################
+    print('读取单台车的WLAN0漫游时段汇总.csv文件')
+    w0HoDf = pd.read_csv(w0HoCsvFile, na_filter=False, usecols=['start', 'end', 'duration', 'flag'],
+                            dtype={'start' : int, 
+                                    'end' : int,
+                                    'duration' : int,
+                                    'flag' : int})
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
 
 
     ###############################################################################
-    print('**********第二阶段：细粒度统计数据构造**********')
+    print('**********第二阶段：画细粒度TCP子流snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt散点图**********')
     #####################################################
-    print('提取10s-20s时长子流')
-    # 实际上没有在这里过滤并提取10s-20s时长子流，而是在后面画图的时候再过滤并提取
-    subflowBins = pd.cut(df['timestamp'], bins=list(mergeDiff['timestamp']), right=False).sort_index()
-    # subflowBins = [interval for interval in subflowBins
-    #                         if type(interval) != float and interval.length >= 10000000]
+    print('构造subflow-duration文件夹')
+    fileDir = os.path.join(tmpDir, 'subflow-duration')
+    if not os.path.isdir(fileDir):
+        os.makedirs(fileDir)
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
     #####################################################
     #####################################################
-    print('构造10s-20s时长子流状态数据')
-    subflow = list(df.groupby(subflowBins))
-    #####################################################
+    print('提取WLAN0的10s-20s时长连续使用TCP子流，WLAN1的暂时不予分析')
+    # TODO: 这里只分析了受WLAN0漫游影响的WLAN0的TCP子流，是否需要研究不同网络的漫游事件与TCP子流的交叉影响
+    w0SubflowDurationFiltered = w0SubflowDuration[(w0SubflowDuration['duration'] >= subflowLenTuple[0]) & (w0SubflowDuration['duration'] <= subflowLenTuple[1])]
+    for _, duration in w0SubflowDurationFiltered.iterrows():
+        startTime = duration['timestamp']
+        endTime = duration['nextTimestamp']
+        tcpprobeDf['bin'] = pd.cut(tcpprobeDf['timestamp'], bins=[startTime, endTime], right=False)
+        subflow = list(tcpprobeDf.groupby('bin'))[0][1]
+        #####################################################
+        print('构造snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt散点图各自的子文件夹')
+        snd_nxtAndsnd_unaDir = os.path.join(fileDir, 'snd_nxt-snd_una')
+        if not os.path.isdir(snd_nxtAndsnd_unaDir):
+            os.makedirs(snd_nxtAndsnd_unaDir)
+        snd_cwndDir = os.path.join(fileDir, 'snd_cwnd')
+        if not os.path.isdir(snd_cwndDir):
+            os.makedirs(snd_cwndDir)
+        ssthreshDir = os.path.join(fileDir, 'ssthresh')
+        if not os.path.isdir(ssthreshDir):
+            os.makedirs(ssthreshDir)
+        snd_wndAndrcv_wndDir = os.path.join(fileDir, 'snd_wnd-rcv_wnd')
+        if not os.path.isdir(snd_wndAndrcv_wndDir):
+            os.makedirs(snd_wndAndrcv_wndDir)
+        srttDir = os.path.join(fileDir, 'srtt')
+        if not os.path.isdir(srttDir):
+            os.makedirs(srttDir)
+        csvDir = os.path.join(fileDir, 'csv')
+        if not os.path.isdir(csvDir):
+            os.makedirs(csvDir)
+        #####################################################
+        #####################################################
+        print('将子流状态写入文件')
+        subflow.to_csv(os.path.join(csvDir, '{}-{}.csv'.format(startTime, endTime)))
+        #####################################################
+        #####################################################
+        # 提取所有在此时段的漫游事件
+        innerHoList = w0HoDf[(w0HoDf['start'] >= startTime) & (w0HoDf['start'] <= endTime)]
+        
+        # 提取在此时段的ping时延数据，并过滤
+        df['bin'] = pd.cut(df['curTimestamp'], bins=[int(startTime / 1000), int(endTime / 1000)], right=False)
+        rttDf = list(df.groupby('bin'))[0][1]
+        rttDf = rttDf[rttDf['W0pingrtt'] % 1000 != 0]
+        #####################################################
+        #####################################################
+        plt.title('TCP子流snd_nxt, snd_una散点图')
+        plt.xlim([startTime, endTime])
+        # plt.ylim([min(subflow['snd_nxt'].min(), subflow['snd_una'].min()), 
+        #           max(subflow['snd_nxt'].max(), subflow['snd_una'].max())])
+
+        plt.xlabel('time(ms)')
+        plt.ylabel('seq')
+
+        plt.scatter(list(subflow['timestamp']), list(subflow['snd_nxt']), c='red', s=1, alpha=0.7, label='snd_nxt')
+        plt.scatter(list(subflow['timestamp']), list(subflow['snd_una']), c='blue', s=1, alpha=0.7, label='snd_una')
+        # 画漫游事件竖线
+        for _, innerHo in innerHoList.iterrows():
+            label = 'ap1->ap2'
+            c = 'green'
+            if innerHo['flag'] == 0:
+                label = 'ap1->not-associated->ap2'
+                c = 'red'
+            if innerHo['flag'] == 1:
+                label = 'ap1->not-associated->ap1'
+                c = 'blue'
+            width = int(innerHo['duration'] / 1000) if innerHo['duration'] >= 1000 else 1
+            plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
+        plt.legend()
+
+        figName = os.path.join(snd_nxtAndsnd_unaDir, '{}-{}.png'.format(startTime, endTime))
+        print('保存到：', figName)
+        plt.savefig(figName, dpi=200)
+        plt.pause(1)
+        plt.close()
+        plt.pause(1)
+        #####################################################
+        #####################################################
+        plt.title('TCP子流snd_cwnd散点图')
+        #　过滤离群值
+        snd_cwnd = subflow[(subflow['snd_cwnd'] <= subflow['snd_cwnd'].quantile(0.9)) & (subflow['snd_cwnd'] >= subflow['snd_cwnd'].quantile(0.1))]
+        plt.xlim([startTime, endTime])
+        plt.ylim([snd_cwnd['snd_cwnd'].min() - 1, 
+                  snd_cwnd['snd_cwnd'].max() + 1])
+
+        plt.xlabel('time(ms)')
+        plt.yticks(range(snd_cwnd['snd_cwnd'].min() - 1,  snd_cwnd['snd_cwnd'].max() + 2))
+
+        plt.scatter(list(snd_cwnd['timestamp']), list(snd_cwnd['snd_cwnd']), c='red', s=1, alpha=0.7, label='snd_cwnd')
+        # 画漫游事件竖线
+        for _, innerHo in innerHoList.iterrows():
+            label = 'ap1->ap2'
+            c = 'green'
+            if innerHo['flag'] == 0:
+                label = 'ap1->not-associated->ap2'
+                c = 'red'
+            if innerHo['flag'] == 1:
+                label = 'ap1->not-associated->ap1'
+                c = 'blue'
+            width = int(innerHo['duration'] / 1000) if innerHo['duration'] >= 1000 else 1
+            plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
+        plt.legend()
+
+        figName = os.path.join(snd_cwndDir, '{}-{}.png'.format(startTime, endTime))
+        print('保存到：', figName)
+        plt.savefig(figName, dpi=200)
+        plt.pause(1)
+        plt.close()
+        plt.pause(1)
+        #####################################################
+        #####################################################
+        plt.title('TCP子流ssthresh散点图')
+        # 过滤离群值
+        ssthresh = subflow[(subflow['ssthresh'] <= subflow['ssthresh'].quantile(0.9)) & (subflow['ssthresh'] >= subflow['ssthresh'].quantile(0.1))]
+        plt.xlim([startTime, endTime])
+        plt.ylim([ssthresh['ssthresh'].min() - 1, 
+                  ssthresh['ssthresh'].max() + 1])
+
+        plt.xlabel('time(ms)')
+        plt.yticks(range(ssthresh['ssthresh'].min() - 1,  ssthresh['ssthresh'].max() + 2))
+        
+        plt.scatter(list(ssthresh['timestamp']), list(ssthresh['ssthresh']), c='red', s=1, alpha=0.7, label='ssthresh')
+        # 画漫游事件竖线
+        for _, innerHo in innerHoList.iterrows():
+            label = 'ap1->ap2'
+            c = 'green'
+            if innerHo['flag'] == 0:
+                label = 'ap1->not-associated->ap2'
+                c = 'red'
+            if innerHo['flag'] == 1:
+                label = 'ap1->not-associated->ap1'
+                c = 'blue'
+            width = int(innerHo['duration'] / 1000) if innerHo['duration'] >= 1000 else 1
+            plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
+        plt.legend()
+
+        figName = os.path.join(ssthreshDir, '{}-{}.png'.format(startTime, endTime))
+        print('保存到：', figName)
+        plt.savefig(figName, dpi=200)
+        plt.pause(1)
+        plt.close()
+        plt.pause(1)
+        #####################################################
+        #####################################################
+        plt.title('TCP子流snd_wnd, rcv_wnd散点图')
+        plt.xlim([startTime, endTime])
+        # plt.ylim([min(subflow['snd_wnd'].min(), subflow['rcv_wnd'].min()), 
+        #           max(subflow['snd_wnd'].max(), subflow['rcv_wnd'].max())])
+
+        plt.xlabel('time(ms)')
+
+        plt.scatter(list(subflow['timestamp']), list(subflow['snd_wnd']), c='red', s=1, alpha=0.7, label='snd_wnd')
+        plt.scatter(list(subflow['timestamp']), list(subflow['rcv_wnd']), c='blue', s=1, alpha=0.7, label='rcv_wnd')
+        # 画漫游事件竖线
+        for _, innerHo in innerHoList.iterrows():
+            label = 'ap1->ap2'
+            c = 'green'
+            if innerHo['flag'] == 0:
+                label = 'ap1->not-associated->ap2'
+                c = 'red'
+            if innerHo['flag'] == 1:
+                label = 'ap1->not-associated->ap1'
+                c = 'blue'
+            width = int(innerHo['duration'] / 1000) if innerHo['duration'] >= 1000 else 1
+            plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
+        plt.legend()
+
+        figName = os.path.join(snd_wndAndrcv_wndDir, '{}-{}.png'.format(startTime, endTime))
+        print('保存到：', figName)
+        plt.savefig(figName, dpi=200)
+        plt.pause(1)
+        plt.close()
+        plt.pause(1)
+        #####################################################
+        #####################################################
+        plt.title('TCP子流srtt折线图')
+        plt.xlim([startTime, endTime])
+        # plt.ylim([min(subflow['srtt'].min(), rttDf['W0pingrtt'].min()),
+        #           max(subflow['srtt'].max(), rttDf['W0pingrtt'].max())])
+
+        plt.xlabel('time(ms)')
+        plt.ylabel('时延(ms)')
+
+        plt.plot(list(subflow['timestamp']), list(subflow['srtt']), 
+                 c='red', marker='+', ms=4, alpha=0.7, label='srtt')
+        # 画ping时延数据
+        plt.plot(list(rttDf['curTimestamp'] * 1000), list(rttDf['W0pingrtt']), 
+                 c='blue', marker='x', ms=4, alpha=0.7, label='ping-rtt')
+        # 画漫游事件竖线
+        for _, innerHo in innerHoList.iterrows():
+            label = 'ap1->ap2'
+            c = 'green'
+            if innerHo['flag'] == 0:
+                label = 'ap1->not-associated->ap2'
+                c = 'red'
+            if innerHo['flag'] == 1:
+                label = 'ap1->not-associated->ap1'
+                c = 'blue'
+            width = int(innerHo['duration'] / 1000) if innerHo['duration'] >= 1000 else 1
+            plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
+        plt.legend()
+
+        figName = os.path.join(srttDir, '{}-{}.png'.format(startTime, endTime))
+        print('保存到：', figName)
+        plt.savefig(figName, dpi=200)
+        plt.pause(1)
+        plt.close()
+        plt.pause(1)
+        #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
 
 
-    ###############################################################################
-    print('**********第三阶段：画细粒度tcp子流snd_nxt, snd_una散点图**********')
-    #####################################################
-    print('画细粒度tcp子流snd_nxt, snd_una散点图')
-    for i in range(len(subflow)):
-        if type(subflow[i][0]) != float and \
-            subflow[i][0].length >= 10000000 and \
-                subflow[i][0].length <= 20000000:
-            #####################################################
-            interval = subflow[i][0]
-            print('子流时段({},{})'.format(interval.left, interval.right))
-            #####################################################
-            #####################################################
-            print('构造子流状态统计文件夹')
-            fileDir = os.path.join(tmpDir, 'subflow{}-{}'.format(interval.left, interval.right))
-            if not os.path.isdir(fileDir):
-                os.makedirs(fileDir)
-            #####################################################
-            #####################################################
-            print('将子流状态写入文件')
-            subflow[i][1].to_csv(os.path.join(fileDir, 'subflow.csv'))
-            #####################################################
-            #####################################################
-            plt.title('tcp子流snd_nxt, snd_una散点图')
-            plt.xlim([interval.left, interval.right])
-            plt.ylim([min(subflow[i][1]['snd_nxt'].min(), subflow[i][1]['snd_una'].min()), 
-                      max(subflow[i][1]['snd_nxt'].max(), subflow[i][1]['snd_una'].max())])
 
-            # plt.xticks(xticks, xlabels, rotation=45)
-            # plt.yticks(yticks, ylabels)
 
-            plt.xlabel('time(us)')
-            plt.ylabel('序列号')
-
-            # # 设置坐标轴，不显示x轴刻度值，只显示标签值
-            # plt.tick_params(labelbottom=False)
-
-            # 设置图片长宽比，结合dpi确定图片大小
-            # 将12.0改为len(xticks)/2
-            # plt.rcParams['figure.figsize'] = (len(xticks)/2, 4.0)
-
-            plt.scatter(list(subflow[i][1]['timestamp']), list(subflow[i][1]['snd_nxt']), c='red', s=0.2, label='snd_nxt')
-            plt.scatter(list(subflow[i][1]['timestamp']), list(subflow[i][1]['snd_una']), c='blue', s=0.2, label='snd_una')
-            plt.legend()
-
-            figName = os.path.join(fileDir, 'tcp子流snd_nxt, snd_una散点图.png')
-            print('保存到：', figName)
-            plt.savefig(figName, dpi=200)
-            plt.pause(1)
-            plt.close()
-            plt.pause(1)
-            #####################################################
-            #####################################################
-            plt.title('tcp子流snd_cwnd散点图')
-            plt.xlim([interval.left, interval.right])
-            plt.ylim([subflow[i][1]['snd_cwnd'].min(), 
-                      subflow[i][1]['snd_cwnd'].max()])
-
-            # plt.xticks(xticks, xlabels, rotation=45)
-            # plt.yticks(yticks, ylabels)
-
-            plt.xlabel('time(us)')
-            plt.ylabel('窗口大小()')
-
-            # # 设置坐标轴，不显示x轴刻度值，只显示标签值
-            # plt.tick_params(labelbottom=False)
-
-            # 设置图片长宽比，结合dpi确定图片大小
-            # 将12.0改为len(xticks)/2
-            # plt.rcParams['figure.figsize'] = (len(xticks)/2, 4.0)
-
-            plt.scatter(list(subflow[i][1]['timestamp']), list(subflow[i][1]['snd_cwnd']), c='red', s=0.2, label='snd_cwnd')
-            plt.legend()
-
-            figName = os.path.join(fileDir, 'tcp子流snd_cwnd散点图.png')
-            print('保存到：', figName)
-            plt.savefig(figName, dpi=200)
-            plt.pause(1)
-            plt.close()
-            plt.pause(1)
-            #####################################################
-            #####################################################
-            plt.title('tcp子流ssthresh散点图')
-            plt.xlim([interval.left, interval.right])
-            plt.ylim([subflow[i][1]['ssthresh'].min(), 
-                      subflow[i][1]['ssthresh'].max()])
-
-            # plt.xticks(xticks, xlabels, rotation=45)
-            # plt.yticks(yticks, ylabels)
-
-            plt.xlabel('time(us)')
-            plt.ylabel('窗口大小()')
-
-            # # 设置坐标轴，不显示x轴刻度值，只显示标签值
-            # plt.tick_params(labelbottom=False)
-
-            # 设置图片长宽比，结合dpi确定图片大小
-            # 将12.0改为len(xticks)/2
-            # plt.rcParams['figure.figsize'] = (len(xticks)/2, 4.0)
-
-            plt.scatter(list(subflow[i][1]['timestamp']), list(subflow[i][1]['ssthresh']), c='blue', s=0.2, label='ssthresh')
-            plt.legend()
-
-            figName = os.path.join(fileDir, 'tcp子流ssthresh散点图.png')
-            print('保存到：', figName)
-            plt.savefig(figName, dpi=200)
-            plt.pause(1)
-            plt.close()
-            plt.pause(1)
-            #####################################################
-            #####################################################
-            plt.title('tcp子流snd_wnd, rcv_wnd散点图')
-            plt.xlim([interval.left, interval.right])
-            plt.ylim([min(subflow[i][1]['snd_wnd'].min(), subflow[i][1]['rcv_wnd'].min()), 
-                      max(subflow[i][1]['snd_wnd'].max(), subflow[i][1]['rcv_wnd'].max())])
-
-            # plt.xticks(xticks, xlabels, rotation=45)
-            # plt.yticks(yticks, ylabels)
-
-            plt.xlabel('time(us)')
-            plt.ylabel('窗口大小()')
-
-            # # 设置坐标轴，不显示x轴刻度值，只显示标签值
-            # plt.tick_params(labelbottom=False)
-
-            # 设置图片长宽比，结合dpi确定图片大小
-            # 将12.0改为len(xticks)/2
-            # plt.rcParams['figure.figsize'] = (len(xticks)/2, 4.0)
-
-            plt.scatter(list(subflow[i][1]['timestamp']), list(subflow[i][1]['snd_wnd']), c='red', s=0.2, label='snd_wnd')
-            plt.scatter(list(subflow[i][1]['timestamp']), list(subflow[i][1]['rcv_wnd']), c='blue', s=0.2, label='rcv_wnd')
-            plt.legend()
-
-            figName = os.path.join(fileDir, 'tcp子流snd_wnd, rcv_wnd散点图.png')
-            print('保存到：', figName)
-            plt.savefig(figName, dpi=200)
-            plt.pause(1)
-            plt.close()
-            plt.pause(1)
-            #####################################################
-            #####################################################
-            plt.title('tcp子流srtt散点图')
-            plt.xlim([interval.left, interval.right])
-            plt.ylim([subflow[i][1]['srtt'].min(), 
-                      subflow[i][1]['srtt'].max()])
-
-            # plt.xticks(xticks, xlabels, rotation=45)
-            # plt.yticks(yticks, ylabels)
-
-            plt.xlabel('time(us)')
-            plt.ylabel('时延(ms)')
-
-            # # 设置坐标轴，不显示x轴刻度值，只显示标签值
-            # plt.tick_params(labelbottom=False)
-
-            # 设置图片长宽比，结合dpi确定图片大小
-            # 将12.0改为len(xticks)/2
-            # plt.rcParams['figure.figsize'] = (len(xticks)/2, 4.0)
-
-            plt.scatter(list(subflow[i][1]['timestamp']), list(subflow[i][1]['srtt']), c='red', s=0.2, label='srtt')
-            plt.legend()
-
-            figName = os.path.join(fileDir, 'tcp子流srtt散点图.png')
-            print('保存到：', figName)
-            plt.savefig(figName, dpi=200)
-            plt.pause(1)
-            plt.close()
-            plt.pause(1)
-            #####################################################
-    print('**********第三阶段结束**********')
-    ###############################################################################
