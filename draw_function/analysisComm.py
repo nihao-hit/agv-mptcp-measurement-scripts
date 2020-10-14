@@ -95,20 +95,16 @@ def drawComm(csvFile, tmpDir):
     print('**********第三阶段：画速度CDF图**********')
     #####################################################
     print("设置速度CDF坐标轴")
-    plt.title('速度CDF')
-    # plt.xlim([0, 5000])
-    # plt.xticks([0, 200, 1000, 5000], ['0', '200ms', '1s', '5s'])
+    plt.title('速度CDF图')
     plt.xlabel('AGV速度(m/s)')
 
     plt.ylim([0, 1])
-    # range不能迭代float
-    # TypeError: 'float' object cannot be interpreted as an integer
     plt.yticks([i for i in np.arange(0.0, 1.1, 0.1)])
     #####################################################
     #####################################################
-    cdfSpeed, = plt.plot(list(speedRatio), list(speedRatio.index), c='red')
+    plt.plot(list(speedRatio), list(speedRatio.index), c='red')
     
-    plt.savefig(os.path.join(tmpDir, '速度CDF.png'), dpi=200)
+    plt.savefig(os.path.join(tmpDir, '速度CDF图.png'), dpi=200)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -121,20 +117,16 @@ def drawComm(csvFile, tmpDir):
     print('**********第四阶段：画任务耗时CDF图**********')
     #####################################################
     print("设置任务耗时CDF坐标轴")
-    plt.title('任务耗时CDF')
-    # plt.xlim([0, 5000])
-    # plt.xticks([0, 200, 1000, 5000], ['0', '200ms', '1s', '5s'])
+    plt.title('任务耗时CDF图')
     plt.xlabel('任务耗时(s)')
 
     plt.ylim([0, 1])
-    # range不能迭代float
-    # TypeError: 'float' object cannot be interpreted as an integer
     plt.yticks([i for i in np.arange(0.0, 1.1, 0.1)])
     #####################################################
     #####################################################
-    cdfTaskDuration, = plt.plot(list(taskDurationRatio), list(taskDurationRatio.index), c='red')
+    plt.plot(list(taskDurationRatio), list(taskDurationRatio.index), c='red')
     
-    plt.savefig(os.path.join(tmpDir, '任务耗时CDF.png'), dpi=200)
+    plt.savefig(os.path.join(tmpDir, '任务耗时CDF图.png'), dpi=200)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -147,20 +139,16 @@ def drawComm(csvFile, tmpDir):
     print('**********第五阶段：画任务移动距离CDF图**********')
     #####################################################
     print("设置任务移动距离CDF坐标轴")
-    plt.title('任务移动距离CDF')
-    # plt.xlim([0, 5000])
-    # plt.xticks([0, 200, 1000, 5000], ['0', '200ms', '1s', '5s'])
+    plt.title('任务移动距离CDF图')
     plt.xlabel('任务移动距离(m)')
 
     plt.ylim([0, 1])
-    # range不能迭代float
-    # TypeError: 'float' object cannot be interpreted as an integer
     plt.yticks([i for i in np.arange(0.0, 1.1, 0.1)])
     #####################################################
     #####################################################
-    cdfTaskDistance, = plt.plot(list(taskDistanceRatio), list(taskDistanceRatio.index), c='red')
+    plt.plot(list(taskDistanceRatio), list(taskDistanceRatio.index), c='red')
     
-    plt.savefig(os.path.join(tmpDir, '任务移动距离CDF.png'), dpi=200)
+    plt.savefig(os.path.join(tmpDir, '任务移动距离CDF图.png'), dpi=200)
     plt.pause(1)
     plt.close()
     plt.pause(1)
