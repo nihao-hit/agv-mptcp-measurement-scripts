@@ -269,7 +269,7 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
 
 # 提取一段子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt进行分析
 # 可通过subflowLenTuple参数选择子流长度
-def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoCsvFile, tmpDir, subflowLenTuple):
+def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoCsvFile, tmpDir, subflowLenTuple, count):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
@@ -327,7 +327,11 @@ def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoC
     print('提取WLAN0的10s-20s时长连续使用TCP子流，WLAN1的暂时不予分析')
     # TODO: 这里只分析了受WLAN0漫游影响的WLAN0的TCP子流，是否需要研究不同网络的漫游事件与TCP子流的交叉影响
     w0SubflowDurationFiltered = w0SubflowDuration[(w0SubflowDuration['duration'] >= subflowLenTuple[0]) & (w0SubflowDuration['duration'] <= subflowLenTuple[1])]
+    innerCount = count
     for _, duration in w0SubflowDurationFiltered.iterrows():
+        if innerCount == 0:
+            break
+        innerCount -= 1
         startTime = duration['timestamp']
         endTime = duration['nextTimestamp']
         tcpprobeDf['bin'] = pd.cut(tcpprobeDf['timestamp'], bins=[startTime, endTime], right=False)
@@ -391,6 +395,8 @@ def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoC
             plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
         plt.legend()
 
+        # 强制yticks为整数值
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
         figName = os.path.join(snd_nxtAndsnd_unaDir, '{}-{}.png'.format(startTime, endTime))
         print('保存到：', figName)
         plt.savefig(figName, dpi=200)
@@ -424,6 +430,8 @@ def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoC
             plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
         plt.legend()
 
+        # 强制yticks为整数值
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
         figName = os.path.join(snd_cwndDir, '{}-{}.png'.format(startTime, endTime))
         print('保存到：', figName)
         plt.savefig(figName, dpi=200)
@@ -457,6 +465,8 @@ def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoC
             plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
         plt.legend()
 
+        # 强制yticks为整数值
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
         figName = os.path.join(ssthreshDir, '{}-{}.png'.format(startTime, endTime))
         print('保存到：', figName)
         plt.savefig(figName, dpi=200)
@@ -488,6 +498,8 @@ def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoC
             plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
         plt.legend()
 
+        # 强制yticks为整数值
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
         figName = os.path.join(snd_wndAndrcv_wndDir, '{}-{}.png'.format(startTime, endTime))
         print('保存到：', figName)
         plt.savefig(figName, dpi=200)
@@ -523,6 +535,8 @@ def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoC
             plt.axvline(innerHo['start'], lw=width, color=c, label=label, alpha=0.7)
         plt.legend()
 
+        # 强制yticks为整数值
+        plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
         figName = os.path.join(srttDir, '{}-{}.png'.format(startTime, endTime))
         print('保存到：', figName)
         plt.savefig(figName, dpi=200)
@@ -536,7 +550,7 @@ def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoC
 
 
 # 提取漫游事件对应的TCP子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt进行分析
-def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLen):
+def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLen, count):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
@@ -592,7 +606,11 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLe
         fileDir = os.path.join(tmpDir, durationLabel)
         if not os.path.isdir(fileDir):
             os.makedirs(fileDir)
+        innerCount = count
         for _, ho in hoList.iterrows():
+            if innerCount == 0:
+                break
+            innerCount -= 1
             #####################################################
             # 提取分析时段为[漫游开始时刻-10s, 漫游结束时刻+10s]
             startTime = ho['start'] - subflowLen / 2
@@ -684,7 +702,7 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLe
             plt.legend()
 
             # 强制yticks为整数值
-            plt.figure().gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+            plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
             figName = os.path.join(snd_nxtAndsnd_unaDir, '{}-{}.png'.format(startTime, endTime))
             print('保存到：', figName)
             plt.savefig(figName, dpi=200)
@@ -721,7 +739,7 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLe
             plt.legend()
 
             # 强制yticks为整数值
-            plt.figure().gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+            plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
             figName = os.path.join(snd_cwndDir, '{}-{}.png'.format(startTime, endTime))
             print('保存到：', figName)
             plt.savefig(figName, dpi=200)
@@ -758,7 +776,7 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLe
             plt.legend()
 
             # 强制yticks为整数值
-            plt.figure().gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+            plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
             figName = os.path.join(ssthreshDir, '{}-{}.png'.format(startTime, endTime))
             print('保存到：', figName)
             plt.savefig(figName, dpi=200)
@@ -798,7 +816,7 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLe
             plt.legend()
 
             # 强制yticks为整数值
-            plt.figure().gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+            plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
             figName = os.path.join(snd_wndAndrcv_wndDir, '{}-{}.png'.format(startTime, endTime))
             print('保存到：', figName)
             plt.savefig(figName, dpi=200)
@@ -841,7 +859,7 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLe
             plt.legend()
 
             # 强制yticks为整数值
-            plt.figure().gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+            plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
             figName = os.path.join(srttDir, '{}-{}.png'.format(startTime, endTime))
             print('保存到：', figName)
             plt.savefig(figName, dpi=200)
