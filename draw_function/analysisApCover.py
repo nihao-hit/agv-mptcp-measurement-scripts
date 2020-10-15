@@ -1,6 +1,6 @@
 # drawConnLevel : 画无线网卡连接基站的SNR分布CDF
 # drawNotConnLevel : 画无线网卡未连接基站时观测到的基站最大SNR分布CDF
-# drawApCover : 基站覆盖热力图
+# drawApCover : 基站覆盖热力图，基站覆盖空白热力图
 # drawApCover3D : 基站覆盖三维柱状图
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -21,15 +21,10 @@ def drawConnLevel(csvFileList, tmpDir):
     print('提取level, rtt, 坐标数据')
     dfList = []
     for csvFile in csvFileList:
-        df = pd.read_csv(csvFile, usecols=['W0level', 'W1level', 
-                                           'W0pingrtt', 'W1pingrtt',
-                                           'curPosX', 'curPosY'],
-                                dtype={'W0level' : int, 
-                                       'W1level' : int,
-                                       'W0pingrtt' : int,
-                                       'W1pingrtt' : int,
-                                       'curPosX' : int,
-                                       'curPosY' : int})
+        df = pd.read_csv(csvFile, usecols=['curTimestamp', 'W0level', 'W1level'],
+                                dtype={'curTimestamp' : int,
+                                       'W0level' : int, 
+                                       'W1level' : int})
         dfList.append(df)
     dfAll = pd.concat(dfList, ignore_index=True)
     #####################################################
@@ -37,9 +32,9 @@ def drawConnLevel(csvFileList, tmpDir):
     print('分离w0与w1的数据')
     ratio = np.arange(0, 1.01, 0.01)
 
-    w0Df = dfAll.loc[:,['W0level', 'W0pingrtt']]
+    w0Df = dfAll.loc[:,['W0level']]
 
-    w1Df = dfAll.loc[:, ['W1level', 'W1pingrtt']]
+    w1Df = dfAll.loc[:, ['W1level']]
     #####################################################
     #####################################################
     print('过滤level=0也就是除去数据空洞与未关联基站的时刻数据，构造level的CDF数据')
@@ -49,17 +44,41 @@ def drawConnLevel(csvFileList, tmpDir):
     w1DfFiltered = w1Df[(w1Df['W1level'] != 0)].reset_index(drop=True)
     w1LevelRatio = w1DfFiltered['W1level'].quantile(ratio)
     #####################################################
+    #####################################################
+    print('非图表型统计数据构造')
+    staticsFile = os.path.join(tmpDir, 'statics.csv')
+    statics = dict()
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+        
+    # 数据总数，时间跨度，时间粒度
+    statics['conn数据总数'] = len(dfAll)
+    statics['WLAN0 SNR数据总数'] = len(w0Df)
+    statics['WLAN0 SNR过滤后数据总数'] = len(w0DfFiltered)
+    statics['WLAN1 SNR数据总数'] = len(w1Df)
+    statics['WLAN1 SNR过滤后数据总数'] = len(w1DfFiltered)
+    statics['start'] = dfAll['curTimestamp'].min()
+    statics['end'] = dfAll['curTimestamp'].max()
+    statics['duration'] = statics['end'] - statics['start']
+    statics['时间粒度'] = '秒'
+
+    # 极值：关联基站的最小SNR
+    statics['WLAN0最小SNR'] = w0DfFiltered['W0level'].min()
+    statics['WLAN0最大SNR'] = w0DfFiltered['W0level'].max()
+    statics['WLAN1最小SNR'] = w1DfFiltered['W1level'].min()
+    statics['WLAN1最大SNR'] = w1DfFiltered['W1level'].max()
+    #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
 
 
     ###############################################################################
     print('**********第二阶段：将关键统计数据写入文件**********')
-    staticsW0DfFiltered = w0DfFiltered.describe(percentiles=ratio).astype(int)
-    staticsW0DfFiltered.to_csv(os.path.join(tmpDir, 'WLAN0信号强度统计信息.csv'))
+    w0LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN0信号强度统计信息.csv'))
 
-    staticsW1DfFiltered = w1DfFiltered.describe(percentiles=ratio).astype(int)
-    staticsW1DfFiltered.to_csv(os.path.join(tmpDir, 'WLAN1信号强度统计信息.csv'))
+    w1LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN1信号强度统计信息.csv'))
+
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
     print('**********第二阶段结束**********')
     ###############################################################################
 
@@ -92,7 +111,7 @@ def drawConnLevel(csvFileList, tmpDir):
             loc='lower right')
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, '无线网络的信号强度CDF' + '.png')
+    figName = os.path.join(tmpDir, '无线网络的信号强度CDF.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
@@ -105,7 +124,7 @@ def drawConnLevel(csvFileList, tmpDir):
 
 
 # 画无线网卡未连接基站时观测到的基站最大SNR分布CDF
-def drawNotConnLevel(csvFileList, scanCsvFileList, tmpDir):
+def drawNotConnLevel(csvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
@@ -131,12 +150,29 @@ def drawNotConnLevel(csvFileList, scanCsvFileList, tmpDir):
     w1Df = dfAll.loc[:, ['W1APMac', 'scanW1APLevelMax']]
     #####################################################
     #####################################################
-    print('保留apMac==Not-Associated也就是未连接基站的时间戳对应的数据，构造level的CDF数据')
-    w0DfFiltered = w0Df[(w0Df['W0APMac'] == 'Not-Associated')].reset_index(drop=True)
+    print('保留apMac==Not-Associated且扫描基站最大level!=0也就是未连接基站的时间戳对应的数据，构造level的CDF数据')
+    w0DfFiltered = w0Df[(w0Df['W0APMac'] == 'Not-Associated') & (w0Df['scanW0APLevelMax'] != 0)].reset_index(drop=True)
     w0LevelRatio = w0DfFiltered['scanW0APLevelMax'].quantile(ratio)
     
-    w1DfFiltered = w1Df[(w1Df['W1APMac'] == 'Not-Associated')].reset_index(drop=True)
+    w1DfFiltered = w1Df[(w1Df['W1APMac'] == 'Not-Associated') & (w1Df['scanW1APLevelMax'] != 0)].reset_index(drop=True)
     w1LevelRatio = w1DfFiltered['scanW1APLevelMax'].quantile(ratio)
+    #####################################################
+    #####################################################
+    print('非图表型统计数据构造')
+    staticsFile = os.path.join(tmpDir, 'statics.csv')
+    statics = dict()
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+    
+    # 数据总数
+    statics['WLAN0 Not-Associated数据总数'] = len(w0DfFiltered)
+    statics['WLAN1 Not-Associated数据总数'] = len(w1DfFiltered)
+
+    # 极值：未关联基站的最大SNR分布
+    statics['WLAN0未关联基站最大SNR1'] = w0DfFiltered['scanW0APLevelMax'].min()
+    statics['WLAN0未关联基站最大SNR2'] = w0DfFiltered['scanW0APLevelMax'].max()
+    statics['WLAN1未关联基站最大SNR1'] = w1DfFiltered['scanW1APLevelMax'].min()
+    statics['WLAN1未关联基站最大SNR2'] = w1DfFiltered['scanW1APLevelMax'].max()
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -144,11 +180,11 @@ def drawNotConnLevel(csvFileList, scanCsvFileList, tmpDir):
 
     ###############################################################################
     print('**********第二阶段：将关键统计数据写入文件**********')
-    staticsW0DfFiltered = w0LevelRatio.astype(int)
-    staticsW0DfFiltered.to_csv(os.path.join(tmpDir, 'WLAN0未关联基站最大SNR统计信息.csv'))
+    w0LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN0未关联基站最大SNR统计信息.csv'))
 
-    staticsW1DfFiltered = w1LevelRatio.astype(int)
-    staticsW1DfFiltered.to_csv(os.path.join(tmpDir, 'WLAN1未关联基站最大SNR统计信息.csv'))
+    w1LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN1未关联基站最大SNR统计信息.csv'))
+
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
     print('**********第二阶段结束**********')
     ###############################################################################
 
@@ -215,7 +251,6 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     #####################################################
     #####################################################
     print('由于将所有scanCsv文件都读入内存会oom，因此改为单行依次处理')
-    # scanData.csv的timestamp未进行补齐
     for scanCsvFile in scanCsvFileList:
         with open(scanCsvFile, 'r') as f:
             for line in f.readlines():
@@ -300,13 +335,13 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     #####################################################
     #####################################################
     print('将WLAN0基站覆盖数写入文件')
-    with open(os.path.join(tmpDir, 'w0ApCover.csv'), 'w') as f:
+    with open(os.path.join(tmpDir, 'w0apCount.csv'), 'w') as f:
         s = '\n'.join([','.join(list(map(str, row))) for row in w0apCount])
         f.write(s)
     #####################################################
     #####################################################
     print('将WLAN0有效基站覆盖数写入文件')
-    with open(os.path.join(tmpDir, 'w0ApCover.csv'), 'w') as f:
+    with open(os.path.join(tmpDir, 'w0goodApCount.csv'), 'w') as f:
         s = '\n'.join([','.join(list(map(str, row))) for row in w0goodApCount])
         f.write(s)
     #####################################################
@@ -318,13 +353,13 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     #####################################################
     #####################################################
     print('将WLAN1基站覆盖数写入文件')
-    with open(os.path.join(tmpDir, 'w1ApCover.csv'), 'w') as f:
+    with open(os.path.join(tmpDir, 'w1apCount.csv'), 'w') as f:
         s = '\n'.join([','.join(list(map(str, row))) for row in w1apCount])
         f.write(s)
     #####################################################
     #####################################################
     print('将WLAN1有效基站覆盖数写入文件')
-    with open(os.path.join(tmpDir, 'w1ApCover.csv'), 'w') as f:
+    with open(os.path.join(tmpDir, 'w1goodApCount.csv'), 'w') as f:
         s = '\n'.join([','.join(list(map(str, row))) for row in w1goodApCount])
         f.write(s)
     #####################################################
@@ -338,7 +373,7 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     ax = sns.heatmap(w0apCount, cmap="Blues")
 
@@ -359,7 +394,7 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     plt.xlim([0, 264])
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
     # w0apcover最大值为35，w1apcover最大值为25，因此颜色条刻度可按5递增
     ax = sns.heatmap(w0apCount, cmap="Blues", vmin=0, 
                      cbar_kws={'ticks': range(0, 41, 5), 'label' : '基站数'})
@@ -378,7 +413,7 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     plt.xlim([0, 264])
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
     ax = sns.heatmap(w1apCount, cmap="Blues", vmin=0,
                      cbar_kws={'ticks':range(0, 41, 5), 'label':'基站数'})
     plt.xlabel('坐标X轴')
@@ -402,7 +437,7 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     plt.xlim([0, 264])
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
     # w0apcover最大值为35，w1apcover最大值为25，因此颜色条刻度可按5递增
     ax = sns.heatmap(w0goodApCount, cmap="Blues", vmin=0, 
                      cbar_kws={'ticks': range(0, 41, 5), 'label' : '有效基站数'})
@@ -423,7 +458,7 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     plt.xlim([0, 264])
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
     ax = sns.heatmap(w1goodApCount, cmap="Blues", vmin=0,
                      cbar_kws={'ticks':range(0, 41, 5), 'label':'有效基站数'})
     plt.xlabel('坐标X轴')
@@ -449,7 +484,7 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     plt.xlim([0, 264])
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
     ax = sns.heatmap(w0NoApCover, cmap="Blues", vmin=0,
                      cbar_kws={'ticks':[0, 1]})
     plt.xlabel('坐标X轴')
@@ -467,7 +502,7 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
     plt.xlim([0, 264])
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
     ax = sns.heatmap(w1NoApCover, cmap="Blues", vmin=0,
                      cbar_kws={'ticks':[0, 1]})
     plt.xlabel('坐标X轴')
@@ -581,7 +616,7 @@ def drawApCover3D(csvFileList, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     ax = sns.heatmap(w0apCount, cmap="Blues")
 
@@ -601,7 +636,7 @@ def drawApCover3D(csvFileList, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     # w0apcover最大值为35，w1apcover最大值为25，因此颜色条刻度可按5递增
     ax = sns.heatmap(w0apCount, cmap="Blues", vmin=0, 
@@ -632,7 +667,7 @@ def drawApCover3D(csvFileList, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     ax = sns.heatmap(w1apCount, cmap="Blues", vmin=0,
                      cbar_kws={'ticks':range(0, 41, 5), 'label':'基站数'})
@@ -662,7 +697,7 @@ def drawApCover3D(csvFileList, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     ax = sns.heatmap(w0NoApCover, cmap="Blues", vmin=0,
                      cbar_kws={'ticks':[0, 1]})
@@ -690,7 +725,7 @@ def drawApCover3D(csvFileList, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     ax = sns.heatmap(w1NoApCover, cmap="Blues", vmin=0,
                      cbar_kws={'ticks':[0, 1]})
@@ -718,7 +753,7 @@ def drawApCover3D(csvFileList, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     ax = sns.heatmap(agvWalk, cmap="Blues", vmin=0,
                      cbar_kws={'label':'经过次数'})
