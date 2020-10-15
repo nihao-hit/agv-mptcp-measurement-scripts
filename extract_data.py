@@ -148,7 +148,7 @@ def writeScanStatusIntoCsv(csvPath):
         for s in Status.scanStatusList:
             w0ApCount = len(s['w0ApMac'])
             w1ApCount = len(s['w1ApMac'])
-            seq = [s.timestamp, s.posX, s.posY] + \
+            seq = [s.timestamp, s.curPosX, s.curPosY] + \
                 [w0ApCount, w1ApCount] + \
                     s['w0ApMac'] + s['w0Channel'] + s['w0Level'] + \
                         s['w1ApMac'] + s['w1Channel'] + s['w1Level']
