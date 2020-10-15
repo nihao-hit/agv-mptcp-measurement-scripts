@@ -236,8 +236,8 @@ class ConnStatus:
 class ScanStatus:
     timestamp = 0
     # 在解析comm文件时赋值
-    posX = 0
-    posY = 0
+    curPosX = 0
+    curPosY = 0
 
     w0ApMac = []
     w0Channel = []
