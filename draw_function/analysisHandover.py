@@ -231,12 +231,24 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('非图表型统计数据构造')
+    staticsFile = os.path.join(tmpDir, 'statics.csv')
     statics = dict()
-    for k, v in w0DurationCategory.items():
-        tmp = dict()
-        for k1, v1 in v.groupby('flag'):
-            tmp[k1] = v1['snrGain'].describe()
-        statics[k] = tmp
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+
+    # 数据总数，时间跨度，时间粒度
+    statics['WLAN0漫游次数'] = len(w0HoDf)
+    w0TypeCategory = dict(list(w0HoDf.groupby('flag')))
+    statics['WLAN0 flag=0漫游次数'] = len(w0TypeCategory[0])
+    statics['WLAN0 flag=1漫游次数'] = len(w0TypeCategory[1])
+    statics['WLAN0 flag=2漫游次数'] = len(w0TypeCategory[2])
+
+    statics['WLAN1漫游次数'] = len(w1HoDf)
+    w1TypeCategory = dict(list(w1HoDf.groupby('flag')))
+    statics['WLAN1 flag=0漫游次数'] = len(w1TypeCategory[0])
+    statics['WLAN1 flag=1漫游次数'] = len(w1TypeCategory[1])
+    statics['WLAN1 flag=2漫游次数'] = len(w1TypeCategory[2])
+    statics['漫游时间戳粒度'] = '毫秒'
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -265,7 +277,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('将非图表型统计数据写入文件')
-    pd.DataFrame(statics).to_csv(os.path.join(tmpDir, 'statics.csv'))
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
@@ -278,7 +290,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     # 每个刻度1000次掉线
     cbarMaxTick = max(list(map(max, w0HoMap)))
@@ -498,7 +510,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
 
 # 画漫游事件全景图，漫游事件SNR分析图　
-def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpDir):
+def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpDir, count):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
@@ -544,6 +556,35 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     ###############################################################################
 
 
+    #####################################################
+    startTime = connDf.iloc[0]['timestamp']
+    endTime = connDf.iloc[-1]['timestamp']
+    # 设置标题
+    plt.title('WLAN0漫游事件全景图')
+    # 设置坐标轴
+    xticks = [i for i in range(startTime, endTime + 1800 * 1000, 3600 * 1000)]
+    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1000)) for i in xticks]
+    plt.xticks(xticks, xlabels, rotation=45)
+    plt.yticks([0, 1])
+    plt.xlim([startTime, endTime])
+    plt.ylim([0, 1])
+    plt.xlabel('日期')
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (180.0, 4.8)
+    #　画图
+    for i in range(len(w0HoDf)):
+        plt.vlines(w0HoDf.iloc[i]['start'], 0, 1)
+    # plt.legend()
+    # # 调整图像避免截断xlabel
+    # plt.tight_layout()
+    # 保存图片
+    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游事件全景图.png'), dpi=100)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+
+
     ###############################################################################
     print('**********第二阶段：画漫游事件全景图**********')
     startTime = connDf.iloc[0]['timestamp']
@@ -560,7 +601,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     plt.ylim([0, 1])
     plt.xlabel('日期')
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (360.0, 4.8)
+    plt.rcParams['figure.figsize'] = (180.0, 4.8)
     #　画图
     for i in range(len(w0HoDf)):
     #     label = 'ap1->ap2'
@@ -594,7 +635,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     plt.ylim([0, 1])
     plt.xlabel('日期')
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (360.0, 4.8)
+    plt.rcParams['figure.figsize'] = (180.0, 4.8)
     #　画图
     for i in range(len(w1HoDf)):
         plt.vlines(w1HoDf.iloc[i]['start'], 0, 1)
@@ -624,10 +665,15 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     #####################################################
     #####################################################
     for durationLabel, hoList in w0HoDurationCategory.items():
+        print(durationLabel)
         fileDir = os.path.join(tmpDir, durationLabel)
         if not os.path.isdir(fileDir):
             os.makedirs(fileDir)
+        innerCount = count
         for _, ho in hoList.iterrows():
+            if innerCount == 0:
+                break
+            innerCount -= 1
             #####################################################
             # 提取分析时段为[漫游开始时刻-10s, 漫游结束时刻+10s]
             hoStartTime = int(ho['start'] / 1000)
