@@ -2,7 +2,7 @@ from draw_function.analysisApCover import drawConnLevel, drawNotConnLevel, drawA
 from draw_function.analysisDrop import drawDrop
 from draw_function.analysisHandover import drawHandover, drawHandoverFineGrained
 from draw_function.analysisRtt import analysisRtt, drawCDFForAllAgvData, drawCDFForOneAgvData
-from draw_function.analysisMptcp import drawSubflowUseTime, drawMptcp
+from draw_function.analysisMptcp import drawSubflowUseTime, drawMptcpInSubflow, drawMptcpInHandover
 from draw_function.analysisComm import drawComm
 
 from draw_function.analysisDataHole import drawEmptyCDF
@@ -11,11 +11,12 @@ import os
 
 if __name__ == '__main__':
     # 显示中文
-    # import locale
-    # locale.setlocale(locale.LC_CTYPE, 'zh_CN.utf8')
+    import locale
+    locale.setlocale(locale.LC_CTYPE, 'zh_CN.utf8')
     from pylab import *
     mpl.rcParams['font.sans-serif'] = ['SimHei']
     mpl.rcParams['axes.unicode_minus'] = False
+
     ###############################################################################
     print('**********第一阶段：单车数据统计**********')
     for i in range(1, 2):
@@ -35,13 +36,18 @@ if __name__ == '__main__':
             # #####################################################
             # #####################################################
             # print("漫游分析")
-            # handoverDir = os.path.join(csvPath, 'handover')
+            # handoverDir = os.path.join(csvPath, 'analysisHandover')
             # if not os.path.isdir(handoverDir):
             #     os.makedirs(handoverDir)
+            
+            # print('画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游SNR增益CDF')
+            # drawHandover(csvFile, connCsvFile, handoverDir)
+
+            # print('画漫游事件全景图，漫游事件SNR分析图　')
             # w0HoCsvFile = os.path.join(handoverDir, 'WLAN0漫游时段汇总.csv')
             # w1HoCsvFile = os.path.join(handoverDir, 'WLAN1漫游时段汇总.csv')
-            # drawHandover(csvFile, connCsvFile, handoverDir)
-            # drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, handoverDir)
+            # count = 10
+            # drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, handoverDir, count)
             # #####################################################
             # #####################################################
             # print('时延分析')
@@ -60,15 +66,25 @@ if __name__ == '__main__':
             # print(mptcpDir)
             # if not os.path.isdir(mptcpDir):
             #     os.makedirs(mptcpDir)
+
             # print("统计当前子流状态变动")
             # drawSubflowUseTime(tcpprobeCsvFile, mptcpDir)
-            # print('统计子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt')
-            # mergeDiffCsvFile = os.path.join(mptcpDir, 'mergeDiff.csv')
-            # drawMptcp(tcpprobeCsvFile, mergeDiffCsvFile, mptcpDir)
-            #####################################################
+
+            # count = 10
+            # w0HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN0漫游时段汇总.csv')
+
+            # print('分析连续使用子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt')
+            # w0SubflowDurationCsvFile = os.path.join(mptcpDir, 'w0SubflowDuration.csv')
+            # subflowLenTuple = [20 * 1000, 30 * 1000]
+            # drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoCsvFile, mptcpDir, subflowLenTuple, count)
+            
+            # print('分析漫游事件对应的子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt')
+            # subflowLen = 30 * 1000
+            # drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, mptcpDir, subflowLen, count)
             # #####################################################
-            # print('应用分析')
-            # commDir = os.path.join(csvPath, 'analysisComm')
+            # #####################################################
+            # print('应用特征分析')
+            # commDir = os.path.join(csvPath, 'analysisApp')
             # print(commDir)
             # if not os.path.isdir(commDir):
             #     os.makedirs(commDir)
@@ -92,24 +108,30 @@ if __name__ == '__main__':
     # scanCsvFileList = [os.path.join(os.path.split(f)[0], 'scanData.csv') for f in csvFileList]
     # #####################################################
     # #####################################################
+    # print("基站覆盖分析")
+    # apCoverDir = os.path.join(topDataPath, 'analysisApCover')
+    # if not os.path.isdir(apCoverDir):
+    #     os.makedirs(apCoverDir)
+
+    # print('所有车数据的无线网卡连接基站的SNR分布CDF')
+    # drawConnLevel(csvFileList, apCoverDir)
+
+    # print('所有车数据的无线网卡未连接基站时观测到的基站最大SNR分布CDF')
+    # drawNotConnLevel(csvFileList, apCoverDir)
+
+    # print('所有车数据的基站覆盖热力图')
+    # goodSNR = -70
+    # drawApCover(goodSNR, scanCsvFileList, apCoverDir)
+    # #####################################################
+    # #####################################################
     # print("所有车数据的w0rtt，w1rtt，w0rtt与w1rtt最小值，srtt的CDF图")
     # cdfDir = os.path.join(topDataPath, 'cdfDir')
     # if not os.path.isdir(cdfDir):
     #     os.makedirs(cdfDir)
     # drawCDFForAllAgvData(csvFileList, cdfDir)
     # #####################################################
-    # #####################################################
-    # print("基站覆盖分析")
-    # apCoverDir = os.path.join(topDataPath, 'apCover')
-    # if not os.path.isdir(apCoverDir):
-    #     os.makedirs(apCoverDir)
-    # print('所有车数据的基站覆盖热力图')
-    # drawApCover(-70, scanCsvFileList, apCoverDir)
-    # print('所有车数据的基站信号强度分布CDF')
-    # drawLevel(csvFileList, apCoverDir)
-    # ####################################################
-    # print('**********第二阶段结束**********')
-    # ###############################################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
     
     
     # ###############################################################################
