@@ -12,7 +12,7 @@ import calcTime
 
 #src, srcPort, dst, dstPort, length, snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd
 # srtt, rcv_wnd, path_index, map_data_len, map_data_seq, map_subseq, snt_isn, rcv_isn
-def parseTcpprobeForStatusList(tcpprobeFile):
+def parseTcpprobe(tcpprobeFile):
     count = 0
     with open(tcpprobeFile, 'r') as f:
         for line in f.readlines():
@@ -130,7 +130,7 @@ def parseTcpprobeForTcpprobeStatusList(tcpprobeFile):
 
 
 # 返回填补统计信息
-def fillTcpprobeForEvent(sList, startTime, fillDir):
+def fillTcpprobe(sList, startTime, fillDir):
     # 按秒填充，后续处理会丢弃所有填充数据
     txTime = startTime + len(sList)
     fillTimes = []

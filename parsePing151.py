@@ -46,7 +46,7 @@ def parsePing151(ping151File):
 
 
 # 返回填补统计信息
-def fillPing151ForEvent(sList, startTime, fillDir):
+def fillPing151(sList, startTime, fillDir):
     # 按秒填充，后续处理会丢弃所有填充数据
     txTime = startTime + len(sList)
     fillTimes = []

@@ -1,17 +1,13 @@
 import Status
 import calcTime
 
+from parseComm import parseComm, fillComm, parseCommForCommStatusList
 from parseConn import parseConn, fillConn
 from parseScan import parseScan, fillScan
-
-from parsePing127 import parsePing127, fillPing127ForEvent
-from parsePing151 import parsePing151, fillPing151ForEvent
-
-from parseComm import parseComm, fillComm, parseCommForCommStatusList
-
-from parseTcpprobe import parseTcpprobeForStatusList, parseTcpprobeForTcpprobeStatusList, fillTcpprobeForEvent
-
+from parsePing127 import parsePing127, fillPing127
+from parsePing151 import parsePing151, fillPing151
 from parseTcpdump import parseTcpdump, parseStatics
+from parseTcpprobe import parseTcpprobe, parseTcpprobeForTcpprobeStatusList, fillTcpprobe
 
 import shutil
 import re
@@ -30,26 +26,25 @@ def rmExtractedFiles(path):
     shutil.rmtree(path)
 
 
-def extractOneTargz(file, tmpPath):
-    try:
-        # 解压.tar.gz文件到tmpPath，.tar.gz打包内容为['data', 'data/file1', 'data/file2']
-        # 在linux下需要去除'data'项
-        if '.tar.gz' in file:
-            tar = tarfile.open(file, "r:gz")
-            fileNames = tar.getnames()
-            for fileName in fileNames:
-                if fileName == 'data':
-                    pass
-                tar.extract(fileName, tmpPath)
-            tar.close()
-        # .gz文件不需要解压，直接复制到tmpPath
-        if 'communication' in file:
-                    shutil.copy(file, os.path.join(tmpPath, 'data'))
-    except Exception as e:
-        print('extractOneTargz: error {}'.format(e))
-
-
 def extractOneAgv(path, tmpPath):
+    def extractOneTargz(file, tmpPath):
+        try:
+            # 解压.tar.gz文件到tmpPath，.tar.gz打包内容为['data', 'data/file1', 'data/file2']
+            # 在linux下需要去除'data'项
+            if '.tar.gz' in file:
+                tar = tarfile.open(file, "r:gz")
+                fileNames = tar.getnames()
+                for fileName in fileNames:
+                    if fileName == 'data':
+                        pass
+                    tar.extract(fileName, tmpPath)
+                tar.close()
+            # .gz文件不需要解压，直接复制到tmpPath
+            if 'communication' in file:
+                        shutil.copy(file, os.path.join(tmpPath, 'data'))
+        except Exception as e:
+            print('extractOneTargz: error {}'.format(e))
+    
     oneAgvDataFile = os.listdir(path)
     for fileOrDir in oneAgvDataFile:
         fileOrDir = os.path.join(path, fileOrDir)
@@ -79,7 +74,7 @@ def writeDataIntoStatusList(dataPath):
         if 'communication' in dataFile:
             parseComm(dataFile)
         if 'tcpprobe' in dataFile:
-            parseTcpprobeForStatusList(dataFile)
+            parseTcpprobe(dataFile)
 
 
 def writeDataIntoCommStatusList(dataPath):
@@ -254,9 +249,9 @@ if __name__ == '__main__':
     #         fillComm(Status.sList, startTime, fillDir)
     #         fillConn(Status.sList, startTime, fillDir)
     #         fillScan(Status.scanStatusList, startTime)
-    #         fillPing151ForEvent(Status.sList, startTime, fillDir)
-    #         fillPing127ForEvent(Status.sList, startTime, fillDir)
-    #         fillTcpprobeForEvent(Status.sList, startTime, fillDir)
+    #         fillPing151(Status.sList, startTime, fillDir)
+    #         fillPing127(Status.sList, startTime, fillDir)
+    #         fillTcpprobe(Status.sList, startTime, fillDir)
     #         #####################################################
     #         #####################################################
     #         print('将StatusList与ScanStatusList, ConnStatusList写入csv文件')
@@ -345,13 +340,13 @@ if __name__ == '__main__':
     #                                     'speed' : float, 'withBucket' : int, 
     #                                     'jobSn' : int},
     #                              na_filter=False)
-    #         print(commDf.describe())
+    #         print(commDf.describe().astype(int))
     #         commDf['second'] = (commDf['curTimestamp'] / 1000).astype(int)
     #         commDf.drop_duplicates(subset=['agvCode', 'dspStatus', 'destPosX', 'destPosY', 
     #                                        'curPosX', 'curPosY', 'second', 'direction', 
     #                                        'speed', 'withBucket', 'jobSn'], keep='first', inplace=True)
     #         commDf.reset_index(drop=True, inplace=True)
-    #         print(commDf.describe())
+    #         print(commDf.describe().astype(int))
     #         commDf.to_csv(os.path.join(tmpPath, 'commData.csv'))
     #         #####################################################
     #         #####################################################
@@ -367,13 +362,13 @@ if __name__ == '__main__':
     #                                  'W1APMac' : str,
     #                                  'W1channel' : float,
     #                                  'W1level': int})
-    #         print(connDf.describe())
+    #         print(connDf.describe().astype(int))
     #         connDf['second'] = (connDf['timestamp'] / 1000).astype(int)
     #         connDf.drop_duplicates(subset=['second',
     #                                        'W0APMac', 'W0channel', 'W0level', 
     #                                        'W1APMac', 'W1channel', 'W1level'], keep='first', inplace=True)
     #         connDf.reset_index(drop=True, inplace=True)
-    #         print(connDf.describe())
+    #         print(connDf.describe().astype(int))
     #         connDf.to_csv(os.path.join(tmpPath, 'connData.csv'))
     #         #####################################################
     # #####################################################
@@ -381,21 +376,21 @@ if __name__ == '__main__':
     # ###############################################################################
 
 
-    ###############################################################################
-    print('**********第六阶段：解析tcpdump文件**********')
-    #####################################################
-    print('解析tcpdump文件')
-    for i in range(1, 2):
-        fileName = '30.113.151.' + str(i)
-        path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
-        tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
-        dataPath = os.path.join(tmpPath, 'data')
-        parseTcpdump(dataPath)
-        staticsFile = os.path.join(tmpPath, 'mptcpData/statics.txt')
-        parseStatics(staticsFile, tmpPath)
-    #####################################################
-    print('**********第六阶段结束**********')
-    ###############################################################################
+    # ###############################################################################
+    # print('**********第六阶段：解析tcpdump文件**********')
+    # #####################################################
+    # print('解析tcpdump文件')
+    # for i in range(1, 2):
+    #     fileName = '30.113.151.' + str(i)
+    #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
+    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+    #     dataPath = os.path.join(tmpPath, 'data')
+    #     parseTcpdump(dataPath)
+    #     staticsFile = os.path.join(tmpPath, 'mptcpData/statics.txt')
+    #     parseStatics(staticsFile, tmpPath)
+    # #####################################################
+    # print('**********第六阶段结束**********')
+    # ###############################################################################
 
 
     # ###############################################################################
