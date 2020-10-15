@@ -54,7 +54,7 @@ def drawDrop(csvFile, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     ax = sns.heatmap(w0DropList, cmap="Blues")
     
@@ -76,7 +76,7 @@ def drawDrop(csvFile, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     # w0掉线次数就几个，颜色条刻度直接按1递增就行
     cbarMaxTick = max(map(max,w0DropList))
@@ -130,7 +130,7 @@ def drawDrop(csvFile, tmpDir):
     plt.ylim([0, 138])
 
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     # w1掉线比较多，均匀生成5个刻度
     cbarMaxTick = max(map(max,w1DropList))
@@ -179,7 +179,7 @@ def drawDrop(csvFile, tmpDir):
     plt.ylim([0, 138])
     
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     # minw0Andw1掉线次数大约就几个，颜色条刻度直接间隔1就行
     cbarMaxTick = max(map(max,minW0AndW1DropList))
@@ -227,7 +227,7 @@ def drawDrop(csvFile, tmpDir):
     plt.ylim([0, 138])
     
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     # srtt掉线次数大约就几个，颜色条刻度直接间隔1就行
     cbarMaxTick = max(map(max,srttDropList))
@@ -255,7 +255,7 @@ def drawDrop(csvFile, tmpDir):
     plt.ylim([0, 138])
     
     # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 6.0)
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
     ax = sns.heatmap(agvWalk, cmap="Blues", vmin=0)
 
