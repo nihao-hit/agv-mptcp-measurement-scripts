@@ -127,9 +127,17 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('非图表型统计数据构造')
+    staticsFile = os.path.join(tmpDir, 'statics.csv')
     statics = dict()
-    for name, group in subflowDurationGroup:
-        statics[name] = group['duration'].describe().astype(int)
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+
+    # 数据总数，时间跨度，时间粒度
+    statics['tcpprobe收包总数'] = len(df)
+    statics['start'] = df.iloc[0]['timestamp']
+    statics['end'] = df.iloc[-1]['timestamp']
+    statics['duration'] = statics['end'] - statics['start']
+    statics['tcpprobe时间粒度'] = '毫秒'
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -159,7 +167,7 @@ def drawSubflowUseTime(tcpprobeCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('将非图表型统计数据写入文件')
-    pd.DataFrame(statics).to_csv(os.path.join(tmpDir, 'statics.csv'))
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
