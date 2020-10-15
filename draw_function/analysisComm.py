@@ -1,3 +1,4 @@
+# drawComm : 速度CDF图, 任务耗时CDF图, 任务移动距离CDF图
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -14,7 +15,7 @@ def drawComm(csvFile, tmpDir):
     print('**********第一阶段：准备数据**********')
     #####################################################
     print('读取单台车的data.csv数据')
-    commDf = pd.read_csv(csvFile, 
+    df = pd.read_csv(csvFile, 
                                  usecols=['agvCode', 'dspStatus', 'destPosX', 'destPosY', 
                                           'curPosX', 'curPosY', 'curTimestamp', 'direction', 
                                           'speed', 'withBucket', 'jobSn'],
@@ -29,11 +30,11 @@ def drawComm(csvFile, tmpDir):
     ratio = np.arange(0, 1.01, 0.01)
     #####################################################
     print('准备速度CDF数据')
-    speedRatio = commDf['speed'].quantile(ratio)
+    speedRatio = df['speed'].quantile(ratio)
     #####################################################
     #####################################################
     print('分析任务')
-    taskList = list(commDf[commDf['jobSn'] != 0].groupby('jobSn', sort=False))
+    taskList = list(df[df['jobSn'] != 0].groupby('jobSn', sort=False))
     startTime = [task[1]['curTimestamp'].iloc[0] for task in taskList]
     endTime = [task[1]['curTimestamp'].iloc[-1] for task in taskList]
 
@@ -65,6 +66,19 @@ def drawComm(csvFile, tmpDir):
     print('准备任务移动距离CDF数据')
     taskDistanceRatio = taskDf['distance'].quantile(ratio)
     #####################################################
+    #####################################################
+    print('非图表型统计数据构造')
+    staticsFile = os.path.join(tmpDir, 'statics.csv')
+    statics = dict()
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+
+    # 数据总数，时间跨度，时间粒度
+    statics['任务总数'] = len(taskDf)
+    statics['任务总时间'] = len(df[df['jobSn'] != 0])
+    statics['空闲总时间'] = len(df) - statics['任务总时间']
+    statics['任务时间粒度'] = '秒'
+    #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
 
@@ -86,6 +100,10 @@ def drawComm(csvFile, tmpDir):
     #####################################################
     print('将任务移动距离CDF数据写入文件')
     taskDistanceRatio.to_csv(os.path.join(tmpDir, '任务移动距离CDF数据.csv'))
+    #####################################################
+    #####################################################
+    print('将非图表型统计数据写入文件')
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
