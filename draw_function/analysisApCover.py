@@ -1,5 +1,5 @@
-# drawConnLevel : 画无线网卡连接基站的SNR分布CDF
-# drawNotConnLevel : 画无线网卡未连接基站时观测到的基站最大SNR分布CDF
+# drawConnLevel : 画无线网卡连接基站的RSSI分布CDF
+# drawNotConnLevel : 画无线网卡未连接基站时观测到的基站最大RSSI分布CDF
 # drawApCover : 基站覆盖热力图，基站覆盖空白热力图
 # drawApCover3D : 基站覆盖三维柱状图
 from matplotlib import pyplot as plt
@@ -12,7 +12,7 @@ import os
 
 from Status import ScanStatus
 
-# 画无线网卡连接基站的SNR分布CDF
+# 画无线网卡连接基站的RSSI分布CDF
 def drawConnLevel(csvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -53,20 +53,20 @@ def drawConnLevel(csvFileList, tmpDir):
         
     # 数据总数，时间跨度，时间粒度
     statics['conn数据总数'] = len(dfAll)
-    statics['WLAN0 SNR数据总数'] = len(w0Df)
-    statics['WLAN0 SNR过滤后数据总数'] = len(w0DfFiltered)
-    statics['WLAN1 SNR数据总数'] = len(w1Df)
-    statics['WLAN1 SNR过滤后数据总数'] = len(w1DfFiltered)
+    statics['WLAN0 RSSI数据总数'] = len(w0Df)
+    statics['WLAN0 RSSI过滤后数据总数'] = len(w0DfFiltered)
+    statics['WLAN1 RSSI数据总数'] = len(w1Df)
+    statics['WLAN1 RSSI过滤后数据总数'] = len(w1DfFiltered)
     statics['start'] = dfAll['curTimestamp'].min()
     statics['end'] = dfAll['curTimestamp'].max()
     statics['duration'] = statics['end'] - statics['start']
     statics['时间粒度'] = '秒'
 
-    # 极值：关联基站的最小SNR
-    statics['WLAN0最小SNR'] = w0DfFiltered['W0level'].min()
-    statics['WLAN0最大SNR'] = w0DfFiltered['W0level'].max()
-    statics['WLAN1最小SNR'] = w1DfFiltered['W1level'].min()
-    statics['WLAN1最大SNR'] = w1DfFiltered['W1level'].max()
+    # 极值：关联基站的最小RSSI
+    statics['WLAN0最小RSSI'] = w0DfFiltered['W0level'].min()
+    statics['WLAN0最大RSSI'] = w0DfFiltered['W0level'].max()
+    statics['WLAN1最小RSSI'] = w1DfFiltered['W1level'].min()
+    statics['WLAN1最大RSSI'] = w1DfFiltered['W1level'].max()
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -123,7 +123,7 @@ def drawConnLevel(csvFileList, tmpDir):
 
 
 
-# 画无线网卡未连接基站时观测到的基站最大SNR分布CDF
+# 画无线网卡未连接基站时观测到的基站最大RSSI分布CDF
 def drawNotConnLevel(csvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -168,11 +168,11 @@ def drawNotConnLevel(csvFileList, tmpDir):
     statics['WLAN0 Not-Associated数据总数'] = len(w0DfFiltered)
     statics['WLAN1 Not-Associated数据总数'] = len(w1DfFiltered)
 
-    # 极值：未关联基站的最大SNR分布
-    statics['WLAN0未关联基站最大SNR1'] = w0DfFiltered['scanW0APLevelMax'].min()
-    statics['WLAN0未关联基站最大SNR2'] = w0DfFiltered['scanW0APLevelMax'].max()
-    statics['WLAN1未关联基站最大SNR1'] = w1DfFiltered['scanW1APLevelMax'].min()
-    statics['WLAN1未关联基站最大SNR2'] = w1DfFiltered['scanW1APLevelMax'].max()
+    # 极值：未关联基站的最大RSSI分布
+    statics['WLAN0未关联基站最大RSSI1'] = w0DfFiltered['scanW0APLevelMax'].min()
+    statics['WLAN0未关联基站最大RSSI2'] = w0DfFiltered['scanW0APLevelMax'].max()
+    statics['WLAN1未关联基站最大RSSI1'] = w1DfFiltered['scanW1APLevelMax'].min()
+    statics['WLAN1未关联基站最大RSSI2'] = w1DfFiltered['scanW1APLevelMax'].max()
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -180,9 +180,9 @@ def drawNotConnLevel(csvFileList, tmpDir):
 
     ###############################################################################
     print('**********第二阶段：将关键统计数据写入文件**********')
-    w0LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN0未关联基站最大SNR统计信息.csv'))
+    w0LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN0未关联基站最大RSSI统计信息.csv'))
 
-    w1LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN1未关联基站最大SNR统计信息.csv'))
+    w1LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN1未关联基站最大RSSI统计信息.csv'))
 
     pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
     print('**********第二阶段结束**********')
@@ -234,7 +234,7 @@ def drawNotConnLevel(csvFileList, tmpDir):
 # 标记数据中出现的每一个坐标为车走过的坐标，没出现的坐标则可能是墙、柱子，以及其余区域
 # 从坐标系中剔除车没走过的坐标，然后统计剩下的坐标中AP覆盖数为0的坐标
 # （车可能存在人为移动，导致一些车平时不会走过，AP覆盖根本不重要的坐标被统计）
-def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
+def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
@@ -288,14 +288,14 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
                         len(scanStatus.w0Level))
                     w0goodApCount[posY][posX] = max(
                         w0goodApCount[posY][posX], 
-                        len(list(filter(lambda level : level >= minConnSNR, scanStatus.w0Level))))
+                        len(list(filter(lambda level : level >= minConnRSSI, scanStatus.w0Level))))
 
                     w1apCount[posY][posX] = max(
                         w1apCount[posY][posX], 
                         len(scanStatus.w1Level))
                     w1goodApCount[posY][posX] = max(
                         w1goodApCount[posY][posX], 
-                        len(list(filter(lambda level : level >= minConnSNR, scanStatus.w1Level))))
+                        len(list(filter(lambda level : level >= minConnRSSI, scanStatus.w1Level))))
 
                     neverWalk[posY][posX] = 1
                 #####################################################
@@ -443,11 +443,11 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
                      cbar_kws={'ticks': range(0, 41, 5), 'label' : '有效基站数'})
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
-    #　添加判断基站有效的SNR标注
-    plt.legend('有效基站SNR >= ' + str(minConnSNR), loc='upper right')
+    #　添加判断基站有效的RSSI标注
+    plt.legend('有效基站RSSI >= ' + str(minConnRSSI), loc='upper right')
     # 逆置Y轴
     ax.invert_yaxis()
-    plt.savefig(os.path.join(tmpDir, 'WLAN0有效基站覆盖热力图-SNR>=' + str(minConnSNR) + '.png'), dpi=150)
+    plt.savefig(os.path.join(tmpDir, 'WLAN0有效基站覆盖热力图-RSSI>=' + str(minConnRSSI) + '.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -463,11 +463,11 @@ def drawApCover(minConnSNR, scanCsvFileList, tmpDir):
                      cbar_kws={'ticks':range(0, 41, 5), 'label':'有效基站数'})
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
-    #　添加判断基站有效的SNR标注
-    plt.legend('有效基站SNR >= ' + str(minConnSNR), loc='upper right')
+    #　添加判断基站有效的RSSI标注
+    plt.legend('有效基站RSSI >= ' + str(minConnRSSI), loc='upper right')
     # 逆置Y轴
     ax.invert_yaxis()
-    plt.savefig(os.path.join(tmpDir, 'WLAN1有效基站覆盖热力图-SNR>=' + str(minConnSNR) + '.png'), dpi=150)
+    plt.savefig(os.path.join(tmpDir, 'WLAN1有效基站覆盖热力图-RSSI>=' + str(minConnRSSI) + '.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
