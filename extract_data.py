@@ -207,7 +207,7 @@ if __name__ == '__main__':
     # ###############################################################################
     # print('**********第二阶段：解析文件，提取StatusList, ScanStatusList, ConnStatusList写入data.csv, scanData.csv, connData.csv**********')
     # #####################################################
-    # for i in range(1, 2):
+    # for i in range(2, 42):
     #     fileName = '30.113.151.' + str(i)
     #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -267,7 +267,7 @@ if __name__ == '__main__':
     # ###############################################################################
     # print('**********第三阶段：解析文件，提取CommStatusList写入commData.csv**********')
     # #####################################################
-    # for i in range(1, 2):
+    # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
     #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -295,7 +295,7 @@ if __name__ == '__main__':
     # ###############################################################################
     # print('**********第四阶段：解析文件，提取TcpprobeStatusList写入tcpprobeData.csv**********')
     # #####################################################
-    # for i in range(1, 2):
+    # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
     #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     # ###############################################################################
     # print('**********第五阶段：对connData.csv与commData.csv进行去重处理**********')
     # #####################################################
-    # for i in range(1, 2):
+    # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
     #     if os.path.isdir(tmpPath):
@@ -380,14 +380,14 @@ if __name__ == '__main__':
     # print('**********第六阶段：解析tcpdump文件**********')
     # #####################################################
     # print('解析tcpdump文件')
-    # for i in range(1, 2):
+    # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
-    #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
-    #     dataPath = os.path.join(tmpPath, 'data')
-    #     parseTcpdump(dataPath)
-    #     staticsFile = os.path.join(tmpPath, 'mptcpData/statics.txt')
-    #     parseStatics(staticsFile, tmpPath)
+    #     if os.path.isdir(tmpPath):
+    #         dataPath = os.path.join(tmpPath, 'data')
+    #         parseTcpdump(dataPath)
+    #         staticsFile = os.path.join(tmpPath, 'mptcpData/statics.txt')
+    #         parseStatics(staticsFile, tmpPath)
     # #####################################################
     # print('**********第六阶段结束**********')
     # ###############################################################################

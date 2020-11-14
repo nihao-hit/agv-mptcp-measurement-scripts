@@ -17,16 +17,16 @@ if __name__ == '__main__':
     mpl.rcParams['font.sans-serif'] = ['SimHei']
     mpl.rcParams['axes.unicode_minus'] = False
 
-    ###############################################################################
-    print('**********第一阶段：单车数据统计**********')
-    for i in range(1, 2):
-        fileName = '30.113.151.' + str(i)
-        csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
-        csvFile = os.path.join(csvPath, 'data.csv')
-        scanCsvFile = os.path.join(csvPath, 'scanData.csv')
-        connCsvFile = os.path.join(csvPath, 'connData.csv')
-        tcpprobeCsvFile = os.path.join(csvPath, 'tcpprobeData.csv')
-        if os.path.isdir(csvPath):
+    # ###############################################################################
+    # print('**********第一阶段：单车数据统计**********')
+    # for i in range(1, 2):
+    #     fileName = '30.113.151.' + str(i)
+    #     csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+    #     csvFile = os.path.join(csvPath, 'data.csv')
+    #     scanCsvFile = os.path.join(csvPath, 'scanData.csv')
+    #     connCsvFile = os.path.join(csvPath, 'connData.csv')
+    #     tcpprobeCsvFile = os.path.join(csvPath, 'tcpprobeData.csv')
+    #     if os.path.isdir(csvPath):
             # #####################################################
             # print("掉线分析")
             # dropDir = os.path.join(csvPath, 'drop')
@@ -91,8 +91,8 @@ if __name__ == '__main__':
             # print("粗粒度分析")
             # drawComm(csvFile, commDir)
             # #####################################################
-    print('**********第一阶段结束**********')
-    ###############################################################################
+    # print('**********第一阶段结束**********')
+    # ###############################################################################
     
     
     # ###############################################################################
@@ -130,60 +130,62 @@ if __name__ == '__main__':
     #     os.makedirs(cdfDir)
     # drawCDFForAllAgvData(csvFileList, cdfDir)
     # #####################################################
-    print('**********第二阶段结束**********')
+    # print('**********第二阶段结束**********')
+    # ###############################################################################
+    
+    
     ###############################################################################
+    print('**********第三阶段：所有车conn, ping, tcpprobe, comm文件空洞统计**********')
+    #####################################################
+    print('构造文件空洞统计的顶级文件夹')
+    topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
+    topDataPath = r'/home/cx/Desktop/sdb-dir/'
+    topHoleDir = os.path.join(topDataPath, 'topHoleDir')
+    if not os.path.isdir(topHoleDir):
+        os.makedirs(topHoleDir)
     
+    holeDirList = [os.path.join(os.path.join(topTmpPath, path), 'fillDir')
+                   for path in os.listdir(topTmpPath)
+                   if os.path.isdir(os.path.join(os.path.join(topTmpPath, path), 'fillDir'))]
+    #####################################################
+    #####################################################
+    print("所有车的WLAN0的conn文件的空洞CDF图")
+    w0ConnHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
+                                                      for f in os.listdir(holeDir)
+                                                      if 'w0ConnHole' in f]
+    drawEmptyCDF(w0ConnHoleCsvFileList, topHoleDir, 'WLAN0的conn文件')
     
-    # ###############################################################################
-    # print('**********第三阶段：所有车conn, ping, tcpprobe, comm文件空洞统计**********')
-    # #####################################################
-    # print('构造文件空洞统计的顶级文件夹')
-    # topHoleDir = os.path.join(topDataPath, 'topHoleDir')
-    # if not os.path.isdir(topHoleDir):
-    #     os.makedirs(topHoleDir)
-    
-    # holeDirList = [os.path.join(os.path.join(topTmpPath, path), 'fillDir')
-    #                for path in os.listdir(topTmpPath)
-    #                if os.path.isdir(os.path.join(os.path.join(topTmpPath, path), 'fillDir'))]
-    # #####################################################
-    # #####################################################
-    # print("所有车的WLAN0的conn文件的空洞CDF图")
-    # w0ConnHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
-    #                                                   for f in os.listdir(holeDir)
-    #                                                   if 'w0ConnHole' in f]
-    # drawEmptyCDF(w0ConnHoleCsvFileList, topHoleDir, 'WLAN0的conn文件')
-    
-    # print("所有车的WLAN0的ping文件的空洞CDF图")
-    # w0PingHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
-    #                                                   for f in os.listdir(holeDir)
-    #                                                   if 'Ping151' in f]
-    # drawEmptyCDF(w0PingHoleCsvFileList, topHoleDir, 'WLAN0的ping文件')
-    # #####################################################
-    # #####################################################
-    # print("所有车的WLAN1的conn文件的空洞CDF图")
-    # w1ConnHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
-    #                                                   for f in os.listdir(holeDir)
-    #                                                   if 'w1ConnHole' in f]
-    # drawEmptyCDF(w1ConnHoleCsvFileList, topHoleDir, 'WLAN1的conn文件')
+    print("所有车的WLAN0的ping文件的空洞CDF图")
+    w0PingHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
+                                                      for f in os.listdir(holeDir)
+                                                      if 'Ping151' in f]
+    drawEmptyCDF(w0PingHoleCsvFileList, topHoleDir, 'WLAN0的ping文件')
+    #####################################################
+    #####################################################
+    print("所有车的WLAN1的conn文件的空洞CDF图")
+    w1ConnHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
+                                                      for f in os.listdir(holeDir)
+                                                      if 'w1ConnHole' in f]
+    drawEmptyCDF(w1ConnHoleCsvFileList, topHoleDir, 'WLAN1的conn文件')
 
-    # print("所有车的WLAN1的ping文件的空洞CDF图")
-    # w1PingHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
-    #                                                   for f in os.listdir(holeDir)
-    #                                                   if 'Ping127' in f]
-    # drawEmptyCDF(w1PingHoleCsvFileList, topHoleDir, 'WLAN1的ping文件')
-    # #####################################################
-    # #####################################################
-    # print("所有车的tcpprobe文件的空洞CDF图")
-    # tcpprobeHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
-    #                                                     for f in os.listdir(holeDir)
-    #                                                     if 'Tcpprobe' in f]
-    # drawEmptyCDF(tcpprobeHoleCsvFileList, topHoleDir, 'tcpprobe文件')
+    print("所有车的WLAN1的ping文件的空洞CDF图")
+    w1PingHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
+                                                      for f in os.listdir(holeDir)
+                                                      if 'Ping127' in f]
+    drawEmptyCDF(w1PingHoleCsvFileList, topHoleDir, 'WLAN1的ping文件')
+    #####################################################
+    #####################################################
+    print("所有车的tcpprobe文件的空洞CDF图")
+    tcpprobeHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
+                                                        for f in os.listdir(holeDir)
+                                                        if 'Tcpprobe' in f]
+    drawEmptyCDF(tcpprobeHoleCsvFileList, topHoleDir, 'tcpprobe文件')
 
-    # print("所有车的comm文件的空洞CDF图")
-    # commHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
-    #                                                 for f in os.listdir(holeDir)
-    #                                                 if 'Comm' in f]
-    # drawEmptyCDF(commHoleCsvFileList, topHoleDir, 'comm文件')
-    # #####################################################
-    # print('**********第三阶段结束**********')
-    # ###############################################################################
+    print("所有车的comm文件的空洞CDF图")
+    commHoleCsvFileList = [os.path.join(holeDir, f) for holeDir in holeDirList
+                                                    for f in os.listdir(holeDir)
+                                                    if 'Comm' in f]
+    drawEmptyCDF(commHoleCsvFileList, topHoleDir, 'comm文件')
+    #####################################################
+    print('**********第三阶段结束**********')
+    ###############################################################################
