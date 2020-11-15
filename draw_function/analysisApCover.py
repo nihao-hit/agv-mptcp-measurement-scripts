@@ -10,7 +10,48 @@ import pandas as pd
 import time
 import os
 
-from Status import ScanStatus
+# 时间戳精度为s
+class ScanStatus:
+    timestamp = 0
+    # 在解析comm文件时赋值
+    curPosX = 0
+    curPosY = 0
+
+    w0ApMac = []
+    w0Channel = []
+    w0Level = []
+
+    w1ApMac = []
+    w1Channel = []
+    w1Level = []
+
+    def __init__(self):
+        self.timestamp = 0
+        # 在解析comm文件时赋值
+        self.posX = 0
+        self.posY = 0
+
+        self.w0ApMac = []
+        self.w0Channel = []
+        self.w0Level = []
+
+        self.w1ApMac = []
+        self.w1Channel = []
+        self.w1Level = []
+    
+    def __setitem__(self, k, v):
+        self.k = v
+
+    def __getitem__(self, k):
+        return getattr(self, k)
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def keys(self):
+        return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
+
+
 
 # 画无线网卡连接基站的RSSI分布CDF
 def drawConnLevel(csvFileList, tmpDir):
@@ -84,10 +125,10 @@ def drawConnLevel(csvFileList, tmpDir):
 
 
     ###############################################################################
-    print('**********第三阶段：画无线网络的信号强度CDF图**********')
+    print('**********第三阶段：画无线网络的RSSI图**********')
     #####################################################
     print('画CDF图前的初始化：设置标题、坐标轴')
-    plt.title('无线网络的信号强度CDF')
+    plt.title('无线网络的RSSI')
 
     plt.xlim([-110, -10])
     plt.xlabel('信号强度(dBm)')
@@ -96,11 +137,11 @@ def drawConnLevel(csvFileList, tmpDir):
     plt.yticks(np.arange(0, 1.1, 0.1))
     #####################################################
     #####################################################
-    print("画WLAN0的信号强度CDF图")
+    print("画WLAN0的RSSI图")
     cdfW0Level, = plt.plot(list(w0LevelRatio), list(w0LevelRatio.index), c='red')
     #####################################################
     #####################################################
-    print("画WLAN1的信号强度CDF图")
+    print("画WLAN1的RSSI图")
     cdfW1Level, = plt.plot(list(w1LevelRatio), list(w1LevelRatio.index), c='blue')
     #####################################################
     #####################################################
@@ -111,7 +152,7 @@ def drawConnLevel(csvFileList, tmpDir):
             loc='lower right')
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, '无线网络的信号强度CDF.png')
+    figName = os.path.join(tmpDir, '无线网络的RSSI.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
@@ -190,10 +231,10 @@ def drawNotConnLevel(csvFileList, tmpDir):
 
 
     ###############################################################################
-    print('**********第三阶段：画未关联基站的最大信号强度CDF图**********')
+    print('**********第三阶段：画未关联基站的最大RSSI图**********')
     #####################################################
     print('画CDF图前的初始化：设置标题、坐标轴')
-    plt.title('未关联基站的最大信号强度CDF')
+    plt.title('未关联基站的最大RSSI')
 
     plt.xlim([-110, -10])
     plt.xlabel('信号强度(dBm)')
@@ -202,11 +243,11 @@ def drawNotConnLevel(csvFileList, tmpDir):
     plt.yticks(np.arange(0, 1.1, 0.1))
     #####################################################
     #####################################################
-    print("画WLAN0的未关联基站的最大信号强度CDF图")
+    print("画WLAN0的未关联基站的最大RSSI图")
     cdfW0Level, = plt.plot(list(w0LevelRatio), list(w0LevelRatio.index), c='red')
     #####################################################
     #####################################################
-    print("画WLAN1的未关联基站的最大信号强度CDF图")
+    print("画WLAN1的未关联基站的最大RSSI图")
     cdfW1Level, = plt.plot(list(w1LevelRatio), list(w1LevelRatio.index), c='blue')
     #####################################################
     #####################################################
@@ -217,7 +258,7 @@ def drawNotConnLevel(csvFileList, tmpDir):
             loc='lower right')
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, '未关联基站的最大信号强度CDF' + '.png')
+    figName = os.path.join(tmpDir, '未关联基站的最大RSSI' + '.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
@@ -772,3 +813,73 @@ def drawApCover3D(csvFileList, tmpDir):
     plt.close()
     plt.pause(1)
     #####################################################
+
+
+
+
+if __name__ == '__main__':
+    # 显示中文
+    import locale
+    locale.setlocale(locale.LC_CTYPE, 'zh_CN.utf8')
+    from pylab import *
+    mpl.rcParams['font.sans-serif'] = ['SimHei']
+    mpl.rcParams['axes.unicode_minus'] = False
+
+    ###############################################################################
+    print('**********基站覆盖分析->第一阶段：单车数据统计**********')
+    #####################################################
+    for i in range(1, 42):
+        fileName = '30.113.151.' + str(i)
+        csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+        csvFile = os.path.join(csvPath, 'data.csv')
+        scanCsvFile = os.path.join(csvPath, 'scanData.csv')
+        if os.path.isdir(csvPath):
+            print("基站覆盖分析")
+            apCoverDir = os.path.join(csvPath, 'analysisApCover')
+            if not os.path.isdir(apCoverDir):
+                os.makedirs(apCoverDir)
+
+            print('单车数据的无线网卡连接基站的RSSI分布CDF')
+            drawConnLevel([csvFile], apCoverDir)
+
+            print('单车数据的无线网卡未连接基站时观测到的基站最大RSSI分布CDF')
+            drawNotConnLevel([csvFile], apCoverDir)
+
+            print('单车数据的基站覆盖热力图')
+            goodRSSI = -70
+            drawApCover(goodRSSI, [scanCsvFile], apCoverDir)
+    #####################################################
+    print('**********基站覆盖分析->第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********基站覆盖分析->第二阶段：所有车数据统计**********')
+    #####################################################
+    print('构造文件夹')
+    topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
+    topDataPath = r'/home/cx/Desktop/sdb-dir/'
+    # csvFile与scanCsvFile按顺序一一对应
+    csvFileList = [os.path.join(os.path.join(topTmpPath, path), 'data.csv') 
+                   for path in os.listdir(topTmpPath)
+                   if os.path.isfile(os.path.join(os.path.join(topTmpPath, path), 'data.csv'))]
+    scanCsvFileList = [os.path.join(os.path.split(f)[0], 'scanData.csv') for f in csvFileList]
+    #####################################################
+    #####################################################
+    print("基站覆盖分析")
+    apCoverDir = os.path.join(topDataPath, 'analysisApCover')
+    if not os.path.isdir(apCoverDir):
+        os.makedirs(apCoverDir)
+
+    print('所有车数据的无线网卡连接基站的RSSI分布CDF')
+    drawConnLevel(csvFileList, apCoverDir)
+
+    print('所有车数据的无线网卡未连接基站时观测到的基站最大RSSI分布CDF')
+    drawNotConnLevel(csvFileList, apCoverDir)
+
+    print('所有车数据的基站覆盖热力图')
+    goodRSSI = -70
+    drawApCover(goodRSSI, scanCsvFileList, apCoverDir)
+    #####################################################
+    print('**********基站覆盖分析->第二阶段结束**********')
+    ###############################################################################
