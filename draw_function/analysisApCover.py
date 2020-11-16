@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd 
 import time
 import os
+import re
 
 # 时间戳精度为s
 class ScanStatus:
@@ -291,6 +292,14 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     neverWalk = [[0]*265 for _ in range(139)]
     #####################################################
     #####################################################
+    print('2020/11/16:14:　补充数据结构记录统计结果的时间戳以及所属车，方便正确性分析从统计结果定位到原始数据')
+    w0apCountAppend = [['']*265 for _ in range(139)]
+    w1apCountAppend = [['']*265 for _ in range(139)]
+
+    w0goodApCountAppend = [['']*265 for _ in range(139)]
+    w1goodApCountAppend = [['']*265 for _ in range(139)]
+    #####################################################
+    #####################################################
     print('由于将所有scanCsv文件都读入内存会oom，因此改为单行依次处理')
     for scanCsvFile in scanCsvFileList:
         with open(scanCsvFile, 'r') as f:
@@ -300,6 +309,7 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
                 scanStatus = ScanStatus()
 
                 line = line.split(',')
+                scanStatus.timestamp = int(line[0])
                 posX = int(line[1])
                 posY = int(line[2])
                 w0ApCount = int(line[3])
@@ -324,19 +334,26 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
                 #####################################################
                 # 对ScanStatus对象进行处理
                 else:
-                    w0apCount[posY][posX] = max(
-                        w0apCount[posY][posX], 
-                        len(scanStatus.w0Level))
-                    w0goodApCount[posY][posX] = max(
-                        w0goodApCount[posY][posX], 
-                        len(list(filter(lambda level : level >= minConnRSSI, scanStatus.w0Level))))
+                    # 2020/11/16:14: 配合进行修改
+                    agvId = re.findall('(?<=30.113.151.)\d+', scanCsvFile)[0]
 
-                    w1apCount[posY][posX] = max(
-                        w1apCount[posY][posX], 
-                        len(scanStatus.w1Level))
-                    w1goodApCount[posY][posX] = max(
-                        w1goodApCount[posY][posX], 
-                        len(list(filter(lambda level : level >= minConnRSSI, scanStatus.w1Level))))
+                    if len(scanStatus.w0Level) > w0apCount[posY][posX]:
+                        w0apCount[posY][posX] = len(scanStatus.w0Level)
+                        w0apCountAppend[posY][posX] = '{}|{}'.format(agvId, scanStatus.timestamp)
+                    
+                    tmpw0goodApCount = len(list(filter(lambda level : level >= minConnRSSI, scanStatus.w0Level)))
+                    if tmpw0goodApCount > w0goodApCount[posY][posX]:
+                        w0goodApCount[posY][posX] = tmpw0goodApCount
+                        w0goodApCountAppend[posY][posX] = '{}|{}'.format(agvId, scanStatus.timestamp)
+                    
+                    if len(scanStatus.w1Level) > w1apCount[posY][posX]:
+                        w1apCount[posY][posX] = len(scanStatus.w1Level)
+                        w1apCountAppend[posY][posX] = '{}|{}'.format(agvId, scanStatus.timestamp)
+                    
+                    tmpw1goodApCount = len(list(filter(lambda level : level >= minConnRSSI, scanStatus.w1Level)))
+                    if tmpw1goodApCount > w1goodApCount[posY][posX]:
+                        w1goodApCount[posY][posX] = tmpw1goodApCount
+                        w1goodApCountAppend[posY][posX] = '{}|{}'.format(agvId, scanStatus.timestamp)
 
                     neverWalk[posY][posX] = 1
                 #####################################################
@@ -389,6 +406,17 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
         f.write(s)
     #####################################################
     #####################################################
+    # 2020/11/16:14: 配合进行补充
+    print('将WLAN0基站覆盖数及有效基站覆盖数对应的时间戳及所属车写入文件')
+    with open(os.path.join(tmpDir, 'w0apCountAppend.csv'), 'w') as f:
+        s = '\n'.join([','.join(row) for row in w0apCountAppend])
+        f.write(s)
+
+    with open(os.path.join(tmpDir, 'w0goodApCountAppend.csv'), 'w') as f:
+        s = '\n'.join([','.join(row) for row in w0goodApCountAppend])
+        f.write(s)
+    #####################################################
+    #####################################################
     print('将没有WLAN1基站覆盖的点写入文件')
     with open(os.path.join(tmpDir, 'w1NoApCover.csv'), 'w') as f:
         for y in range(len(w1NoApCover)):
@@ -406,6 +434,17 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     print('将WLAN1有效基站覆盖数写入文件')
     with open(os.path.join(tmpDir, 'w1goodApCount.csv'), 'w') as f:
         s = '\n'.join([','.join(list(map(str, row))) for row in w1goodApCount])
+        f.write(s)
+    #####################################################
+    #####################################################
+    # 2020/11/16:14: 配合进行补充
+    print('将WLAN1基站覆盖数及有效基站覆盖数对应的时间戳及所属车写入文件')
+    with open(os.path.join(tmpDir, 'w1apCountAppend.csv'), 'w') as f:
+        s = '\n'.join([','.join(row) for row in w1apCountAppend])
+        f.write(s)
+
+    with open(os.path.join(tmpDir, 'w1goodApCountAppend.csv'), 'w') as f:
+        s = '\n'.join([','.join(row) for row in w1goodApCountAppend])
         f.write(s)
     #####################################################
     print('**********第二阶段结束**********')
