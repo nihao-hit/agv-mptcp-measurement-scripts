@@ -371,8 +371,10 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     #####################################################
     print('将没有WLAN0基站覆盖的点写入文件')
     with open(os.path.join(tmpDir, 'w0NoApCover.csv'), 'w') as f:
-        s = '\n'.join([','.join(list(map(str, row))) for row in w0NoApCover])
-        f.write(s)
+        for y in range(len(w0NoApCover)):
+            for x in range(len(w0NoApCover)):
+                if w0NoApCover[y][x] == 1:
+                    f.write('{},{}\n'.format(x, y))
     #####################################################
     #####################################################
     print('将WLAN0基站覆盖数写入文件')
@@ -389,8 +391,10 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     #####################################################
     print('将没有WLAN1基站覆盖的点写入文件')
     with open(os.path.join(tmpDir, 'w1NoApCover.csv'), 'w') as f:
-        s = '\n'.join([','.join(list(map(str, row))) for row in w1NoApCover])
-        f.write(s)
+        for y in range(len(w1NoApCover)):
+            for x in range(len(w1NoApCover)):
+                if w1NoApCover[y][x] == 1:
+                    f.write('{},{}\n'.format(x, y))
     #####################################################
     #####################################################
     print('将WLAN1基站覆盖数写入文件')
