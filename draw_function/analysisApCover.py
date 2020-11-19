@@ -873,6 +873,7 @@ if __name__ == '__main__':
     #####################################################
     for i in range(1, 42):
         fileName = '30.113.151.' + str(i)
+        print(fileName)
         csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
         csvFile = os.path.join(csvPath, 'data.csv')
         scanCsvFile = os.path.join(csvPath, 'scanData.csv')
