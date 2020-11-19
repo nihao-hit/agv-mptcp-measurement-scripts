@@ -1,5 +1,5 @@
-# drawHandover : 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游SNR增益CDF
-# drawHandoverFineGrained : 画漫游事件全景图，漫游事件SNR分析图　
+# drawHandover : 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游RSSI增益CDF
+# drawHandoverFineGrained : 画漫游事件全景图，漫游事件RSSI分析图　
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -9,7 +9,7 @@ import datetime
 import os
 import sys
 
-# 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游SNR增益CDF
+# 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游RSSI增益CDF
 def drawHandover(csvFile, connCsvFile, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -76,7 +76,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1RTTSampleTuple = []
     #####################################################
     #####################################################
-    print('提取漫游时段、漫游前后rtt与snr对比，构造dataframe')
+    print('提取漫游时段、漫游前后rtt与RSSI对比，构造dataframe')
     for i in range(len(curTimestamp)):
         #####################################################
         # w0漫游事件统计
@@ -180,9 +180,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1HoDf['startDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start'] / 1000), axis=1)
     w1HoDf['endDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end'] / 1000), axis=1)
     
-    print('构造SNR增益列')
-    w0HoDf['snrGain'] = w0HoDf['level2'] - w0HoDf['level1']
-    w1HoDf['snrGain'] = w1HoDf['level2'] - w1HoDf['level1']
+    print('构造RSSI增益列')
+    w0HoDf['rssiGain'] = w0HoDf['level2'] - w0HoDf['level1']
+    w1HoDf['rssiGain'] = w1HoDf['level2'] - w1HoDf['level1']
     #####################################################
     #####################################################
     print('构造漫游热力图数据')
@@ -191,14 +191,23 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
     # １．提取坐标；２．过滤(0, 0)；３．重置索引
     # ４．按坐标分组；５．统计各坐标分组长度；６．生成新列count；７．重置索引；
-    # ８．转换dataframe为二元数组坐标轴；９．将nan置为0；１０．转换dataframe为int；
+    # ８．转换dataframe为二元数组坐标轴；９．将nan置为0；
+    # ９．将index也就是posY转换为int；
+    # １０．将columns也就是posX转换为int;
+    # １１．使用连续的posY, posX替换index, columns，并返回二元数组．
     w0HoMap = w0HoDf[['posX', 'posY']][(w0HoDf['posX'] != 0) | (w0HoDf['posY'] != 0)].reset_index(drop=True) \
         .groupby(['posX', 'posY']).size().to_frame('count').reset_index() \
-        .pivot(index='posY', columns='posX', values='count').fillna(0).astype(int).values
+        .pivot(index='posY', columns='posX', values='count').fillna(0).astype(int)
+    w0HoMap.index = w0HoMap.index.astype(int)
+    w0HoMap.columns = w0HoMap.columns.astype(int)
+    w0HoMap = w0HoMap.reindex(index=range(139), columns=range(265), fill_value=0).values
     
     w1HoMap = w1HoDf[['posX', 'posY']][(w1HoDf['posX'] != 0) | (w1HoDf['posY'] != 0)].reset_index(drop=True) \
         .groupby(['posX', 'posY']).size().to_frame('count').reset_index() \
-        .pivot(index='posY', columns='posX', values='count').fillna(0).astype(int).values
+        .pivot(index='posY', columns='posX', values='count').fillna(0).astype(int)
+    w1HoMap.index = w1HoMap.index.astype(int)
+    w1HoMap.columns = w1HoMap.columns.astype(int)
+    w1HoMap = w1HoMap.reindex(index=range(139), columns=range(265), fill_value=0).values
     #####################################################
     ratio = np.arange(0, 1.01, 0.01)
     bins = [0, 200, 1000, 5000, sys.maxsize]
@@ -225,9 +234,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
         w0DurationTypeCategory[k] = tmp
     #####################################################
     #####################################################
-    print('构造After snr - Before snr的CDF数据')
-    w0SNRRatio = (w0HoDf['level2'] - w0HoDf['level1']).quantile(ratio)
-    w1SNRRatio = (w1HoDf['level2'] - w1HoDf['level1']).quantile(ratio)
+    print('构造After RSSI - Before RSSI的CDF数据')
+    w0RSSIRatio = (w0HoDf['level2'] - w0HoDf['level1']).quantile(ratio)
+    w1RSSIRatio = (w1HoDf['level2'] - w1HoDf['level1']).quantile(ratio)
     #####################################################
     #####################################################
     print('非图表型统计数据构造')
@@ -247,7 +256,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1TypeCategory = dict(list(w1HoDf.groupby('flag')))
     statics['WLAN1 flag=0漫游次数'] = len(w1TypeCategory[0])
     statics['WLAN1 flag=1漫游次数'] = len(w1TypeCategory[1])
-    statics['WLAN1 flag=2漫游次数'] = len(w1TypeCategory[2])
+    # 2020/11/19:10 可能没有flag=2的漫游类别
+    try:
+        statics['WLAN1 flag=2漫游次数'] = len(w1TypeCategory[2])
+    except:
+        pass
     statics['漫游时间戳粒度'] = '毫秒'
     #####################################################
     print('**********第一阶段结束**********')
@@ -271,9 +284,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     pd.DataFrame(w0DurationTypeCategory).to_csv(os.path.join(tmpDir, 'WLAN0漫游类型分类信息.csv'))
     #####################################################
     #####################################################
-    print('将漫游SNR增益信息写入文件')
-    w0SNRRatio.to_csv(os.path.join(tmpDir, 'WLAN0漫游SNR增益信息.csv'))
-    w1SNRRatio.to_csv(os.path.join(tmpDir, 'WLAN1漫游SNR增益信息.csv'))
+    print('将漫游RSSI增益信息写入文件')
+    w0RSSIRatio.to_csv(os.path.join(tmpDir, 'WLAN0漫游RSSI增益信息.csv'))
+    w1RSSIRatio.to_csv(os.path.join(tmpDir, 'WLAN1漫游RSSI增益信息.csv'))
     #####################################################
     #####################################################
     print('将非图表型统计数据写入文件')
@@ -470,10 +483,10 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
 
     ###############################################################################
-    print('**********第七阶段：画WLAN0与WLAN1漫游SNR增益CDF**********')
+    print('**********第七阶段：画WLAN0与WLAN1漫游RSSI增益CDF**********')
     #####################################################
-    print("设置漫游SNR增益CDF坐标轴")
-    plt.title('漫游SNR增益CDF')
+    print("设置漫游RSSI增益CDF坐标轴")
+    plt.title('漫游RSSI增益CDF')
     # plt.xlim([-10, 10])
     plt.xlabel('漫游增益(dBm)')
     # 设置图片长宽比，结合dpi确定图片大小
@@ -485,21 +498,21 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.yticks([i for i in np.arange(0.0, 1.1, 0.1)])
     #####################################################
     #####################################################
-    print("画WLAN0漫游SNR增益CDF")
-    cdfW0HoSNR, = plt.plot(list(w0SNRRatio), list(w0SNRRatio.index), c='red')
+    print("画WLAN0漫游RSSI增益CDF")
+    cdfW0HoRSSI, = plt.plot(list(w0RSSIRatio), list(w0RSSIRatio.index), c='red')
     #####################################################
     #####################################################
-    print("画WLAN1漫游SNR增益CDF")
-    cdfW1HoSNR, = plt.plot(list(w1SNRRatio), list(w1SNRRatio.index), c='blue')
+    print("画WLAN1漫游RSSI增益CDF")
+    cdfW1HoRSSI, = plt.plot(list(w1RSSIRatio), list(w1RSSIRatio.index), c='blue')
     #####################################################
     #####################################################
     print("设置标注")
-    plt.legend([cdfW0HoSNR, cdfW1HoSNR],
+    plt.legend([cdfW0HoRSSI, cdfW1HoRSSI],
             ['WLAN0', 
              'WLAN1'],
             loc='lower right')
     
-    plt.savefig(os.path.join(tmpDir, '漫游SNR增益CDF.png'), dpi=200)
+    plt.savefig(os.path.join(tmpDir, '漫游RSSI增益CDF.png'), dpi=200)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -509,7 +522,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
 
 
-# 画漫游事件全景图，漫游事件SNR分析图　
+# 画漫游事件全景图，漫游事件RSSI分析图　
 def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpDir, count):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -652,7 +665,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
 
 
     ###############################################################################
-    print('**********第三阶段：画漫游事件SNR与时延分析图**********')
+    print('**********第三阶段：画漫游事件RSSI与时延分析图**********')
     #####################################################
     print('按漫游时长各分类提取时段数据进行分析')
     bins = [0, 200, 1000, 5000, sys.maxsize]
@@ -684,10 +697,10 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             oneW0HoDf = list(df.groupby('bin'))[0][1]
             #####################################################
             #####################################################
-            # 对分析时段内的conn SNR数据再次按照AP分组，并过滤零值
+            # 对分析时段内的conn RSSI数据再次按照AP分组，并过滤零值
             hoConnDf = oneW0HoDf[(oneW0HoDf['W0APMac'] != '') & (oneW0HoDf['W0level'] != 0)]
             hoConnApGroup = dict(list(hoConnDf.groupby('W0APMac', sort=False)))
-            # 对分析时段内的scan SNR数据再次按照AP分组，并过滤零值
+            # 对分析时段内的scan RSSI数据再次按照AP分组，并过滤零值
             hoScanDf = oneW0HoDf[(oneW0HoDf['scanW0APMacMax'] != '') & (oneW0HoDf['scanW0APLevelMax'] != 0)]
             hoScanApGroup = dict(list(hoScanDf.groupby('scanW0APMacMax', sort=False)))
             # 准备时延数据，并过滤零值
@@ -695,14 +708,14 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
             #####################################################
             # 设置标题
-            plt.title('漫游事件SNR与时延分析图')
+            plt.title('漫游事件RSSI与时延分析图')
             #####################################################
             #####################################################
             # 设置第一个坐标坐标轴
             plt.xlim([analysisStartTime, analysisEndTime])
             plt.xticks(list(oneW0HoDf['curTimestamp']), rotation=45)
             plt.xlabel('时间(s)')
-            plt.ylabel('SNR(dBm)')
+            plt.ylabel('RSSI(dBm)')
             # 为每个ap分配一种颜色
             colors = ['red', 'orange', 'green', 'blue', 'purple', 'black']
             colorsMap = dict()
@@ -711,7 +724,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
                 if k not in colorsMap:
                     colorsMap[k] = idx
                     idx = (idx + 1) % len(colors)
-            # 画conn　SNR折线图与scan SNR折线图
+            # 画conn　RSSI折线图与scan RSSI折线图
             for k, v in hoConnApGroup.items():
                 plt.plot(list(v['curTimestamp']), list(v['W0level']), 
                         c=colors[colorsMap[k]], marker='+', ms=4, label='conn: ' + k)
@@ -753,4 +766,42 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
     #####################################################
     print('**********第三阶段结束**********')
+    ###############################################################################
+
+
+
+
+if __name__ == '__main__':
+    # 显示中文
+    import locale
+    locale.setlocale(locale.LC_CTYPE, 'zh_CN.utf8')
+    from pylab import *
+    mpl.rcParams['font.sans-serif'] = ['SimHei']
+    mpl.rcParams['axes.unicode_minus'] = False
+
+    ###############################################################################
+    print('**********漫游分析->第一阶段：单车数据统计**********')
+    #####################################################
+    for i in range(1, 42):
+        fileName = '30.113.151.' + str(i)
+        print(fileName)
+        csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+        csvFile = os.path.join(csvPath, 'data.csv')
+        connCsvFile = os.path.join(csvPath, 'connData.csv')
+        if os.path.isdir(csvPath):
+            print("漫游分析")
+            handoverDir = os.path.join(csvPath, 'analysisHandover')
+            if not os.path.isdir(handoverDir):
+                os.makedirs(handoverDir)
+            
+            print('画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游RSSI增益CDF')
+            drawHandover(csvFile, connCsvFile, handoverDir)
+
+            print('画漫游事件全景图，漫游事件RSSI分析图　')
+            w0HoCsvFile = os.path.join(handoverDir, 'WLAN0漫游时段汇总.csv')
+            w1HoCsvFile = os.path.join(handoverDir, 'WLAN1漫游时段汇总.csv')
+            count = 10
+            drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, handoverDir, count)
+    #####################################################
+    print('**********漫游分析->第一阶段结束**********')
     ###############################################################################
