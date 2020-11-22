@@ -389,6 +389,16 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
                 if neverWalk[y][x] == 1 and w1goodApCount[y][x] == 0:
                     w1NoGoodApCover[y][x] = 1
     #####################################################
+    #####################################################
+    print('2020/11/22:14: 非图表型统计数据构造')
+    staticsFile = os.path.join(tmpDir, 'statics.csv')
+    statics = dict()
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+    
+    # 数据总数
+    statics['agvWalk'] = sum([len(list(filter(lambda x : x == 1, row))) for row in neverWalk])
+    #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
 
@@ -480,6 +490,11 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
             for x in range(len(w1NoGoodApCover)):
                 if w1NoGoodApCover[y][x] == 1:
                     f.write('{},{}\n'.format(x, y))
+    #####################################################
+    #####################################################
+    # 2020/11/22:14: 配合进行添加
+    print('将非图表型统计数据写入文件')
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
