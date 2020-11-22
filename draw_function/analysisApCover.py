@@ -373,6 +373,22 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
                 if neverWalk[y][x] == 1 and w1apCount[y][x] == 0:
                     w1NoApCover[y][x] = 1
     #####################################################
+    #####################################################
+    print("2020/11/22: 统计有车经过但是没有有效AP覆盖的点")
+    # 为方便画热力图，1表明没有AP覆盖，0表明有AP覆盖
+    w0NoGoodApCover = [[0]*265 for _ in range(139)]
+    w1NoGoodApCover = [[0]*265 for _ in range(139)]
+
+    for y in range(len(w0NoGoodApCover)):
+            for x in range(len(w0NoGoodApCover[0])):
+                if neverWalk[y][x] == 1 and w0goodApCount[y][x] == 0:
+                    w0NoGoodApCover[y][x] = 1
+
+    for y in range(len(w1NoGoodApCover)):
+            for x in range(len(w1NoGoodApCover[0])):
+                if neverWalk[y][x] == 1 and w1goodApCount[y][x] == 0:
+                    w1NoGoodApCover[y][x] = 1
+    #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
 
@@ -417,6 +433,15 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
         f.write(s)
     #####################################################
     #####################################################
+    # 2020/11/22:14: 配合进行补充
+    print('将WLAN0有效基站覆盖空白坐标写入文件')
+    with open(os.path.join(tmpDir, 'w0NoGoodApCover.csv'), 'w') as f:
+        for y in range(len(w0NoGoodApCover)):
+            for x in range(len(w0NoGoodApCover)):
+                if w0NoGoodApCover[y][x] == 1:
+                    f.write('{},{}\n'.format(x, y))
+    #####################################################
+    #####################################################
     print('将没有WLAN1基站覆盖的点写入文件')
     with open(os.path.join(tmpDir, 'w1NoApCover.csv'), 'w') as f:
         for y in range(len(w1NoApCover)):
@@ -446,6 +471,15 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     with open(os.path.join(tmpDir, 'w1goodApCountAppend.csv'), 'w') as f:
         s = '\n'.join([','.join(row) for row in w1goodApCountAppend])
         f.write(s)
+    #####################################################
+    #####################################################
+    # 2020/11/22:14: 配合进行补充
+    print('将WLAN1有效基站覆盖空白坐标写入文件')
+    with open(os.path.join(tmpDir, 'w1NoGoodApCover.csv'), 'w') as f:
+        for y in range(len(w1NoGoodApCover)):
+            for x in range(len(w1NoGoodApCover)):
+                if w1NoGoodApCover[y][x] == 1:
+                    f.write('{},{}\n'.format(x, y))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
@@ -599,6 +633,49 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     plt.pause(1)
     #####################################################
     print('**********第五阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    # 2020/11/22:14: 配合进行添加
+    print('**********第六阶段：画WLAN0与WLAN1没有有效基站覆盖热力图**********')
+    #####################################################
+    print("高亮WLAN0没有有效基站覆盖的热力图")
+    plt.title('WLAN0有效基站覆盖空白热力图')
+    plt.xlim([0, 264])
+    plt.ylim([0, 138])
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
+    ax = sns.heatmap(w0NoGoodApCover, cmap="Blues", vmin=0,
+                     cbar_kws={'ticks':[0, 1]})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
+    # 逆置Y轴
+    ax.invert_yaxis()
+    plt.savefig(os.path.join(tmpDir, 'WLAN0有效基站覆盖空白热力图.png'), dpi=150)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    #####################################################
+    print("高亮WLAN1没有有效基站覆盖的热力图")
+    plt.title('WLAN1有效基站覆盖空白热力图')
+    plt.xlim([0, 264])
+    plt.ylim([0, 138])
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
+    ax = sns.heatmap(w1NoGoodApCover, cmap="Blues", vmin=0,
+                     cbar_kws={'ticks':[0, 1]})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
+    # 逆置Y轴
+    ax.invert_yaxis()
+    plt.savefig(os.path.join(tmpDir, 'WLAN1有效基站覆盖空白热力图.png'), dpi=150)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    print('**********第六阶段结束**********')
     ###############################################################################
 
 
