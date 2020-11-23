@@ -128,6 +128,9 @@ def drawConnLevel(csvFileList, tmpDir):
     ###############################################################################
     print('**********第三阶段：画无线网络的RSSI图**********')
     #####################################################
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
+    
     print('画CDF图前的初始化：设置标题、坐标轴')
     plt.title('AGV连接基站的RSSI')
 
@@ -243,6 +246,9 @@ def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
     ###############################################################################
     print('**********第三阶段：画Not-Associated时扫描到的基站最大RSSI图**********')
     #####################################################
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
+    
     print('画CDF图前的初始化：设置标题、坐标轴')
     plt.title('AGV Not-Associated时扫描到的基站最大RSSI图')
 
