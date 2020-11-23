@@ -1,5 +1,5 @@
 # drawConnLevel : 画无线网卡连接基站的RSSI分布CDF
-# drawNotConnLevel : 画无线网卡未连接基站时观测到的基站最大RSSI分布CDF
+# drawNotConnLevel : 画无线网卡Not-Associated时扫描到的基站最大RSSI图
 # drawApCover : 基站覆盖热力图，基站覆盖空白热力图
 # drawApCover3D : 基站覆盖三维柱状图
 from matplotlib import pyplot as plt
@@ -63,10 +63,11 @@ def drawConnLevel(csvFileList, tmpDir):
     print('提取level, rtt, 坐标数据')
     dfList = []
     for csvFile in csvFileList:
-        df = pd.read_csv(csvFile, usecols=['curTimestamp', 'W0level', 'W1level'],
+        df = pd.read_csv(csvFile, usecols=['curTimestamp', 'W0level', 'W1level', 'speed'],
                                 dtype={'curTimestamp' : int,
                                        'W0level' : int, 
-                                       'W1level' : int})
+                                       'W1level' : int,
+                                       'speed' : float})
         dfList.append(df)
     dfAll = pd.concat(dfList, ignore_index=True)
     #####################################################
@@ -74,16 +75,17 @@ def drawConnLevel(csvFileList, tmpDir):
     print('分离w0与w1的数据')
     ratio = np.arange(0, 1.01, 0.01)
 
-    w0Df = dfAll.loc[:,['W0level']]
+    w0Df = dfAll.loc[:,['W0level', 'speed']]
 
-    w1Df = dfAll.loc[:, ['W1level']]
+    w1Df = dfAll.loc[:, ['W1level', 'speed']]
     #####################################################
     #####################################################
-    print('过滤level=0也就是除去数据空洞与未关联基站的时刻数据，构造level的CDF数据')
-    w0DfFiltered = w0Df[(w0Df['W0level'] != 0)].reset_index(drop=True)
+    print('1.过滤level=0也就是除去数据空洞与未关联基站的时刻数据')
+    print('2.过滤speed=0也就是车静止的时刻数据')
+    w0DfFiltered = w0Df[(w0Df['W0level'] != 0) & (w0Df['speed'] != 0.0)].reset_index(drop=True)
     w0LevelRatio = w0DfFiltered['W0level'].quantile(ratio)
     
-    w1DfFiltered = w1Df[(w1Df['W1level'] != 0)].reset_index(drop=True)
+    w1DfFiltered = w1Df[(w1Df['W1level'] != 0) & (w1Df['speed'] != 0.0)].reset_index(drop=True)
     w1LevelRatio = w1DfFiltered['W1level'].quantile(ratio)
     #####################################################
     #####################################################
@@ -94,11 +96,9 @@ def drawConnLevel(csvFileList, tmpDir):
         statics = pd.read_csv(staticsFile).to_dict('list')
         
     # 数据总数，时间跨度，时间粒度
-    statics['conn数据总数'] = len(dfAll)
-    statics['WLAN0 RSSI数据总数'] = len(w0Df)
-    statics['WLAN0 RSSI过滤后数据总数'] = len(w0DfFiltered)
-    statics['WLAN1 RSSI数据总数'] = len(w1Df)
-    statics['WLAN1 RSSI过滤后数据总数'] = len(w1DfFiltered)
+    statics['连接基站的rssi数据总数'] = len(dfAll)
+    statics['wlan0过滤后数据总数'] = len(w0DfFiltered)
+    statics['wlan1过滤后数据总数'] = len(w1DfFiltered)
     statics['start'] = dfAll['curTimestamp'].min()
     statics['end'] = dfAll['curTimestamp'].max()
     statics['duration'] = statics['end'] - statics['start']
@@ -165,23 +165,32 @@ def drawConnLevel(csvFileList, tmpDir):
 
 
 
-# 画无线网卡未连接基站时观测到的基站最大RSSI分布CDF
-def drawNotConnLevel(csvFileList, tmpDir):
+# 画无线网卡Not-Associated时扫描到的基站最大RSSI图
+def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
-    print('读入所有csv文件，并连接为一个dataframe')
+    print('读入所有connData.csv文件，data.csv文件，并以second为轴进行联结．')
     print('提取level, rtt, 坐标数据')
-    dfList = []
-    for csvFile in csvFileList:
-        df = pd.read_csv(csvFile, usecols=['W0APMac', 'W1APMac',
-                                           'scanW0APLevelMax', 'scanW1APLevelMax'],
-                                dtype={'W0APMac' : str, 
-                                       'W1APMac' : str,
-                                       'scanW0APLevelMax' : int,
-                                       'scanW1APLevelMax' : int})
-        dfList.append(df)
-    dfAll = pd.concat(dfList, ignore_index=True)
+    dfAndConnDfList = []
+    for i in range(len(csvFileList)):
+        df = pd.read_csv(csvFileList[i], na_filter=False, usecols=['curTimestamp',
+                                        'scanW0APLevelMax', 'scanW1APLevelMax'],
+                                dtype={'curTimestamp' : int, 
+                                    'scanW0APLevelMax' : int,
+                                    'scanW1APLevelMax' : int})
+        connDf = pd.read_csv(connCsvFileList[i], na_filter=False, usecols=['timestamp', 
+                                    'second',
+                                    'W0APMac', 'W1APMac'],
+                                dtype={'timestamp' : int, 
+                                    'second' : int, 
+                                    'W0APMac' : str,
+                                    'W1APMac' : str})
+        connDf.sort_values(by='timestamp', inplace=True)
+        connDf.reset_index(drop=True, inplace=True)
+        dfAndConnDf = df.merge(connDf, how='inner', left_on='curTimestamp', right_on='second')
+        dfAndConnDfList.append(dfAndConnDf)
+    dfAll = pd.concat(dfAndConnDfList, ignore_index=True)
     #####################################################
     #####################################################
     print('分离w0与w1的数据')
@@ -232,23 +241,23 @@ def drawNotConnLevel(csvFileList, tmpDir):
 
 
     ###############################################################################
-    print('**********第三阶段：画未关联基站的最大RSSI图**********')
+    print('**********第三阶段：画Not-Associated时扫描到的基站最大RSSI图**********')
     #####################################################
     print('画CDF图前的初始化：设置标题、坐标轴')
-    plt.title('未关联基站的最大RSSI')
+    plt.title('Not-Associated时扫描到的基站最大RSSI图')
 
-    plt.xlim([-110, -10])
-    plt.xlabel('信号强度(dBm)')
+    # plt.xlim([-110, -10])
+    plt.xlabel('RSSI(dBm)')
 
     plt.ylim([0, 1])
     plt.yticks(np.arange(0, 1.1, 0.1))
     #####################################################
     #####################################################
-    print("画WLAN0的未关联基站的最大RSSI图")
+    print("画Not-Associated时扫描到的WLAN0基站最大RSSI图")
     cdfW0Level, = plt.plot(list(w0LevelRatio), list(w0LevelRatio.index), c='red')
     #####################################################
     #####################################################
-    print("画WLAN1的未关联基站的最大RSSI图")
+    print("画Not-Associated时扫描到的WLAN1基站最大RSSI图")
     cdfW1Level, = plt.plot(list(w1LevelRatio), list(w1LevelRatio.index), c='blue')
     #####################################################
     #####################################################
@@ -259,7 +268,7 @@ def drawNotConnLevel(csvFileList, tmpDir):
             loc='lower right')
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, '未关联基站的最大RSSI' + '.png')
+    figName = os.path.join(tmpDir, 'Not-Associated时扫描到的基站最大RSSI图' + '.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
@@ -968,6 +977,7 @@ if __name__ == '__main__':
         print(fileName)
         csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
         csvFile = os.path.join(csvPath, 'data.csv')
+        connCsvFile = os.path.join(csvPath, 'connData.csv')
         scanCsvFile = os.path.join(csvPath, 'scanData.csv')
         if os.path.isdir(csvPath):
             print("基站覆盖分析")
@@ -978,8 +988,8 @@ if __name__ == '__main__':
             print('单车数据的无线网卡连接基站的RSSI分布CDF')
             drawConnLevel([csvFile], apCoverDir)
 
-            print('单车数据的无线网卡未连接基站时观测到的基站最大RSSI分布CDF')
-            drawNotConnLevel([csvFile], apCoverDir)
+            print('单车数据的无线网卡Not-Associated时扫描到的基站最大RSSI分布CDF')
+            drawNotConnLevel([csvFile], [connCsvFile], apCoverDir)
 
             print('单车数据的基站覆盖热力图')
             goodRSSI = -70
@@ -999,6 +1009,7 @@ if __name__ == '__main__':
     csvFileList = [os.path.join(os.path.join(topTmpPath, path), 'data.csv') 
                    for path in os.listdir(topTmpPath)
                    if os.path.isfile(os.path.join(os.path.join(topTmpPath, path), 'data.csv'))]
+    connCsvFileList = [os.path.join(os.path.split(f)[0], 'connData.csv') for f in csvFileList]
     scanCsvFileList = [os.path.join(os.path.split(f)[0], 'scanData.csv') for f in csvFileList]
     #####################################################
     #####################################################
@@ -1010,8 +1021,8 @@ if __name__ == '__main__':
     print('所有车数据的无线网卡连接基站的RSSI分布CDF')
     drawConnLevel(csvFileList, apCoverDir)
 
-    print('所有车数据的无线网卡未连接基站时观测到的基站最大RSSI分布CDF')
-    drawNotConnLevel(csvFileList, apCoverDir)
+    print('所有车数据的无线网卡Not-Associated时扫描到的基站最大RSSI分布CDF')
+    drawNotConnLevel(csvFileList, connCsvFileList, apCoverDir)
 
     print('所有车数据的基站覆盖热力图')
     goodRSSI = -70
