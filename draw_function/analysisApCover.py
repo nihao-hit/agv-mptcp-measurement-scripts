@@ -1,5 +1,5 @@
-# drawConnLevel : 画无线网卡连接基站的RSSI分布CDF
-# drawNotConnLevel : 画无线网卡Not-Associated时扫描到的基站最大RSSI图
+# drawConnLevel : 画AGV连接基站的RSSI分布CDF
+# drawNotConnLevel : 画AGV Not-Associated时扫描到的基站最大RSSI图
 # drawApCover : 基站覆盖热力图，基站覆盖空白热力图
 # drawApCover3D : 基站覆盖三维柱状图
 from matplotlib import pyplot as plt
@@ -54,7 +54,7 @@ class ScanStatus:
 
 
 
-# 画无线网卡连接基站的RSSI分布CDF
+# 画AGV连接基站的RSSI分布CDF
 def drawConnLevel(csvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -63,7 +63,7 @@ def drawConnLevel(csvFileList, tmpDir):
     print('提取level, rtt, 坐标数据')
     dfList = []
     for csvFile in csvFileList:
-        df = pd.read_csv(csvFile, usecols=['curTimestamp', 'W0level', 'W1level', 'speed'],
+        df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 'W0level', 'W1level', 'speed'],
                                 dtype={'curTimestamp' : int,
                                        'W0level' : int, 
                                        'W1level' : int,
@@ -129,10 +129,10 @@ def drawConnLevel(csvFileList, tmpDir):
     print('**********第三阶段：画无线网络的RSSI图**********')
     #####################################################
     print('画CDF图前的初始化：设置标题、坐标轴')
-    plt.title('无线网络的RSSI')
+    plt.title('AGV连接基站的RSSI')
 
     plt.xlim([-110, -10])
-    plt.xlabel('信号强度(dBm)')
+    plt.xlabel('RSSI(dBm)')
 
     plt.ylim([0, 1])
     plt.yticks(np.arange(0, 1.1, 0.1))
@@ -153,7 +153,7 @@ def drawConnLevel(csvFileList, tmpDir):
             loc='lower right')
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, '无线网络的RSSI.png')
+    figName = os.path.join(tmpDir, 'AGV连接基站的RSSI.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
@@ -165,7 +165,7 @@ def drawConnLevel(csvFileList, tmpDir):
 
 
 
-# 画无线网卡Not-Associated时扫描到的基站最大RSSI图
+# 画AGV Not-Associated时扫描到的基站最大RSSI图
 def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -244,7 +244,7 @@ def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
     print('**********第三阶段：画Not-Associated时扫描到的基站最大RSSI图**********')
     #####################################################
     print('画CDF图前的初始化：设置标题、坐标轴')
-    plt.title('Not-Associated时扫描到的基站最大RSSI图')
+    plt.title('AGV Not-Associated时扫描到的基站最大RSSI图')
 
     # plt.xlim([-110, -10])
     plt.xlabel('RSSI(dBm)')
@@ -253,11 +253,11 @@ def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
     plt.yticks(np.arange(0, 1.1, 0.1))
     #####################################################
     #####################################################
-    print("画Not-Associated时扫描到的WLAN0基站最大RSSI图")
+    print("画AGV Not-Associated时扫描到的WLAN0基站最大RSSI图")
     cdfW0Level, = plt.plot(list(w0LevelRatio), list(w0LevelRatio.index), c='red')
     #####################################################
     #####################################################
-    print("画Not-Associated时扫描到的WLAN1基站最大RSSI图")
+    print("画AGV Not-Associated时扫描到的WLAN1基站最大RSSI图")
     cdfW1Level, = plt.plot(list(w1LevelRatio), list(w1LevelRatio.index), c='blue')
     #####################################################
     #####################################################
@@ -268,7 +268,7 @@ def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
             loc='lower right')
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, 'Not-Associated时扫描到的基站最大RSSI图' + '.png')
+    figName = os.path.join(tmpDir, 'AGV Not-Associated时扫描到的基站最大RSSI图' + '.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
@@ -985,10 +985,10 @@ if __name__ == '__main__':
             if not os.path.isdir(apCoverDir):
                 os.makedirs(apCoverDir)
 
-            print('单车数据的无线网卡连接基站的RSSI分布CDF')
+            print('单车数据的AGV连接基站的RSSI分布CDF')
             drawConnLevel([csvFile], apCoverDir)
 
-            print('单车数据的无线网卡Not-Associated时扫描到的基站最大RSSI分布CDF')
+            print('单车数据的AGV Not-Associated时扫描到的基站最大RSSI分布CDF')
             drawNotConnLevel([csvFile], [connCsvFile], apCoverDir)
 
             print('单车数据的基站覆盖热力图')
@@ -1018,10 +1018,10 @@ if __name__ == '__main__':
     if not os.path.isdir(apCoverDir):
         os.makedirs(apCoverDir)
 
-    print('所有车数据的无线网卡连接基站的RSSI分布CDF')
+    print('所有车数据的AGV连接基站的RSSI分布CDF')
     drawConnLevel(csvFileList, apCoverDir)
 
-    print('所有车数据的无线网卡Not-Associated时扫描到的基站最大RSSI分布CDF')
+    print('所有车数据的AGV Not-Associated时扫描到的基站最大RSSI分布CDF')
     drawNotConnLevel(csvFileList, connCsvFileList, apCoverDir)
 
     print('所有车数据的基站覆盖热力图')
