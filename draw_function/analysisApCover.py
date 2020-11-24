@@ -176,6 +176,19 @@ def drawConnLevel(csvFileList, tmpDir):
     cdfW1Level, = plt.plot(list(w1LevelRatio), list(w1LevelRatio.index), c='blue')
     #####################################################
     #####################################################
+    print('画25%, 50%, 75%竖线')
+    vlinesLabels = {0.25:'25%', 0.5:'50%', 0.75:'75%'}
+    for ymax in [0.25, 0.5, 0.75]:
+        w0x = w0LevelRatio[ymax]
+        w1x = w1LevelRatio[ymax]
+
+        plt.vlines(w0x, 0, ymax, colors=['red'], linestyles='dotted')
+        plt.text(w0x, ymax, s='\n'.join([vlinesLabels[ymax], str(int(w0x))]))
+        
+        plt.vlines(w1x, 0, ymax, colors=['red'], linestyles='dotted')
+        plt.text(w1x, ymax, s='\n'.join([vlinesLabels[ymax], str(int(w1x))]))
+    #####################################################
+    #####################################################
     print("设置标注")
     plt.legend([cdfW0Level, cdfW1Level],
             ['WLAN0', 
