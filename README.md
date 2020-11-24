@@ -278,3 +278,10 @@ tcpprobe文件中为什么map_data_len、map_data_seq、map_subseq都为0，snt_
 2. 这里的conn数据没有写入data.csv文件，目前看来影响不大，有时间再搞吧．
 
 ***
+
+## 代码要点[^修改代码需要注意的地方]
+
+1. read_csv()是否需要加na_filter参数，来避免空字符串被转换为nan．
+2. connData.csv是否有按时间戳进行排序．
+3. 图片长宽比
+4. 是否需要使用tight_layout()调整图片布局．
