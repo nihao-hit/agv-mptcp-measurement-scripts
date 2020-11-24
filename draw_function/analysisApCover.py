@@ -1,6 +1,6 @@
 # drawConnLevel : 画AGV连接基站的RSSI分布CDF，rssi与时延关系图
 # drawNotConnLevel : 画AGV Not-Associated时扫描到的基站最大RSSI图
-# drawApCover : 基站覆盖热力图，基站覆盖空白热力图
+# drawApCover : 基站覆盖热力图，基站覆盖空白热力图，有效基站覆盖热力图，有效基站覆盖空白热力图
 # drawApCover3D : 基站覆盖三维柱状图
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -63,10 +63,13 @@ def drawConnLevel(csvFileList, tmpDir):
     print('提取level, rtt, 坐标数据')
     dfList = []
     for csvFile in csvFileList:
-        df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 'W0level', 'W1level', 'speed'],
+        df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 
+                            'W0level', 'W0pingrtt', 'W1level', 'W1pingrtt', 'speed'],
                                 dtype={'curTimestamp' : int,
                                        'W0level' : int, 
+                                       'W0pingrtt' : int,
                                        'W1level' : int,
+                                       'W1pingrtt' : int,
                                        'speed' : float})
         dfList.append(df)
     dfAll = pd.concat(dfList, ignore_index=True)
@@ -91,14 +94,14 @@ def drawConnLevel(csvFileList, tmpDir):
     #####################################################
     print('2020/11/24:10: 构造rssi与时延关系图')
     print('过滤level==0的时刻数据，在保留的数据中将pingrtt > 3s | pingrtt % 1000 == 0替换为3s')
-    w0LevelFiltered = df[df['W0level'] != 0]
+    w0LevelFiltered = dfAll[dfAll['W0level'] != 0]
     w0LevelFiltered.loc[(w0LevelFiltered['W0pingrtt'] % 1000 == 0) | (w0LevelFiltered['W0pingrtt'] > 3000), 'W0pingrtt'] = 3000
     
     w0x1 = range(w0LevelFiltered['W0level'].min(), w0LevelFiltered['W0level'].max() + 1)
     w0y1 = [list(w0LevelFiltered[w0LevelFiltered['W0level'] == ix]['W0pingrtt']) for ix in w0x1]
     w0y2 = list(map(lambda x : len(x) / len(w0LevelFiltered), w0y1))
 
-    w1LevelFiltered = df[df['W1level'] != 0]
+    w1LevelFiltered = dfAll[dfAll['W1level'] != 0]
     w1LevelFiltered.loc[(w1LevelFiltered['W1pingrtt'] % 1000 == 0) | (w1LevelFiltered['W1pingrtt'] > 3000), 'W1pingrtt'] = 3000
     
     w1x1 = range(w1LevelFiltered['W1level'].min(), w1LevelFiltered['W1level'].max() + 1)
@@ -379,12 +382,11 @@ def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
 
 
 
-# 基站覆盖热力图
+# 基站覆盖热力图，基站覆盖空白热力图，有效基站覆盖热力图，有效基站覆盖空白热力图
 # 取每个坐标最大一次探测到的AP数作为覆盖数量
 # 标记数据中出现的每一个坐标为车走过的坐标，没出现的坐标则可能是墙、柱子，以及其余区域
 # 从坐标系中剔除车没走过的坐标，然后统计剩下的坐标中AP覆盖数为0的坐标
-# （车可能存在人为移动，导致一些车平时不会走过，AP覆盖根本不重要的坐标被统计）
-def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
+def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
@@ -449,7 +451,7 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
                         w0apCount[posY][posX] = len(scanStatus.w0Level)
                         w0apCountAppend[posY][posX] = '{}|{}'.format(agvId, scanStatus.timestamp)
                     
-                    tmpw0goodApCount = len(list(filter(lambda level : level >= minConnRSSI, scanStatus.w0Level)))
+                    tmpw0goodApCount = len(list(filter(lambda level : level >= minW0ConnRSSI, scanStatus.w0Level)))
                     if tmpw0goodApCount > w0goodApCount[posY][posX]:
                         w0goodApCount[posY][posX] = tmpw0goodApCount
                         w0goodApCountAppend[posY][posX] = '{}|{}'.format(agvId, scanStatus.timestamp)
@@ -458,7 +460,7 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
                         w1apCount[posY][posX] = len(scanStatus.w1Level)
                         w1apCountAppend[posY][posX] = '{}|{}'.format(agvId, scanStatus.timestamp)
                     
-                    tmpw1goodApCount = len(list(filter(lambda level : level >= minConnRSSI, scanStatus.w1Level)))
+                    tmpw1goodApCount = len(list(filter(lambda level : level >= minW1ConnRSSI, scanStatus.w1Level)))
                     if tmpw1goodApCount > w1goodApCount[posY][posX]:
                         w1goodApCount[posY][posX] = tmpw1goodApCount
                         w1goodApCountAppend[posY][posX] = '{}|{}'.format(agvId, scanStatus.timestamp)
@@ -685,10 +687,10 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     #　添加判断基站有效的RSSI标注
-    plt.legend('有效基站RSSI >= ' + str(minConnRSSI), loc='upper right')
+    plt.legend('有效基站RSSI >= ' + str(minW0ConnRSSI), loc='upper right')
     # 逆置Y轴
     ax.invert_yaxis()
-    plt.savefig(os.path.join(tmpDir, 'WLAN0有效基站覆盖热力图-RSSI>=' + str(minConnRSSI) + '.png'), dpi=150)
+    plt.savefig(os.path.join(tmpDir, 'WLAN0有效基站覆盖热力图-RSSI>=' + str(minW0ConnRSSI) + '.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -705,10 +707,10 @@ def drawApCover(minConnRSSI, scanCsvFileList, tmpDir):
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     #　添加判断基站有效的RSSI标注
-    plt.legend('有效基站RSSI >= ' + str(minConnRSSI), loc='upper right')
+    plt.legend('有效基站RSSI >= ' + str(minW1ConnRSSI), loc='upper right')
     # 逆置Y轴
     ax.invert_yaxis()
-    plt.savefig(os.path.join(tmpDir, 'WLAN1有效基站覆盖热力图-RSSI>=' + str(minConnRSSI) + '.png'), dpi=150)
+    plt.savefig(os.path.join(tmpDir, 'WLAN1有效基站覆盖热力图-RSSI>=' + str(minW1ConnRSSI) + '.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -1091,8 +1093,9 @@ if __name__ == '__main__':
             drawNotConnLevel([csvFile], [connCsvFile], apCoverDir)
 
             print('单车数据的基站覆盖热力图')
-            goodRSSI = -70
-            drawApCover(goodRSSI, [scanCsvFile], apCoverDir)
+            w0GoodRSSI = -83
+            w1GoodRSSI = -68
+            drawApCover(w0GoodRSSI, w1GoodRSSI, [scanCsvFile], apCoverDir)
     #####################################################
     print('**********基站覆盖分析->第一阶段结束**********')
     ###############################################################################
@@ -1124,8 +1127,9 @@ if __name__ == '__main__':
     drawNotConnLevel(csvFileList, connCsvFileList, apCoverDir)
 
     print('所有车数据的基站覆盖热力图')
-    goodRSSI = -70
-    drawApCover(goodRSSI, scanCsvFileList, apCoverDir)
+    w0GoodRSSI = -83
+    w1GoodRSSI = -68
+    drawApCover(w0GoodRSSI, w1GoodRSSI, scanCsvFileList, apCoverDir)
     #####################################################
     print('**********基站覆盖分析->第二阶段结束**********')
     ###############################################################################
