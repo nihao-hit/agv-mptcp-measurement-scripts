@@ -708,12 +708,14 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
             #####################################################
             # 设置标题
-            plt.title('漫游事件RSSI与时延分析图')
+            plt.title('漫游RSSI分析图')
             #####################################################
             #####################################################
             # 设置第一个坐标坐标轴
-            plt.xlim([analysisStartTime, analysisEndTime])
-            plt.xticks(list(oneW0HoDf['curTimestamp']), rotation=45)
+            plt.xlim([analysisStartTime * 1e3, analysisEndTime * 1e3])
+            plt.xticks(list(map(lambda x : x * 1e3, list(oneW0HoDf['curTimestamp']))), 
+                       list(map(lambda x : str(x)[-2:], list(oneW0HoDf['curTimestamp']))),
+                       rotation=45)
             plt.xlabel('时间(s)')
             plt.ylabel('RSSI(dBm)')
             # 为每个ap分配一种颜色
@@ -726,10 +728,10 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
                     idx = (idx + 1) % len(colors)
             # 画conn　RSSI折线图与scan RSSI折线图
             for k, v in hoConnApGroup.items():
-                plt.plot(list(v['curTimestamp']), list(v['W0level']), 
+                plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['W0level']), 
                         c=colors[colorsMap[k]], marker='+', ms=4, label='conn: ' + k)
             for k, v in hoScanApGroup.items():
-                plt.plot(list(v['curTimestamp']), list(v['scanW0APLevelMax']), 
+                plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['scanW0APLevelMax']), 
                         c=colors[colorsMap[k]], marker='x', ms=4, label='scan: ' + k)
             #####################################################
             #####################################################
@@ -744,8 +746,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
                 if innerHo['flag'] == 1:
                     label = 'ap1->not-associated->ap1'
                     c = 'blue'
-                width = int(innerHo['duration'] / 1000) if innerHo['duration'] >= 1000 else 1
-                plt.axvline(int(innerHo['start'] / 1000), lw=width, color=c, label=label)
+                plt.axvspan(innerHo['start'], innerHo['end'], alpha=0.3, color=c, label=label)
             #####################################################
             # 显示标注
             plt.legend()
