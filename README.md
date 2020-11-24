@@ -152,13 +152,14 @@
 
 统计关联基站的最小RSSI与未关联基站的最大RSSI．
 
-1. 非图表型统计数据：conn数据总数，WLAN0数据总数，WLAN0过滤后数据总数，WLAN1数据总数，WLAN1过滤后数据总数，start，end，duration，时间粒度，WLAN0最小RSSI，WLAN0最大RSSI，WLAN1最小RSSI，WLAN1最大RSSI，WLAN0 Not-Associated数据总数，WLAN1 Not-Associated数据总数，WLAN0未关联基站最大RSSI1，WLAN0未关联基站最大RSSI2，WLAN1未关联基站最大RSSI1，WLAN1未关联基站最大RSSI2．
+1. 非图表型统计数据：连接基站的rssi数据总数   wlan0过滤level=0speed=0后数据总数   wlan1过滤level=0speed=0后数据总数   wlan0过滤level=0后数据总数   wlan1过滤level=0后数据总数   start   end   duration   时间粒度   WLAN0最小RSSI   WLAN0最大RSSI   WLAN1最小RSSI   WLAN1最大RSSI   WLAN0 Not-Associated数据总数   WLAN1 Not-Associated数据总数   WLAN0未关联基站最大RSSI1   WLAN0未关联基站最大RSSI2   WLAN1未关联基站最大RSSI1   WLAN1未关联基站最大RSSI2   agvWalk 
 2. 粗粒度分析
-   1. 无线网卡连接基站的RSSI分布CDF，
-   2. 无线网卡未连接基站时观测到的基站最大RSSI分布CDF
+   1. AGV连接基站的RSSI分布CDF
+   2. rssi与时延关系图
    3. 基站覆盖热力图
-   4. 有效基站覆盖热力图
-   5. 基站覆盖空白热力图
+   4. 基站覆盖空白热力图
+   5. 有效基站覆盖热力图
+   6. 有效基站覆盖空白热力图
 
 ***
 
