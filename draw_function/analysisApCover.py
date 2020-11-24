@@ -1,4 +1,4 @@
-# drawConnLevel : 画AGV连接基站的RSSI分布CDF
+# drawConnLevel : 画AGV连接基站的RSSI分布CDF，rssi与时延关系图
 # drawNotConnLevel : 画AGV Not-Associated时扫描到的基站最大RSSI图
 # drawApCover : 基站覆盖热力图，基站覆盖空白热力图
 # drawApCover3D : 基站覆盖三维柱状图
@@ -54,7 +54,7 @@ class ScanStatus:
 
 
 
-# 画AGV连接基站的RSSI分布CDF
+# 画AGV连接基站的RSSI分布CDF，rssi与时延关系图
 def drawConnLevel(csvFileList, tmpDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -89,6 +89,23 @@ def drawConnLevel(csvFileList, tmpDir):
     w1LevelRatio = w1DfFiltered['W1level'].quantile(ratio)
     #####################################################
     #####################################################
+    print('2020/11/24:10: 构造rssi与时延关系图')
+    print('过滤level==0的时刻数据，在保留的数据中将pingrtt > 3s | pingrtt % 1000 == 0替换为3s')
+    w0LevelFiltered = df[df['W0level'] != 0]
+    w0LevelFiltered.loc[(w0LevelFiltered['W0pingrtt'] % 1000 == 0) | (w0LevelFiltered['W0pingrtt'] > 3000), 'W0pingrtt'] = 3000
+    
+    w0x1 = range(w0LevelFiltered['W0level'].min(), w0LevelFiltered['W0level'].max() + 1)
+    w0y1 = [list(w0LevelFiltered[w0LevelFiltered['W0level'] == ix]['W0pingrtt']) for ix in w0x1]
+    w0y2 = list(map(lambda x : len(x) / len(w0LevelFiltered), w0y1))
+
+    w1LevelFiltered = df[df['W1level'] != 0]
+    w1LevelFiltered.loc[(w1LevelFiltered['W1pingrtt'] % 1000 == 0) | (w1LevelFiltered['W1pingrtt'] > 3000), 'W1pingrtt'] = 3000
+    
+    w1x1 = range(w1LevelFiltered['W1level'].min(), w1LevelFiltered['W1level'].max() + 1)
+    w1y1 = [list(w1LevelFiltered[w1LevelFiltered['W1level'] == ix]['W1pingrtt']) for ix in w1x1]
+    w1y2 = list(map(lambda x : len(x) / len(w1LevelFiltered), w1y1))
+    #####################################################
+    #####################################################
     print('非图表型统计数据构造')
     staticsFile = os.path.join(tmpDir, 'statics.csv')
     statics = dict()
@@ -97,8 +114,10 @@ def drawConnLevel(csvFileList, tmpDir):
         
     # 数据总数，时间跨度，时间粒度
     statics['连接基站的rssi数据总数'] = len(dfAll)
-    statics['wlan0过滤后数据总数'] = len(w0DfFiltered)
-    statics['wlan1过滤后数据总数'] = len(w1DfFiltered)
+    statics['wlan0过滤level=0speed=0后数据总数'] = len(w0DfFiltered)
+    statics['wlan1过滤level=0speed=0后数据总数'] = len(w1DfFiltered)
+    statics['wlan0过滤level=0后数据总数'] = len(w0LevelFiltered)
+    statics['wlan1过滤level=0后数据总数'] = len(w1LevelFiltered)
     statics['start'] = dfAll['curTimestamp'].min()
     statics['end'] = dfAll['curTimestamp'].max()
     statics['duration'] = statics['end'] - statics['start']
@@ -116,11 +135,16 @@ def drawConnLevel(csvFileList, tmpDir):
 
     ###############################################################################
     print('**********第二阶段：将关键统计数据写入文件**********')
+    #####################################################
     w0LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN0信号强度统计信息.csv'))
+    # 2020/11/24:12: 配合进行改动
+    pd.DataFrame({'rssi':w0x1, 'rtt':w0y2}).to_csv(os.path.join(tmpDir, 'WLAN0 rssi与时延关系统计信息.csv'))
 
     w1LevelRatio.to_csv(os.path.join(tmpDir, 'WLAN1信号强度统计信息.csv'))
+    pd.DataFrame({'rssi':w1x1, 'rtt':w1y2}).to_csv(os.path.join(tmpDir, 'WLAN1 rssi与时延关系统计信息.csv'))
 
     pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
+    #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
 
@@ -164,6 +188,75 @@ def drawConnLevel(csvFileList, tmpDir):
     plt.pause(1)
     #####################################################
     print('**********第三阶段结束**********')
+    ###############################################################################
+
+
+    # 2020/11/24:12: 配合进行添加
+    ###############################################################################
+    print('**********第四阶段：画rssi与时延关系图**********')
+    #####################################################
+    print('画wlan0基站rssi与时延关系图')
+    plt.rcParams['figure.figsize'] = (12.8, 4.8)
+    
+    fig, ax1 = plt.subplots()
+    plt.title('wlan0基站rssi与时延关系图')
+
+    ax1.set_xlabel('rssi (dBm)')
+    ax1.set_ylabel('时延 (ms)')
+    ax1.boxplot(w0y1, positions=w0x1)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_ylabel('百分比　(%)', color=color)  # we already handled the x-label with ax1
+    ax2.plot(w0x1, w0y2, color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    # 旋转共用x轴labels
+    for xtick in ax1.get_xticklabels():
+        xtick.set_rotation(45)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+
+    figName = os.path.join(tmpDir, 'wlan0基站rssi与时延关系图.png')
+    print('保存到：', figName)
+    plt.savefig(figName, dpi=200)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    #####################################################
+    print('画wlan1基站rssi与时延关系图')
+    plt.rcParams['figure.figsize'] = (12.8, 4.8)
+    
+    fig, ax1 = plt.subplots()
+    plt.title('wlan1基站rssi与时延关系图')
+
+    ax1.set_xlabel('rssi (dBm)')
+    ax1.set_ylabel('时延 (ms)')
+    ax1.boxplot(w1y1, positions=w1x1)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_ylabel('百分比　(%)', color=color)  # we already handled the x-label with ax1
+    ax2.plot(w1x1, w1y2, color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    # 旋转共用x轴labels
+    for xtick in ax1.get_xticklabels():
+        xtick.set_rotation(45)
+
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+
+    figName = os.path.join(tmpDir, 'wlan1基站rssi与时延关系图.png')
+    print('保存到：', figName)
+    plt.savefig(figName, dpi=200)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    print('**********第四阶段结束**********')
     ###############################################################################
 
 
@@ -991,7 +1084,7 @@ if __name__ == '__main__':
             if not os.path.isdir(apCoverDir):
                 os.makedirs(apCoverDir)
 
-            print('单车数据的AGV连接基站的RSSI分布CDF')
+            print('单车数据的AGV连接基站的RSSI分布CDF，rssi与时延关系图')
             drawConnLevel([csvFile], apCoverDir)
 
             print('单车数据的AGV Not-Associated时扫描到的基站最大RSSI分布CDF')
