@@ -624,13 +624,21 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 
                                                         'W0APMac', 'W0level',
                                                         'scanW0APMacMax', 'scanW0APLevelMax',
-                                                        'W0pingrtt'],
+                                                        'W0pingrtt',
+                                                        'W1APMac', 'W1level',
+                                                        'scanW1APMacMax', 'scanW1APLevelMax',
+                                                        'W1pingrtt'],
                               dtype={'curTimestamp' : int, 
                                      'W0APMac' : str,
                                      'W0level' : int,
                                      'scanW0APMacMax' : str,
                                      'scanW0APLevelMax' : int,
-                                     'W0pingrtt' : int})
+                                     'W0pingrtt' : int,
+                                     'W1APMac' : str,
+                                     'W1level' : int,
+                                     'scanW1APMacMax' : str,
+                                     'scanW1APLevelMax' : int,
+                                     'W1pingrtt' : int})
     #####################################################
     #####################################################
     print('读取单台车的connData.csv数据')
