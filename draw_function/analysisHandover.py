@@ -116,11 +116,13 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                     w0HoStartIdx = w0Ap1Idx
 
                 duration = curTimestamp[i] - curTimestamp[w0HoStartIdx]
-                w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
-                                 W0level[w0Ap1Idx], W0level[i], 
-                                 beforeRtt, afterRtt,
-                                 curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
-                                 w0HoFlag])
+                # 2020/11/25:17 过滤duration >= 30s的漫游事件
+                if duration < 30000:
+                    w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
+                                    W0level[w0Ap1Idx], W0level[i], 
+                                    beforeRtt, afterRtt,
+                                    curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
+                                    w0HoFlag])
         #####################################################
         # w0循环标志更新
                 w0HoFlag = -1
@@ -164,11 +166,13 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                     w1HoStartIdx = w1Ap1Idx
                 
                 duration = curTimestamp[i] - curTimestamp[w1HoStartIdx]
-                w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
-                                 W1level[w1Ap1Idx], W1level[i], 
-                                 beforeRtt, afterRtt,
-                                 curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
-                                 w1HoFlag])
+                # 2020/11/25:17 过滤duration >= 30s的漫游事件
+                if duration < 30000:
+                    w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
+                                    W1level[w1Ap1Idx], W1level[i], 
+                                    beforeRtt, afterRtt,
+                                    curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
+                                    w1HoFlag])
         #####################################################
         # w1循环标志更新
                 w1HoFlag = -1
@@ -306,8 +310,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('2020/11/25:17: 将漫游热力图统计数据写入文件')
-    pd.DataFrame(w0HoMap).to_csv(os.path.join(tmpDir, 'WLAN0漫游热力图统计数据.csv'))
-    pd.DataFrame(w1HoMap).to_csv(os.path.join(tmpDir, 'WLAN1漫游热力图统计数据.csv'))
+    # list转dataframe自动写入则携带行列信息，通过index=False与header=False参数设置不写入行列信息．
+    pd.DataFrame(w0HoMap).to_csv(os.path.join(tmpDir, 'WLAN0漫游热力图统计数据.csv'), index=False, header=False)
+    pd.DataFrame(w1HoMap).to_csv(os.path.join(tmpDir, 'WLAN1漫游热力图统计数据.csv'), index=False, header=False)
     #####################################################
     #####################################################
     print('将漫游时长CDF信息写入文件')
@@ -413,9 +418,10 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     print("设置漫游时长CDF坐标轴")
     plt.title('漫游时长CDF')
-    plt.xlim([0, 5000])
-    plt.xticks([0, 200, 1000, 5000], ['0', '200ms', '1s', '5s'])
-    plt.xlabel('漫游时长')
+    # 2020/11/25:17 配合进行修改
+    plt.xlim(left=0)
+    # plt.xticks([0, 200, 1000, 5000], ['0', '200ms', '1s', '5s'])
+    plt.xlabel('漫游时长 (ms)')
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (6.4, 4.8)
     plt.ylim([0, 1])
