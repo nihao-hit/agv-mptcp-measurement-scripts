@@ -43,7 +43,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     print('以时间戳为轴merge df与connDf，提取指定列数据')
     connDf['curTimestamp'] = (connDf['timestamp'] / 1e3).astype(int)
-    dfAndConnDf = df.merge(connDf, on='curTimestamp', how='right')
+    # 2020/11/25:10: how参数从right改为inner，舍弃connDf时间轴先于和后于df的那部分数据
+    dfAndConnDf = df.merge(connDf, on='curTimestamp', how='inner')
 
     curTimestamp = dfAndConnDf['timestamp']
     curPosX = dfAndConnDf['curPosX']
@@ -56,6 +57,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     W1level = dfAndConnDf['W1level']
     #####################################################
     #####################################################
+    print('2020/11/25:10: 修改漫游时长为not-associated->ap2时段（flag=0, 1）或ap1->ap2时段（flag=2）')
     print('从dataframe统计漫游事件, 初始化数据结构')
     # ['start', 'end', 'duration', 'level1', 'level2', 'rtt1', 'rtt2', 'posX', 'posY', '0|1|2']
     # 0 : ap1->not-associated->ap2
@@ -64,11 +66,13 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w0HoList = []
     w0Ap1 = ''
     w0Ap1Idx = -1
+    w0NotIdx = -1
     w0HoFlag = -1
 
     w1HoList = []
     w1Ap1 = ''
     w1Ap1Idx = -1
+    w1NotIdx = -1
     w1HoFlag = -1
 
     # 补充数据结构，记录RTT采样时刻距离漫游时刻的距离
@@ -106,19 +110,26 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                         w0RTTSample[1] = j - i
                 w0RTTSampleTuple.append(w0RTTSample)
                 
-                duration = curTimestamp[i] - curTimestamp[w0Ap1Idx]
-                w0HoList.append([curTimestamp[w0Ap1Idx], curTimestamp[i], duration, 
+                # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
+                w0HoStartIdx = w0NotIdx
+                if w0HoStartIdx == -1:
+                    w0HoStartIdx = w0Ap1Idx
+
+                duration = curTimestamp[i] - curTimestamp[w0HoStartIdx]
+                w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
                                  W0level[w0Ap1Idx], W0level[i], 
                                  beforeRtt, afterRtt,
-                                 curPosX[w0Ap1Idx], curPosY[w0Ap1Idx],
+                                 curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
                                  w0HoFlag])
         #####################################################
         # w0循环标志更新
                 w0HoFlag = -1
+                w0NotIdx = -1
             w0Ap1 = W0APMac[i]
             w0Ap1Idx = i
         if W0APMac[i] == 'Not-Associated':
             w0HoFlag = 0
+            w0NotIdx = i
         #####################################################
         # w1漫游事件统计
         if W1APMac[i] != '' and W1APMac[i] != 'Not-Associated':
@@ -147,19 +158,26 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                         w1RTTSample[1] = j - i
                 w1RTTSampleTuple.append(w1RTTSample)
                 
-                duration = curTimestamp[i] - curTimestamp[w1Ap1Idx]
-                w1HoList.append([curTimestamp[w1Ap1Idx], curTimestamp[i], duration, 
+                # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
+                w1HoStartIdx = w1NotIdx
+                if w1HoStartIdx == -1:
+                    w1HoStartIdx = w1Ap1Idx
+                
+                duration = curTimestamp[i] - curTimestamp[w1HoStartIdx]
+                w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
                                  W1level[w1Ap1Idx], W1level[i], 
                                  beforeRtt, afterRtt,
-                                 curPosX[w1Ap1Idx], curPosY[w1Ap1Idx],
+                                 curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
                                  w1HoFlag])
         #####################################################
         # w1循环标志更新
                 w1HoFlag = -1
+                w1NotIdx = -1
             w1Ap1 = W1APMac[i]
             w1Ap1Idx = i
         if W1APMac[i] == 'Not-Associated':
             w1HoFlag = 0
+            w1NotIdx = i
     w0HoDf = pd.DataFrame(w0HoList, columns=['start', 'end', 'duration', 
                                              'level1', 'level2', 
                                              'rtt1', 'rtt2',
@@ -261,6 +279,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
         statics['WLAN1 flag=2漫游次数'] = len(w1TypeCategory[2])
     except:
         pass
+    statics['start'] = curTimestamp.min()
+    statics['end'] = curTimestamp.max()
+    statics['duration'] = statics['end'] - statics['start']
     statics['漫游时间戳粒度'] = '毫秒'
     #####################################################
     print('**********第一阶段结束**********')
