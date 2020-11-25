@@ -305,6 +305,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1HoDf.to_csv(os.path.join(tmpDir, 'WLAN1漫游时段汇总.csv'))
     #####################################################
     #####################################################
+    print('2020/11/25:17: 将漫游热力图统计数据写入文件')
+    pd.DataFrame(w0HoMap).to_csv(os.path.join(tmpDir, 'WLAN0漫游热力图统计数据.csv'))
+    pd.DataFrame(w1HoMap).to_csv(os.path.join(tmpDir, 'WLAN1漫游热力图统计数据.csv'))
+    #####################################################
+    #####################################################
     print('将漫游时长CDF信息写入文件')
     w0DurationRatio.to_csv(os.path.join(tmpDir, 'WLAN0漫游时长CDF信息.csv'))
     w1DurationRatio.to_csv(os.path.join(tmpDir, 'WLAN1漫游时长CDF信息.csv'))
