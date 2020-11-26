@@ -633,21 +633,25 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     #####################################################
     print('读取单台车的data.csv数据')
     df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 
-                                                        'W0APMac', 'W0level',
-                                                        'scanW0APMacMax', 'scanW0APLevelMax',
+                                                        'W0APMac', 'W0channel', 'W0level',
+                                                        'scanW0APMacMax', 'scanW0APChannelMax', 'scanW0APLevelMax',
                                                         'W0pingrtt',
-                                                        'W1APMac', 'W1level',
-                                                        'scanW1APMacMax', 'scanW1APLevelMax',
+                                                        'W1APMac', 'W1channel', 'W1level',
+                                                        'scanW1APMacMax', 'scanW1APChannelMax', 'scanW1APLevelMax',
                                                         'W1pingrtt'],
                               dtype={'curTimestamp' : int, 
                                      'W0APMac' : str,
+                                     'W0channel' : float,
                                      'W0level' : int,
                                      'scanW0APMacMax' : str,
+                                     'scanW0APChannelMax' : float,
                                      'scanW0APLevelMax' : int,
                                      'W0pingrtt' : int,
                                      'W1APMac' : str,
+                                     'W1channel' : float,
                                      'W1level' : int,
                                      'scanW1APMacMax' : str,
+                                     'scanW1APChannelMax': float,
                                      'scanW1APLevelMax' : int,
                                      'W1pingrtt' : int})
     #####################################################
@@ -826,10 +830,10 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             # 画conn　RSSI折线图与scan RSSI折线图
             for k, v in hoConnApGroup.items():
                 plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['W0level']), 
-                        c=colors[colorsMap[k]], marker='+', ms=4, label='conn: ' + k)
+                        c=colors[colorsMap[k]], marker='+', ms=4, label='conn,mac={},freq={}'.format(k[-2:], list(v['W0channel'])[0]))
             for k, v in hoScanApGroup.items():
                 plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['scanW0APLevelMax']), 
-                        c=colors[colorsMap[k]], marker='x', ms=4, label='scan: ' + k)
+                        c=colors[colorsMap[k]], marker='x', ms=4, label='scan,mac={},freq={}'.format(k[-2:], list(v['scanW0APChannelMax'])[0]))
             #####################################################
             #####################################################
             # 提取所有在此时段的漫游事件并画竖线
@@ -932,10 +936,10 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             # 画conn　RSSI折线图与scan RSSI折线图
             for k, v in hoConnApGroup.items():
                 plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['W1level']), 
-                        c=colors[colorsMap[k]], marker='+', ms=4, label='conn: ' + k)
+                        c=colors[colorsMap[k]], marker='+', ms=4, label='conn,mac={},freq={}'.format(k[-2:], list(v['W1channel'])[0]))
             for k, v in hoScanApGroup.items():
                 plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['scanW1APLevelMax']), 
-                        c=colors[colorsMap[k]], marker='x', ms=4, label='scan: ' + k)
+                        c=colors[colorsMap[k]], marker='x', ms=4, label='scan,mac={},freq={}'.format(k[-2:], list(v['scanW1APChannelMax'])[0]))
             #####################################################
             #####################################################
             # 提取所有在此时段的漫游事件并画竖线
