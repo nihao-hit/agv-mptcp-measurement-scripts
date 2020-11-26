@@ -27,7 +27,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('读取单台车的connData.csv数据')
-    print('由于从scan文件提取的conn数据没有顺序，因此这里必须按时间戳排序')
+    # print('由于从scan文件提取的conn数据没有顺序，因此这里必须按时间戳排序')
     connDf = pd.read_csv(connCsvFile, na_filter=False, usecols=['timestamp', 
                                                             'W0APMac', 'W0level',
                                                             'W1APMac', 'W1level'],
@@ -36,8 +36,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                                      'W0level': int, 
                                      'W1APMac' : str,
                                      'W1level': int,})
-    connDf.sort_values(by='timestamp', inplace=True)
-    connDf.reset_index(drop=True, inplace=True)
+    # connDf.sort_values(by='timestamp', inplace=True)
+    # connDf.reset_index(drop=True, inplace=True)
     # print(connDf.describe())
     #####################################################
     #####################################################

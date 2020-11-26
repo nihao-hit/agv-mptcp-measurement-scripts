@@ -298,8 +298,8 @@ def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
                                     'second' : int, 
                                     'W0APMac' : str,
                                     'W1APMac' : str})
-        connDf.sort_values(by='timestamp', inplace=True)
-        connDf.reset_index(drop=True, inplace=True)
+        # connDf.sort_values(by='timestamp', inplace=True)
+        # connDf.reset_index(drop=True, inplace=True)
         dfAndConnDf = df.merge(connDf, how='inner', left_on='curTimestamp', right_on='second')
         dfAndConnDfList.append(dfAndConnDf)
     dfAll = pd.concat(dfAndConnDfList, ignore_index=True)
