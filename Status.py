@@ -38,16 +38,21 @@ class Status:
     # SNR高于某个阈值的AP数量
     # scanW0APEff = 0
     scanW0APLevelMin = 0    #21
+    # 2020/11/26:11: 为Status添加scanW0APChannelMin, scanW0APChannelMax, scanW1APChannelMin, scanW1APChannelMax字段
+    scanW0APChannelMin = 0.0
     scanW0APMacMin = ''     #22
     scanW0APLevelMax = 0    #23
+    scanW0APChannelMax = 0.0
     scanW0APMacMax = ''     #24
 
     scanW1APCount = 0       #25
     # SNR高于某个阈值的AP数量
     # scanW1APEff = 0
     scanW1APLevelMin = 0    #26
+    scanW1APChannelMin = 0.0
     scanW1APMacMin = ''     #27
     scanW1APLevelMax = 0    #28
+    scanW1APChannelMax = 0.0
     scanW1APMacMax = ''     #29
     #####################################################
     #####################################################

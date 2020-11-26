@@ -2,7 +2,7 @@ import Status
 import calcTime
 
 from parseComm import parseComm, fillComm, parseCommForCommStatusList
-from parseConn import parseConn, fillConn
+from parseConn import parseConn, fillConn, parseConnForConnStatusList
 from parseScan import parseScan, fillScan
 from parsePing127 import parsePing127, fillPing127
 from parsePing151 import parsePing151, fillPing151
@@ -91,6 +91,20 @@ def writeDataIntoCommStatusList(dataPath):
             parseCommForCommStatusList(dataFile)
 
 
+def writeDataIntoConnStatusList(dataPath):
+    dataFiles = os.listdir(dataPath)
+    # 排序以保证按照时间顺序解析文件，startTimes与connStartTime正确
+    dataFiles.sort()
+    for dataFile in dataFiles:
+        dataFile = os.path.join(dataPath, dataFile)
+        # tmp = ['communication.log.2019-08-05-1', 'conn.1564932739', 'ping127.1564932739', 'ping151.1564932739', 'scan.1564932739']
+        # for tmpStr in tmp:
+        #     if tmpStr in dataFile:
+        print(dataFile)
+        if 'conn' in dataFile:
+            parseConnForConnStatusList(dataFile)
+
+
 def writeDataIntoTcpprobeStatusList(dataPath):
     dataFiles = os.listdir(dataPath)
     # 排序以保证按照时间顺序解析文件，startTimes与connStartTime正确
@@ -108,12 +122,13 @@ def writeDataIntoTcpprobeStatusList(dataPath):
 def writeStatusIntoCsv(csvPath):
     #####################################################
     print('s级时间戳对齐后的sList写入data.csv文件')
+    # 2020/11/26:11: 为写入data.csv的headers添加scanW0APChannelMin, scanW0APChannelMax, scanW1APChannelMin, scanW1APChannelMax字段
     headers = [
                'agvCode', 'dspStatus', 'destPosX', 'destPosY', 'curPosX', 'curPosY', 'curTimestamp', 'direction', 'speed', 'withBucket', 'jobSn',
                'W0APMac', 'W0channel', 'W0level', 'W1APMac', 'W1channel', 'W1level',
                'W0pingrtt', 'W1pingrtt',
-               'scanW0APCount', 'scanW0APLevelMin', 'scanW0APMacMin', 'scanW0APLevelMax', 'scanW0APMacMax', 
-               'scanW1APCount', 'scanW1APLevelMin', 'scanW1APMacMin', 'scanW1APLevelMax', 'scanW1APMacMax', 
+               'scanW0APCount', 'scanW0APLevelMin', 'scanW0APChannelMin', 'scanW0APMacMin', 'scanW0APLevelMax', 'scanW0APChannelMax', 'scanW0APMacMax', 
+               'scanW1APCount', 'scanW1APLevelMin', 'scanW1APChannelMin', 'scanW1APMacMin', 'scanW1APLevelMax', 'scanW1APChannelMax', 'scanW1APMacMax', 
                'src','srcPort','dst','dstPort','length','snd_nxt','snd_una','snd_cwnd','ssthresh','snd_wnd','srtt','rcv_wnd','path_index','map_data_len','map_data_seq','map_subseq','snt_isn','rcv_isn'
               ]
     with open(os.path.join(csvPath, 'data.csv'), 'w', newline='') as f:
@@ -203,11 +218,10 @@ if __name__ == '__main__':
     # ###############################################################################
 
     # # 由于StatusList, ScanStatusList都需要对齐s级时间戳，因此在一起处理
-    # # 由于需要scan文件中的conn数据进行补充，因此ConnStatusList也需要在一起处理
     # ###############################################################################
-    # print('**********第二阶段：解析文件，提取StatusList, ScanStatusList, ConnStatusList写入data.csv, scanData.csv, connData.csv**********')
+    # print('**********第二阶段：解析文件，提取StatusList, ScanStatusList写入data.csv, scanData.csv**********')
     # #####################################################
-    # for i in range(2, 42):
+    # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
     #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -216,19 +230,17 @@ if __name__ == '__main__':
     #         if not os.path.isdir(dataPath):
     #             os.makedirs(dataPath)
     #         #####################################################
-    #         print('重置全局变量sList, scanStatusList, ConnStatusList')
+    #         print('重置全局变量sList, scanStatusList')
     #         print('connStartTime, startTimes, endTimes')
     #         Status.sList = [Status.Status() for _ in range(86400*15)]
     #         Status.scanStatusList = [Status.ScanStatus() for _ in range(86400*15)]
-            
-    #         Status.ConnStatusList = []
 
     #         calcTime.connStartTime = -1
     #         calcTime.startTimes = [-1 for i in range(6)]
     #         calcTime.endTimes = [-1 for i in range(6)]
     #         #####################################################
     #         #####################################################
-    #         print('解析文件数据，写入StatusList, ScanStatusList, ConnStatusList')
+    #         print('解析文件数据，写入StatusList, ScanStatusList')
     #         writeDataIntoStatusList(dataPath)
     #         #####################################################
     #         #####################################################
@@ -254,18 +266,46 @@ if __name__ == '__main__':
     #         fillTcpprobe(Status.sList, startTime, fillDir)
     #         #####################################################
     #         #####################################################
-    #         print('将StatusList与ScanStatusList, ConnStatusList写入csv文件')
+    #         print('将StatusList与ScanStatusList写入csv文件')
     #         csvPath = tmpPath
     #         writeStatusIntoCsv(csvPath)
     #         writeScanStatusIntoCsv(csvPath)
-    #         writeConnStatusIntoCsv(csvPath)
     #         #####################################################
     # print('**********第二阶段结束**********')
     # ###############################################################################
 
 
+    # # 2020/11/26:11: connData.csv不再需要scan测量文件数据补充，改为单独提取．
     # ###############################################################################
-    # print('**********第三阶段：解析文件，提取CommStatusList写入commData.csv**********')
+    # print('**********第三阶段：解析文件，提取ConnStatusList写入connData.csv**********')
+    # #####################################################
+    # for i in range(1, 42):
+    #     fileName = '30.113.151.' + str(i)
+    #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
+    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+    #     dataPath = os.path.join(tmpPath, 'data')
+    #     if os.path.isdir(path):
+    #         if not os.path.isdir(dataPath):
+    #             os.makedirs(dataPath)
+    #         #####################################################
+    #         print('重置全局变量ConnStatusList')
+    #         Status.ConnStatusList = []
+    #         #####################################################
+    #         #####################################################
+    #         print('解析文件数据，写入ConnStatusList')
+    #         writeDataIntoConnStatusList(dataPath)
+    #         #####################################################
+    #         #####################################################
+    #         print('将ConnStatusList写入csv文件')
+    #         csvPath = tmpPath
+    #         writeConnStatusIntoCsv(csvPath)
+    #         #####################################################
+    # print('**********第三阶段结束**********')
+    # ###############################################################################
+
+
+    # ###############################################################################
+    # print('**********第四阶段：解析文件，提取CommStatusList写入commData.csv**********')
     # #####################################################
     # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
@@ -288,12 +328,12 @@ if __name__ == '__main__':
     #         csvPath = tmpPath
     #         writeCommStatusIntoCsv(csvPath)
     #         #####################################################
-    # print('**********第三阶段结束**********')
+    # print('**********第四阶段结束**********')
     # ###############################################################################
 
 
     # ###############################################################################
-    # print('**********第四阶段：解析文件，提取TcpprobeStatusList写入tcpprobeData.csv**********')
+    # print('**********第五阶段：解析文件，提取TcpprobeStatusList写入tcpprobeData.csv**********')
     # #####################################################
     # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
@@ -316,12 +356,12 @@ if __name__ == '__main__':
     #         csvPath = tmpPath
     #         writeTcpprobeStatusIntoCsv(csvPath)
     #         #####################################################
-    # print('**********第四阶段结束**********')
+    # print('**********第五阶段结束**********')
     # ###############################################################################
 
 
     # ###############################################################################
-    # print('**********第五阶段：对connData.csv与commData.csv进行去重处理**********')
+    # print('**********第六阶段：对connData.csv与commData.csv进行去重处理**********')
     # #####################################################
     # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
@@ -372,12 +412,12 @@ if __name__ == '__main__':
     #         connDf.to_csv(os.path.join(tmpPath, 'connData.csv'))
     #         #####################################################
     # #####################################################
-    # print('**********第五阶段结束**********')
+    # print('**********第六阶段结束**********')
     # ###############################################################################
 
 
     # ###############################################################################
-    # print('**********第六阶段：解析tcpdump文件**********')
+    # print('**********第七阶段：解析tcpdump文件**********')
     # #####################################################
     # print('解析tcpdump文件')
     # for i in range(1, 42):
@@ -389,12 +429,12 @@ if __name__ == '__main__':
     #         staticsFile = os.path.join(tmpPath, 'mptcpData/statics.txt')
     #         parseStatics(staticsFile, tmpPath)
     # #####################################################
-    # print('**********第六阶段结束**********')
+    # print('**********第七阶段结束**********')
     # ###############################################################################
 
 
     # ###############################################################################
-    # print('**********第七阶段：删除data文件夹下的解压文件，减轻磁盘压力**********')
+    # print('**********第八阶段：删除data文件夹下的解压文件，减轻磁盘压力**********')
     # #####################################################
     # print('删除data文件夹及下属所有解压文件')
     # for i in range(1, 42):
@@ -404,5 +444,5 @@ if __name__ == '__main__':
     #     dataPath = os.path.join(tmpPath, 'data')
     #     rmExtractedFiles(dataPath)
     # #####################################################
-    # print('**********第七阶段结束**********')
+    # print('**********第八阶段结束**********')
     # ###############################################################################

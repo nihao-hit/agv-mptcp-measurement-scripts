@@ -65,53 +65,66 @@ def parseScan(scanFile):
                         if status['dev'] == 'wlan0':
                             Status.sList[pos].scanW0APCount = apCount
                             Status.sList[pos].scanW0APLevelMin = status['level'][minIdx]
+                            # 2020/11/26:11: 为StatusList提取scanW0APChannelMin, scanW0APChannelMax, scanW1APChannelMin, scanW1APChannelMax字段
+                            Status.sList[pos].scanW0APChannelMin = status['channel'][minIdx]
+                            
                             Status.sList[pos].scanW0APMacMin = status['apMac'][minIdx]
                             Status.sList[pos].scanW0APLevelMax = status['level'][maxIdx]
+                            
+                            Status.sList[pos].scanW0APChannelMax = status['channel'][maxIdx]
+                            
                             Status.sList[pos].scanW0APMacMax = status['apMac'][maxIdx]
                         elif status['dev'] == 'wlan1':
                             Status.sList[pos].scanW1APCount = apCount
                             Status.sList[pos].scanW1APLevelMin = status['level'][minIdx]
+                            
+                            Status.sList[pos].scanW1APChannelMin = status['channel'][minIdx]
+                            
                             Status.sList[pos].scanW1APMacMin = status['apMac'][minIdx]
                             Status.sList[pos].scanW1APLevelMax = status['level'][maxIdx]
+                            
+                            Status.sList[pos].scanW1APChannelMax = status['channel'][maxIdx]
+                            
                             Status.sList[pos].scanW1APMacMax = status['apMac'][maxIdx]
                         else:
                             pass
                 #####################################################
-                #####################################################
-                # TODO: 这里的conn数据没有写入data.csv文件，目前看来影响不大，有时间再搞吧．
-                # 使用scan文件的conn数据，减轻conn文件测量空洞的问题
-                # 由于所有数据直接在ConnStatusList末尾插入，没有按照时间戳排序，
-                # 因此从connData.csv文件读取后需要进行这一操作
-                etime = int(float((re.findall('(?<=etime\": ).*?(?=,)', scan)[0])) * 1e3)
-                apMac = re.findall('(?<=Access ).*?(?= )', scan)[0]
-                if re.findall('Not-Associated', scan):
-                    apMac = 'Not-Associated'
-                    level = 0
-                    channel = 0.0
-                elif len(re.findall('level', scan)) == 1:
-                    level = int(re.findall('(?<=level=).*?(?= )', scan)[0])
-                    channel = float(re.findall('(?<=Frequency:).*?(?= )', scan)[0])
-                else:
-                    # 根据公式quality = (level + 110) / 70 * 100还原level为接收信号强度
-                    tmp = int(re.findall('(?<=level=).*?(?=/\d+ )', scan)[0])
-                    level = int(tmp * 70 / 100 - 110)
-                    channel = float(re.findall('(?<=Frequency:).*?(?= )', scan)[0])
+                # 2020/11/26:11: 阅读测量脚本后，注释此操作
+                # #####################################################
+                # # TODO: 这里的conn数据没有写入data.csv文件，目前看来影响不大，有时间再搞吧．
+                # # 使用scan文件的conn数据，减轻conn文件测量空洞的问题
+                # # 由于所有数据直接在ConnStatusList末尾插入，没有按照时间戳排序，
+                # # 因此从connData.csv文件读取后需要进行这一操作
+                # etime = int(float((re.findall('(?<=etime\": ).*?(?=,)', scan)[0])) * 1e3)
+                # apMac = re.findall('(?<=Access ).*?(?= )', scan)[0]
+                # if re.findall('Not-Associated', scan):
+                #     apMac = 'Not-Associated'
+                #     level = 0
+                #     channel = 0.0
+                # elif len(re.findall('level', scan)) == 1:
+                #     level = int(re.findall('(?<=level=).*?(?= )', scan)[0])
+                #     channel = float(re.findall('(?<=Frequency:).*?(?= )', scan)[0])
+                # else:
+                #     # 根据公式quality = (level + 110) / 70 * 100还原level为接收信号强度
+                #     tmp = int(re.findall('(?<=level=).*?(?=/\d+ )', scan)[0])
+                #     level = int(tmp * 70 / 100 - 110)
+                #     channel = float(re.findall('(?<=Frequency:).*?(?= )', scan)[0])
                 
-                connStatus = Status.ConnStatus()
+                # connStatus = Status.ConnStatus()
 
-                connStatus.timestamp = etime
+                # connStatus.timestamp = etime
 
-                if status['dev'] == 'wlan0':
-                    connStatus.W0APMac = apMac
-                    connStatus.W0level = level
-                    connStatus.W0channel = channel
-                if status['dev'] == 'wlan1' and Status.sList[endPos].W1APMac == '':
-                    connStatus.W1APMac = apMac
-                    connStatus.W1level = level
-                    connStatus.W1channel = channel
+                # if status['dev'] == 'wlan0':
+                #     connStatus.W0APMac = apMac
+                #     connStatus.W0level = level
+                #     connStatus.W0channel = channel
+                # if status['dev'] == 'wlan1' and Status.sList[endPos].W1APMac == '':
+                #     connStatus.W1APMac = apMac
+                #     connStatus.W1level = level
+                #     connStatus.W1channel = channel
                 
-                Status.ConnStatusList.append(connStatus)
-                #####################################################
+                # Status.ConnStatusList.append(connStatus)
+                # #####################################################
             except:
                     count += 1
     print("try-except错误次数：{}".format(count))
