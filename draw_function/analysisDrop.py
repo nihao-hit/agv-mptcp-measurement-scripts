@@ -1,13 +1,22 @@
+# drawDrop : 画单台车或所有车的掉线热力图
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
 import pandas as pd 
 import time
+import datetime
 import os
 
-# 
-def drawDrop(csvFile, tmpDir):
-    df = pd.read_csv(csvFile, usecols=['curTimestamp', 'W0pingrtt', 'W1pingrtt', 'srtt',
+# 画单台车或所有车的掉线热力图
+def drawDrop(csvFileList, dropDir):
+    ###############################################################################
+    print('**********第一阶段：准备数据**********')
+    #####################################################
+    print('读入所有data.csv文件，构造minPingRtt列')
+    dfList = []
+    for csvFile in csvFileList:
+        df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 
+                                       'W0pingrtt', 'W1pingrtt', 'srtt',
                                        'curPosX', 'curPosY'],
                               dtype={'curTimestamp' : int, 
                                      'W0pingrtt' : int, 
@@ -15,255 +24,265 @@ def drawDrop(csvFile, tmpDir):
                                      'srtt' : int,
                                      'curPosX' : int,
                                      'curPosY' : int})
-    curTimestamp = df['curTimestamp']
-    curPosX = df['curPosX']
-    curPosY = df['curPosY']
-    W0pingrtt = df['W0pingrtt']
-    W1pingrtt = df['W1pingrtt']
-    minW0AndW1 = [min(W0pingrtt[i], W1pingrtt[i]) for i in range(len(W0pingrtt))]
-    srtt = df['srtt']
+        dfList.append(df)
+    dfAll = pd.concat(dfList, ignore_index=True)
+    dfAll['minPingRtt'] = dfAll.apply(lambda x: min(x['W0pingrtt'], x['W1pingrtt']), axis=1)
+    #####################################################
+    #####################################################
+    print('分别提取W0pingrtt, W1pingrtt, minPingRtt, srtt列对应值等于30000，即超时30s时刻数据，作为掉线数据')
+    print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
+    w0DropDf = dfAll[(dfAll['W0pingrtt'] == 30000)]
+    w0DropDf['date'] = w0DropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
 
-    ###################################################################
-    print("统计w0pingrtt超时30s的掉线")
-    # curPosX为列下标，curPosY为行下标
-    w0DropList = [[0]*265 for _ in range(139)]
-    w0DropSeq = []
-    i = 0
-    while i < len(W0pingrtt):
-        if W0pingrtt[i] >= 30000:
-            tmp = [curPosX[i], curPosY[i]]
-            w0DropSeq.append(i)
-            # 只记录超时30s后的第一个坐标
-            while i < len(W0pingrtt) and W0pingrtt[i] >= 30000:
-                i += 1
-            # 删除（0，0）处的统计数据
-            if tmp[0] == 0 and tmp[1] == 0:
-                pass
-            else:
-                w0DropList[tmp[1]][tmp[0]] += 1
-        i += 1
+    w1DropDf = dfAll[(dfAll['W1pingrtt'] == 30000)]
+    w1DropDf['date'] = w1DropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
+
+    minDropDf = dfAll[(dfAll['minPingRtt'] == 30000)]
+    minDropDf['date'] = minDropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
+
+    srttDropDf = dfAll[(dfAll['srtt'] == 30000)]
+    srttDropDf['date'] = srttDropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
+    #####################################################
+    #####################################################
+    print('分别构造掉线热力图数据')
+    # １．提取坐标；２．过滤(0, 0)；３．重置索引
+    # ４．按坐标分组；５．统计各坐标分组长度；６．生成新列count；７．重置索引；
+    # ８．转换dataframe为二元数组坐标轴；９．将nan置为0；
+    # ９．将index也就是posY转换为int；
+    # １０．将columns也就是posX转换为int;
+    # １１．使用连续的posY, posX替换index, columns，并返回二元数组．
+    w0DropMap = w0DropDf[['curPosX', 'curPosY']][(w0DropDf['curPosX'] != 0) | (w0DropDf['curPosX'] != 0)].reset_index(drop=True) \
+        .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
+        .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
+    w0DropMap.index = w0DropMap.index.astype(int)
+    w0DropMap.columns = w0DropMap.columns.astype(int)
+    w0DropMap = w0DropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+
+    w1DropMap = w1DropDf[['curPosX', 'curPosY']][(w1DropDf['curPosX'] != 0) | (w1DropDf['curPosX'] != 0)].reset_index(drop=True) \
+        .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
+        .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
+    w1DropMap.index = w1DropMap.index.astype(int)
+    w1DropMap.columns = w1DropMap.columns.astype(int)
+    w1DropMap = w1DropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+
+    minDropMap = minDropDf[['curPosX', 'curPosY']][(minDropDf['curPosX'] != 0) | (minDropDf['curPosX'] != 0)].reset_index(drop=True) \
+        .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
+        .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
+    minDropMap.index = minDropMap.index.astype(int)
+    minDropMap.columns = minDropMap.columns.astype(int)
+    minDropMap = minDropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+
+    srttDropMap = srttDropDf[['curPosX', 'curPosY']][(srttDropDf['curPosX'] != 0) | (srttDropDf['curPosX'] != 0)].reset_index(drop=True) \
+        .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
+        .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
+    srttDropMap.index = srttDropMap.index.astype(int)
+    srttDropMap.columns = srttDropMap.columns.astype(int)
+    srttDropMap = srttDropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+    #####################################################
+    #####################################################
+    print('非图表型统计数据构造')
+    staticsFile = os.path.join(dropDir, 'statics.csv')
+    statics = dict()
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+
+    # 数据总数，时间跨度，时间粒度
+    statics['wlan0单网络掉线次数'] = len(w0DropDf)
+    statics['wlan1单网络掉线次数'] = len(w1DropDf)
+    statics['双网络理论掉线次数'] = len(minDropDf)
+    statics['双网络+mptcp实际掉线次数'] = len(srttDropDf)
+
+    statics['start'] = dfAll['curTimestamp'].min()
+    statics['end'] = dfAll['curTimestamp'].max()
+    statics['duration'] = statics['end'] - statics['start']
+    statics['时间戳粒度'] = '秒'
+    #####################################################
+    print('**********第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第二阶段：将关键统计数据写入文件**********')
+    #####################################################
+    print('将wlan0单网络、wlan1单网络、双网络理论掉线、双网络+mptcp实际掉线时刻数据与掉线热力图数据写入文件')
+    w0DropDf.to_csv(os.path.join(dropDir, 'wlan0单网络掉线时刻.csv'))
+    # list转dataframe自动写入则携带行列信息，通过index=False与header=False参数设置不写入行列信息．
+    pd.DataFrame(w0DropMap).to_csv(os.path.join(dropDir, 'wlan0单网络掉线热力图.csv'), index=False, header=False)
     
-    with open(os.path.join(tmpDir, 'w0-drop.csv'), 'w') as f:
-        f.write('{},{},{}\n'.format('curTimestamp', 'curPosX', 'curPosY'))
-        for i in range(len(w0DropSeq)):
-            f.write('{},{},{}\n'.format(curTimestamp[w0DropSeq[i]], 
-                curPosX[w0DropSeq[i]], 
-                curPosY[w0DropSeq[i]]))
+    w1DropDf.to_csv(os.path.join(dropDir, 'wlan1单网络掉线时刻.csv'))
+    # list转dataframe自动写入则携带行列信息，通过index=False与header=False参数设置不写入行列信息．
+    pd.DataFrame(w1DropMap).to_csv(os.path.join(dropDir, 'wlan1单网络掉线热力图.csv'), index=False, header=False)
 
+    minDropDf.to_csv(os.path.join(dropDir, '双网络理论掉线时刻.csv'))
+    # list转dataframe自动写入则携带行列信息，通过index=False与header=False参数设置不写入行列信息．
+    pd.DataFrame(minDropMap).to_csv(os.path.join(dropDir, '双网络理论掉线热力图.csv'), index=False, header=False)
+
+    srttDropDf.to_csv(os.path.join(dropDir, '双网络+mptcp实际掉线时刻.csv'))
+    # list转dataframe自动写入则携带行列信息，通过index=False与header=False参数设置不写入行列信息．
+    pd.DataFrame(srttDropMap).to_csv(os.path.join(dropDir, '双网络+mptcp实际掉线热力图.csv'), index=False, header=False)
+    #####################################################
+    #####################################################
+    print('将非图表型统计数据写入文件')
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(dropDir, 'statics.csv'))
+    #####################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
+
+
+    #####################################################
+    print('抵消第一个图长宽比不起作用的bug，画两次')
+    print("画wlan0单网络掉线热力图")
+    plt.title('wlan0单网络掉线热力图')
     plt.xlim([0, 264])
     plt.ylim([0, 138])
-
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-
-    ax = sns.heatmap(w0DropList, cmap="Blues")
-    
+    # 暂时不清楚平均掉线上限
+    ax = sns.heatmap(w0DropMap, cmap="Blues", vmin=0, 
+                     cbar_kws={'label' : '掉线次数'})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
     # 逆置Y轴
     ax.invert_yaxis()
-
-    plt.savefig(os.path.join(tmpDir, 'w0-drop.png'), dpi=150)
+    plt.savefig(os.path.join(dropDir, 'wlan0单网络掉线热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
-    #####################################################################
+    #####################################################
 
 
-    ############################################
-    # 不知道为什么画第一个图长宽比总是不起作用，所以只好画两次
-    print("抵消第一个图长宽比不起作用的bug，画两次")
-    plt.title('w0-drop')
+    ###############################################################################
+    print('**********第三阶段：画掉线热力图**********')
+    #####################################################
+    print("画wlan0单网络掉线热力图")
+    plt.title('wlan0单网络掉线热力图')
     plt.xlim([0, 264])
     plt.ylim([0, 138])
-
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-
-    # w0掉线次数就几个，颜色条刻度直接按1递增就行
-    cbarMaxTick = max(map(max,w0DropList))
-    ax = sns.heatmap(w0DropList, cmap="Blues", vmin=0,
-                     cbar_kws={'ticks':range(0, cbarMaxTick+1)})
-
-    # # 设置颜色条
-    # cbar = ax.collections[0].colorbar
-    # cbar.set_ticks([0, .2, .75, 1])
-    # cbar.set_ticklabels(['low', '20%', '75%', '100%'])
-
+    # 暂时不清楚平均掉线上限
+    ax = sns.heatmap(w0DropMap, cmap="Blues", vmin=0, 
+                     cbar_kws={'label' : '掉线次数'})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
     # 逆置Y轴
     ax.invert_yaxis()
-
-    plt.savefig(os.path.join(tmpDir, 'w0-drop.png'), dpi=150)
+    plt.savefig(os.path.join(dropDir, 'wlan0单网络掉线热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
-    ############################################
-
-
-    ###################################################################
-    print("统计w1pingrtt超时30s的掉线")
-    # curPosX为列下标，curPosY为行下标
-    w1DropList = [[0]*265 for _ in range(139)]
-    w1DropSeq = []
-    i = 0
-    while i < len(W1pingrtt):
-        if W1pingrtt[i] >= 30000:
-            tmp = [curPosX[i], curPosY[i]]
-            w1DropSeq.append(i)
-            # 只记录超时30s后的第一个坐标
-            while i < len(W1pingrtt) and W1pingrtt[i] >= 30000:
-                i += 1
-            # 删除（0，0）处的统计数据
-            if tmp[0] == 0 and tmp[1] == 0:
-                pass
-            else:
-                w1DropList[tmp[1]][tmp[0]] += 1
-        i += 1
-    
-    with open(os.path.join(tmpDir, 'w1-drop.csv'), 'w') as f:
-        f.write('{},{},{}\n'.format('curTimestamp', 'curPosX', 'curPosY'))
-        for i in range(len(w1DropSeq)):
-            f.write('{},{},{}\n'.format(curTimestamp[w1DropSeq[i]], 
-                curPosX[w1DropSeq[i]], 
-                curPosY[w1DropSeq[i]]))
-
-    plt.title('w1-drop')
+    #####################################################
+    #####################################################
+    print("画wlan1单网络掉线热力图")
+    plt.title('wlan1单网络掉线热力图')
     plt.xlim([0, 264])
     plt.ylim([0, 138])
-
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-
-    # w1掉线比较多，均匀生成5个刻度
-    cbarMaxTick = max(map(max,w1DropList))
-    ax = sns.heatmap(w1DropList, cmap="Blues", vmin=0,
-                    #  cbar_kws={'ticks':map(int, np.linspace(0, cbarMaxTick, 5))})
-                    cbar_kws={'ticks':range(0, cbarMaxTick+1)})
-
+    # 暂时不清楚平均掉线上限
+    ax = sns.heatmap(w1DropMap, cmap="Blues", vmin=0, 
+                     cbar_kws={'label' : '掉线次数'})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
     # 逆置Y轴
     ax.invert_yaxis()
-
-    plt.savefig(os.path.join(tmpDir, 'w1-drop.png'), dpi=150)
+    plt.savefig(os.path.join(dropDir, 'wlan1单网络掉线热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
-    #####################################################################
-    
-
-    ###################################################################
-    print("统计w0pingrtt与w1pingrtt最小值超时30s的掉线")
-    minW0AndW1DropList = [[0]*265 for _ in range(139)]
-    minW0AndW1DropSeq = []
-    i = 0
-    while i < len(minW0AndW1):
-        if minW0AndW1[i] >= 30000:
-            tmp = [curPosX[i], curPosY[i]]
-            minW0AndW1DropSeq.append(i)
-            # 只记录超时30s后的第一个坐标
-            while i < len(minW0AndW1) and minW0AndW1[i] >= 30000:
-                i += 1
-            # 删除（0，0）处的统计数据
-            if tmp[0] == 0 and tmp[1] == 0:
-                pass
-            else:
-                minW0AndW1DropList[tmp[1]][tmp[0]] += 1
-        i += 1
-    
-    with open(os.path.join(tmpDir, 'min-w0-w1-drops.csv'), 'w') as f:
-        f.write('{},{},{}\n'.format('curTimestamp', 'curPosX', 'curPosY'))
-        for i in range(len(minW0AndW1DropSeq)):
-            f.write('{},{},{}\n'.format(curTimestamp[minW0AndW1DropSeq[i]], 
-                curPosX[minW0AndW1DropSeq[i]], 
-                curPosY[minW0AndW1DropSeq[i]]))
-
-    plt.title('min-w0-w1-drop')
+    #####################################################
+    #####################################################
+    print("画双网络理论掉线热力图")
+    plt.title('双网络理论掉线热力图')
     plt.xlim([0, 264])
     plt.ylim([0, 138])
-    
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-
-    # minw0Andw1掉线次数大约就几个，颜色条刻度直接间隔1就行
-    cbarMaxTick = max(map(max,minW0AndW1DropList))
-    ax = sns.heatmap(minW0AndW1DropList, cmap="Blues", vmin=0,
-                     cbar_kws={'ticks':range(0, cbarMaxTick+1)})
-    
+    # 暂时不清楚平均掉线上限
+    ax = sns.heatmap(minDropMap, cmap="Blues", vmin=0, 
+                     cbar_kws={'label' : '掉线次数'})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
     # 逆置Y轴
     ax.invert_yaxis()
-
-    plt.savefig(os.path.join(tmpDir, 'min-w0-w1-drop.png'), dpi=150)
+    plt.savefig(os.path.join(dropDir, '双网络理论掉线热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
-    ###################################################################
-
-    
-    ###################################################################
-    print("统计srtt超时30s的掉线")
-    srttDropList = [[0]*265 for _ in range(139)]
-    srttDropSeq = []
-    i = 0
-    while i < len(srtt):
-        if srtt[i] >= 30000:
-            tmp = [curPosX[i], curPosY[i]]
-            srttDropSeq.append(i)
-            # 只记录超时30s后的第一个坐标
-            while i < len(srtt) and srtt[i] >= 30000:
-                i += 1
-            # 删除（0，0）处的统计数据
-            if tmp[0] == 0 and tmp[1] == 0:
-                pass
-            else:
-                srttDropList[tmp[1]][tmp[0]] += 1
-        i += 1
-    
-    with open(os.path.join(tmpDir, 'srtt-drops.csv'), 'w') as f:
-        f.write('{},{},{}\n'.format('curTimestamp', 'curPosX', 'curPosY'))
-        for i in range(len(srttDropSeq)):
-            f.write('{},{},{}\n'.format(curTimestamp[srttDropSeq[i]], 
-                curPosX[srttDropSeq[i]], 
-                curPosY[srttDropSeq[i]]))
-
-    plt.title('srtt-drop')
+    #####################################################
+    #####################################################
+    print("画双网络+mptcp实际掉线热力图")
+    plt.title('双网络+mptcp实际掉线热力图')
     plt.xlim([0, 264])
     plt.ylim([0, 138])
-    
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-
-    # srtt掉线次数大约就几个，颜色条刻度直接间隔1就行
-    cbarMaxTick = max(map(max,srttDropList))
-    ax = sns.heatmap(srttDropList, cmap="Blues", vmin=0,
-                     cbar_kws={'ticks':range(0, cbarMaxTick+1)})
-
+    # 暂时不清楚平均掉线上限
+    ax = sns.heatmap(srttDropMap, cmap="Blues", vmin=0, 
+                     cbar_kws={'label' : '掉线次数'})
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
     # 逆置Y轴
     ax.invert_yaxis()
-
-    plt.savefig(os.path.join(tmpDir, 'srtt-drop.png'), dpi=150)
+    plt.savefig(os.path.join(dropDir, '双网络+mptcp实际掉线热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
-    ###################################################################
+    #####################################################
+    print('**********第三阶段结束**********')
+    ###############################################################################
 
 
-    ###################################################################
-    print("统计车跑过的热力图")
-    agvWalk = [[0]*265 for _ in range(139)]
-    for i in range(len(curPosX)):
-        agvWalk[curPosY[i]][curPosX[i]] += 1
 
-    plt.title('agv-walk')
-    plt.xlim([0, 264])
-    plt.ylim([0, 138])
-    
-    # 设置图片长宽比，结合dpi确定图片大小
-    plt.rcParams['figure.figsize'] = (11.0, 5.7)
 
-    ax = sns.heatmap(agvWalk, cmap="Blues", vmin=0)
+if __name__ == '__main__':
+    # 显示中文
+    import locale
+    locale.setlocale(locale.LC_CTYPE, 'zh_CN.utf8')
+    from pylab import *
+    mpl.rcParams['font.sans-serif'] = ['SimHei']
+    mpl.rcParams['axes.unicode_minus'] = False
 
-    # 逆置Y轴
-    ax.invert_yaxis()
+    ###############################################################################
+    print('**********掉线分析->第一阶段：单车数据统计**********')
+    #####################################################
+    for i in range(1, 42):
+        fileName = '30.113.151.' + str(i)
+        print(fileName)
+        csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+        csvFile = os.path.join(csvPath, 'data.csv')
+        if os.path.isdir(csvPath):
+            print("掉线分析")
+            dropDir = os.path.join(csvPath, 'analysisDrop')
+            if not os.path.isdir(dropDir):
+                os.makedirs(dropDir)
 
-    plt.savefig(os.path.join(tmpDir, 'agvWalk.png'), dpi=150)
-    plt.pause(1)
-    plt.close()
-    plt.pause(1)
-    ###################################################################
+            print('单车数据的掉线热力图')
+            drawDrop([csvFile], dropDir)
+    #####################################################
+    print('**********掉线分析->第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********掉线分析->第二阶段：所有车数据统计**********')
+    #####################################################
+    print('构造文件夹')
+    topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
+    topDataPath = r'/home/cx/Desktop/sdb-dir/'
+    # csvFile与scanCsvFile按顺序一一对应
+    csvFileList = [os.path.join(os.path.join(topTmpPath, path), 'data.csv') 
+                   for path in os.listdir(topTmpPath)
+                   if os.path.isfile(os.path.join(os.path.join(topTmpPath, path), 'data.csv'))]
+    #####################################################
+    #####################################################
+    print("掉线分析")
+    dropDir = os.path.join(topDataPath, 'analysisDrop')
+    if not os.path.isdir(dropDir):
+        os.makedirs(dropDir)
+
+    print('所有车数据的掉线热力图')
+    drawDrop(csvFileList, dropDir)
+    #####################################################
+    print('**********掉线分析->第二阶段结束**********')
+    ###############################################################################
