@@ -1,6 +1,7 @@
 # drawHandover : 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游RSSI增益CDF
 # drawHandoverFineGrained : 画漫游事件全景图，漫游事件RSSI分析图　
-from matplotlib import pyplot as plt 
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator 
 import seaborn as sns
 import numpy as np
 import pandas as pd 
@@ -860,6 +861,10 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             # ax2.legend()
             # #####################################################
             #####################################################
+            # 强制yticks为整数值
+            plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+            #####################################################
+            #####################################################
             # 保存图片
             plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(analysisStartTime, analysisEndTime)), dpi=200)
             plt.pause(1)
@@ -965,6 +970,10 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             # # 显示标注
             # ax2.legend()
             # #####################################################
+            #####################################################
+            # 强制yticks为整数值
+            plt.gca().yaxis.set_major_locator(MaxNLocator(integer=True))
+            #####################################################
             #####################################################
             # 保存图片
             plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(analysisStartTime, analysisEndTime)), dpi=200)
