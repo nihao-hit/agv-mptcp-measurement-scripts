@@ -130,7 +130,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 w0NotIdx = -1
             w0Ap1 = W0APMac[i]
             w0Ap1Idx = i
-        if W0APMac[i] == 'Not-Associated':
+        if W0APMac[i] == 'Not-Associated' and w0NotIdx == -1:
             w0HoFlag = 0
             w0NotIdx = i
         #####################################################
@@ -180,7 +180,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 w1NotIdx = -1
             w1Ap1 = W1APMac[i]
             w1Ap1Idx = i
-        if W1APMac[i] == 'Not-Associated':
+        if W1APMac[i] == 'Not-Associated' and w1NotIdx == -1:
             w1HoFlag = 0
             w1NotIdx = i
     w0HoDf = pd.DataFrame(w0HoList, columns=['start', 'end', 'duration', 
