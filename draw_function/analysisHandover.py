@@ -282,7 +282,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w0TypeCategory = dict(list(w0HoDf.groupby('flag')))
     statics['WLAN0 flag=0漫游次数'] = len(w0TypeCategory[0])
     statics['WLAN0 flag=1漫游次数'] = len(w0TypeCategory[1])
-    statics['WLAN0 flag=2漫游次数'] = len(w0TypeCategory[2])
+    # 2020/11/19:10 可能没有flag=2的漫游类别
+    try:
+        statics['WLAN0 flag=2漫游次数'] = len(w0TypeCategory[2])
+    except:
+        pass
 
     statics['WLAN1漫游次数'] = len(w1HoDf)
     w1TypeCategory = dict(list(w1HoDf.groupby('flag')))
