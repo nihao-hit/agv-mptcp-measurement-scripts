@@ -117,13 +117,13 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                     w0HoStartIdx = w0Ap1Idx
 
                 duration = curTimestamp[i] - curTimestamp[w0HoStartIdx]
-                # 2020/11/25:17 过滤duration >= 30s的漫游事件
-                if duration < 30000:
-                    w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
-                                    W0level[w0Ap1Idx], W0level[i], 
-                                    beforeRtt, afterRtt,
-                                    curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
-                                    w0HoFlag])
+                # # 2020/11/25:17 过滤duration >= 30s的漫游事件
+                # if duration < 30000:
+                w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
+                                W0level[w0Ap1Idx], W0level[i], 
+                                beforeRtt, afterRtt,
+                                curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
+                                w0HoFlag])
         #####################################################
         # w0循环标志更新
                 w0HoFlag = -1
@@ -169,13 +169,13 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                     w1HoStartIdx = w1Ap1Idx
                 
                 duration = curTimestamp[i] - curTimestamp[w1HoStartIdx]
-                # 2020/11/25:17 过滤duration >= 30s的漫游事件
-                if duration < 30000:
-                    w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
-                                    W1level[w1Ap1Idx], W1level[i], 
-                                    beforeRtt, afterRtt,
-                                    curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
-                                    w1HoFlag])
+                # # 2020/11/25:17 过滤duration >= 30s的漫游事件
+                # if duration < 30000:
+                w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
+                                W1level[w1Ap1Idx], W1level[i], 
+                                beforeRtt, afterRtt,
+                                curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
+                                w1HoFlag])
         #####################################################
         # w1循环标志更新
                 w1HoFlag = -1
