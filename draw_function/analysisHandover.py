@@ -290,7 +290,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     try:
         statics['WLAN0 flag=2漫游次数'] = len(w0TypeCategory[2])
     except:
-        pass
+        # 2020/12/3:12:　修正当flag=2次数为零时，statics.csv中值为上一次flag=2次数不为零时数据的bug
+        statics['WLAN0 flag=2漫游次数'] = 0
 
     statics['WLAN1漫游次数'] = len(w1HoDf)
     w1TypeCategory = dict(list(w1HoDf.groupby('flag')))
@@ -300,7 +301,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     try:
         statics['WLAN1 flag=2漫游次数'] = len(w1TypeCategory[2])
     except:
-        pass
+        # 2020/12/3:12:　修正当flag=2次数为零时，statics.csv中值为上一次flag=2次数不为零时数据的bug
+        statics['WLAN1 flag=2漫游次数'] = 0
     statics['start'] = curTimestamp.min()
     statics['end'] = curTimestamp.max()
     statics['duration'] = statics['end'] - statics['start']
