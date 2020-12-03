@@ -283,6 +283,7 @@ tcpprobe文件中为什么map_data_len、map_data_seq、map_subseq都为0，snt_
 ## 代码要点[^修改代码需要注意的地方]
 
 1. read_csv()是否需要加na_filter参数，来避免空字符串被转换为nan．
-2. connData.csv是否有按时间戳进行排序．
+2. ~~connData.csv是否有按时间戳进行排序．~~
 3. 图片长宽比
 4. 是否需要使用tight_layout()调整图片布局．
+5. 热力图统计数据写入文件方式：list手动格式化写入则没有行列信息；list转dataframe自动写入则携带行列信息，通过index=False与header=False参数设置不写入行列信息．
