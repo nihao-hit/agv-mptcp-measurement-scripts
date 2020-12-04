@@ -424,10 +424,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     ###############################################################################
 
 
-    ###############################################################################
-    print('**********第四阶段：画WLAN0与WLAN1漫游时长CDF**********')
     #####################################################
-    print("设置漫游时长CDF坐标轴")
+    print("画两次解决图片长宽比调整不生效的bug")
     plt.title('漫游时长CDF')
     # 2020/11/25:17 配合进行修改
     plt.xlim(left=0)
@@ -435,6 +433,45 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.xlabel('漫游时长 (ms)')
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (6.4, 4.8)
+    plt.ylim([0, 1])
+    # range不能迭代float
+    # TypeError: 'float' object cannot be interpreted as an integer
+    plt.yticks([i for i in np.arange(0.0, 1.1, 0.1)])
+    #####################################################
+    #####################################################
+    print("画WLAN0漫游时长CDF")
+    cdfW0HoDuration, = plt.plot(list(w0DurationRatio), list(w0DurationRatio.index), c='red')
+    #####################################################
+    #####################################################
+    print("画WLAN1漫游时长CDF")
+    cdfW1HoDuration, = plt.plot(list(w1DurationRatio), list(w1DurationRatio.index), c='blue')
+    #####################################################
+    #####################################################
+    print("设置标注")
+    plt.legend([cdfW0HoDuration, cdfW1HoDuration],
+            ['WLAN0', 
+            'WLAN1'],
+            loc='upper right')
+
+    plt.savefig(os.path.join(tmpDir, '漫游时长CDF.png'), dpi=200)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+
+
+    ###############################################################################
+    print('**********第四阶段：画WLAN0与WLAN1漫游时长CDF**********')
+    #####################################################
+    print("设置漫游时长CDF坐标轴")
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
+    plt.title('漫游时长CDF')
+
+    plt.xscale('log')
+    plt.xticks([0, 200, 1000, 4000, 5000, 6000, 9000, 30000],
+               ['0', '200ms', '1s', '4s', '5s', '6s', '9s', '30s'])
+    plt.xlabel('漫游时长 (ms)')
     plt.ylim([0, 1])
     # range不能迭代float
     # TypeError: 'float' object cannot be interpreted as an integer
