@@ -553,14 +553,14 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
     plt.bar(x, flag0, width=width, label='ap1->not-associated->ap2')
     plt.bar(x + width, flag1, width=width, label='ap1->not-associated->ap1', tick_label=labels)
-    plt.bar(x + 2 * width, flag2, width=width, label='ap1->ap2')
+    # plt.bar(x + 2 * width, flag2, width=width, label='ap1->ap2')
     plt.legend()
 
     # 显示数值
     for xi in range(len(x)):
         plt.text(x[xi], flag0[xi] + 10, '{}'.format(flag0[xi]), ha='center', va= 'bottom')
         plt.text(x[xi] + width, flag1[xi] + 10, '{}'.format(flag1[xi]), ha='center', va= 'bottom')
-        plt.text(x[xi] + 2 * width, flag2[xi] + 10, '{}'.format(flag2[xi]), ha='center', va= 'bottom')
+        # plt.text(x[xi] + 2 * width, flag2[xi] + 10, '{}'.format(flag2[xi]), ha='center', va= 'bottom')
     #####################################################
     #####################################################
     figName = os.path.join(tmpDir, 'WLAN0漫游类型分类柱状图.png')
@@ -597,14 +597,14 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
     plt.bar(x, flag0, width=width, label='ap1->not-associated->ap2')
     plt.bar(x + width, flag1, width=width, label='ap1->not-associated->ap1', tick_label=labels)
-    plt.bar(x + 2 * width, flag2, width=width, label='ap1->ap2')
+    # plt.bar(x + 2 * width, flag2, width=width, label='ap1->ap2')
     plt.legend()
 
     # 显示数值
     for xi in range(len(x)):
         plt.text(x[xi], flag0[xi] + 10, '{}'.format(flag0[xi]), ha='center', va= 'bottom')
         plt.text(x[xi] + width, flag1[xi] + 10, '{}'.format(flag1[xi]), ha='center', va= 'bottom')
-        plt.text(x[xi] + 2 * width, flag2[xi] + 10, '{}'.format(flag2[xi]), ha='center', va= 'bottom')
+        # plt.text(x[xi] + 2 * width, flag2[xi] + 10, '{}'.format(flag2[xi]), ha='center', va= 'bottom')
     #####################################################
     #####################################################
     figName = os.path.join(tmpDir, 'WLAN1漫游类型分类柱状图.png')
