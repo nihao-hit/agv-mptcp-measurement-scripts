@@ -237,8 +237,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1HoMap = w1HoMap.reindex(index=range(139), columns=range(265), fill_value=0).values
     #####################################################
     ratio = np.arange(0, 1.01, 0.01)
-    bins = [0, 200, 1000, 5000, sys.maxsize]
-    labels = ['<=200ms', '200ms-1s', '1s-5s', '>5s']
+    bins = [0, 200, 1000, 30000, sys.maxsize]
+    labels = ['<=200ms', '200ms-1s', '1s-30s', '>30s']
     w0DurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index())))
     w1DurationCategory = dict(list(w1HoDf.groupby(pd.cut(w1HoDf['duration'], bins=bins, labels=labels).sort_index())))
     #####################################################
@@ -816,8 +816,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     print('**********第三阶段：画WLAN0漫游事件RSSI分析图**********')
     #####################################################
     print('按漫游时长各分类提取时段数据进行分析')
-    bins = [0, 200, 1000, 5000, sys.maxsize]
-    labels = ['<=200ms', '200ms-1s', '1s-5s', '>5s']
+    bins = [0, 200, 1000, 30000, sys.maxsize]
+    labels = ['<=200ms', '200ms-1s', '1s-30s', '>30s']
     w0HoDurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index())))
     #####################################################
     #####################################################
@@ -927,8 +927,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     print('**********第四阶段：画WLAN1漫游事件RSSI分析图**********')
     #####################################################
     print('按漫游时长各分类提取时段数据进行分析')
-    bins = [0, 200, 1000, 5000, sys.maxsize]
-    labels = ['<=200ms', '200ms-1s', '1s-5s', '>5s']
+    bins = [0, 200, 1000, 30000, sys.maxsize]
+    labels = ['<=200ms', '200ms-1s', '1s-30s', '>30s']
     w1HoDurationCategory = dict(list(w1HoDf.groupby(pd.cut(w1HoDf['duration'], bins=bins, labels=labels).sort_index())))
     #####################################################
     #####################################################
