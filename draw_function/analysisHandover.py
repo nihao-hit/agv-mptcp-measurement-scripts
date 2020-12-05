@@ -3,6 +3,7 @@
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator 
 import seaborn as sns
+from seaborn.colors import ListedColormap
 import numpy as np
 import pandas as pd 
 import time
@@ -236,6 +237,37 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1HoMap.columns = w1HoMap.columns.astype(int)
     w1HoMap = w1HoMap.reindex(index=range(139), columns=range(265), fill_value=0).values
     #####################################################
+    #####################################################
+    print('2020/12/5:15: 构造漫游时长热力图数据')
+    def generateHoTimeType(row):
+        if row['duration'] == 0:
+            return 0
+        elif row['duration'] <= 200:
+            return 1
+        elif row['duration'] <= 1000:
+            return 2
+        elif row['duration'] <= 30000:
+            return 3
+        else:
+            return 4
+    # １．提取坐标；２．过滤(0, 0)；３．重置索引
+    # ４．按坐标分组；５．统计各坐标分组平均漫游时长；６．重置索引，将MultiIndex('posX', 'posY')置换为普通列；７．将duration类型转换为int；
+    # ８．使用平均漫游时长生成漫游时长分类列；９．转换dataframe为二元数组坐标轴；１０．将nan置为0；
+    # １１．将index也就是posY转换为int；
+    # １２．将columns也就是posX转换为int;
+    # １３．使用连续的posY, posX替换index, columns，并返回二元数组．
+    w0HoTimeMap = w0HoDf[['posX', 'posY', 'duration']][(w0HoDf['posX'] != 0) | (w0HoDf['posY'] != 0)].reset_index(drop=True) \
+        .groupby(['posX', 'posY']).mean('duration').reset_index().astype(int)
+    w0HoTimeMap['timeType'] = w0HoTimeMap.apply(generateHoTimeType, axis=1)
+    w0HoTimeMap = w0HoTimeMap.pivot(index='posY', columns='posX', values='timeType').fillna(0).astype(int)
+    w0HoTimeMap = w0HoTimeMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+
+    w1HoTimeMap = w1HoDf[['posX', 'posY', 'duration']][(w1HoDf['posX'] != 0) | (w1HoDf['posY'] != 0)].reset_index(drop=True) \
+        .groupby(['posX', 'posY']).mean('duration').reset_index().astype(int)
+    w1HoTimeMap['timeType'] = w1HoTimeMap.apply(generateHoTimeType, axis=1)
+    w1HoTimeMap = w1HoTimeMap.pivot(index='posY', columns='posX', values='timeType').fillna(0).astype(int)
+    w1HoTimeMap = w1HoTimeMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+    #####################################################
     ratio = np.arange(0, 1.01, 0.01)
     bins = [0, 200, 1000, 30000, sys.maxsize]
     labels = ['<=200ms', '200ms-1s', '1s-30s', '>30s']
@@ -424,6 +456,57 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     ###############################################################################
 
 
+    # 2020/12/5:15: 
+    ###############################################################################
+    print('**********第四阶段：画WLAN0与WLAN1漫游时长热力图**********')
+    #####################################################
+    print("画WLAN0漫游时长热力图")
+    plt.title('WLAN0漫游时长热力图')
+    plt.xlim([0, 264])
+    plt.ylim([0, 138])
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
+    cmap = {'white':0, 'blue':1, 'green':2, 'yellow':3, 'red':4}
+    ax = sns.heatmap(w0HoTimeMap, cmap=ListedColormap(cmap))
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticks(range(0, 5))
+    cbar.set_ticklabels(['0', '0-200ms', '200ms-1s', '1s-30s', '>30s'])
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
+    # 逆置Y轴
+    ax.invert_yaxis()
+
+    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游时长热力图.png'), dpi=100)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    #####################################################
+    print("画WLAN1漫游时长热力图")
+    plt.title('WLAN1漫游时长热力图')
+    plt.xlim([0, 264])
+    plt.ylim([0, 138])
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (11.0, 5.7)
+    cmap = {'white':0, 'blue':1, 'green':2, 'yellow':3, 'red':4}
+    ax = sns.heatmap(w1HoTimeMap, cmap=ListedColormap(cmap))
+    cbar = ax.collections[0].colorbar
+    cbar.set_ticks(range(0, 5))
+    cbar.set_ticklabels(['0', '0-200ms', '200ms-1s', '1s-30s', '>30s'])
+    plt.xlabel('坐标X轴')
+    plt.ylabel('坐标Y轴')
+    # 逆置Y轴
+    ax.invert_yaxis()
+
+    plt.savefig(os.path.join(tmpDir, 'WLAN1漫游时长热力图.png'), dpi=100)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    print('**********第四阶段结束**********')
+    ###############################################################################
+
+
     #####################################################
     print("画两次解决图片长宽比调整不生效的bug")
     plt.title('漫游时长CDF')
@@ -461,7 +544,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
 
     ###############################################################################
-    print('**********第四阶段：画WLAN0与WLAN1漫游时长CDF**********')
+    print('**********第五阶段：画WLAN0与WLAN1漫游时长CDF**********')
     #####################################################
     print("设置漫游时长CDF坐标轴")
     # 设置图片长宽比，结合dpi确定图片大小
@@ -497,12 +580,12 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.close()
     plt.pause(1)
     #####################################################
-    print('**********第四阶段结束**********')
+    print('**********第五阶段结束**********')
     ###############################################################################
 
 
     ###############################################################################
-    print('**********第五阶段：画WLAN0与WLAN1漫游时长分类柱状图**********')
+    print('**********第六阶段：画WLAN0与WLAN1漫游时长分类柱状图**********')
     #####################################################
     print("设置漫游时长分类柱状图坐标轴")
     plt.title('漫游时长分类柱状图')
@@ -533,12 +616,12 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.close()
     plt.pause(1)
     #####################################################
-    print('**********第五阶段结束**********')
+    print('**********第六阶段结束**********')
     ###############################################################################
 
 
     ###############################################################################
-    print('**********第六阶段：画WLAN0漫游类型分类柱状图**********')
+    print('**********第七阶段：画WLAN0漫游类型分类柱状图**********')
     #####################################################
     print("设置WLAN0漫游类型分类柱状图坐标轴")
     plt.title('WLAN0漫游类型分类柱状图')
@@ -576,13 +659,13 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.close()
     plt.pause(1)
     #####################################################
-    print('**********第六阶段结束**********')
+    print('**********第七阶段结束**********')
     ###############################################################################
 
 
     # 2020/11/25:16
     ###############################################################################
-    print('**********第七阶段：画WLAN1漫游类型分类柱状图**********')
+    print('**********第八阶段：画WLAN1漫游类型分类柱状图**********')
     #####################################################
     print("设置WLAN1漫游类型分类柱状图坐标轴")
     plt.title('WLAN1漫游类型分类柱状图')
@@ -620,12 +703,12 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.close()
     plt.pause(1)
     #####################################################
-    print('**********第七阶段结束**********')
+    print('**********第八阶段结束**********')
     ###############################################################################
 
 
     ###############################################################################
-    print('**********第八阶段：画WLAN0与WLAN1漫游RSSI增益CDF**********')
+    print('**********第九阶段：画WLAN0与WLAN1漫游RSSI增益CDF**********')
     #####################################################
     print("设置漫游RSSI增益CDF坐标轴")
     plt.title('漫游RSSI增益CDF')
@@ -659,7 +742,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.close()
     plt.pause(1)
     #####################################################
-    print('**********第八阶段结束**********')
+    print('**********第九阶段结束**********')
     ###############################################################################
 
 
