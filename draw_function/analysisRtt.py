@@ -74,54 +74,43 @@ def drawDelayScatter(csvFile, delayDir):
     ###############################################################################
     print('**********第三阶段：画时延散点图**********')
     #####################################################
-    fig, ((w0Ax), (w1Ax), (minAx), (srttAx)) = plt.subplots(1, 4, sharex='col')
-    w0Ax.set_xlim([sTime, eTime])
-    w0Ax.set_xticks(xticks)
-    w0Ax.set_xticklabels(xlabels, rotation=45)
-    w0Ax.set_xlabel('日期')
+    fig, ((w0Ax), (w1Ax), (minAx), (srttAx)) = plt.subplots(4, 1, sharex='col', sharey='col')
     #####################################################
     print("画wlan0时延散点图")
     w0Ax.set_title('wlan0时延散点图')
-    
-    w0Ax.set_ylim([0, 3])
-    w0Ax.set_yticks(yticks, ylabels)
-    w0Ax.set_ylabel('时延')
 
     w0Ax.scatter(list(w0PingRttFiltered['curTimestamp']), list(w0PingRttFiltered['W0pingrtt']), 
-                s=1, alpha=0.1)
+                s=1, alpha=0.5)
     #####################################################
     #####################################################
     print("画wlan1时延散点图")
     w1Ax.set_title('wlan1时延散点图')
-    
-    w1Ax.set_ylim([0, 3])
-    w1Ax.set_yticks(yticks, ylabels)
-    w1Ax.set_ylabel('时延')
 
     w1Ax.scatter(list(w1PingRttFiltered['curTimestamp']), list(w1PingRttFiltered['W1pingrtt']), 
-                s=1, alpha=0.1)
+                s=1, alpha=0.5)
     #####################################################
     #####################################################
     print("画双网络最低时延散点图")
     minAx.set_title('双网络最低时延散点图')
-    
-    minAx.set_ylim([0, 3])
-    minAx.set_yticks(yticks, ylabels)
-    minAx.set_ylabel('时延')
 
     minAx.scatter(list(minPingRttFiltered['curTimestamp']), list(minPingRttFiltered['minPingRtt']), 
-                s=1, alpha=0.1)
+                s=1, alpha=0.5)
     #####################################################
     #####################################################
     print("画mptcp时延散点图")
     srttAx.set_title('mptcp时延散点图')
     
-    srttAx.set_ylim([0, 3])
+    srttAx.set_xlim([sTime, eTime])
+    srttAx.set_xticks(xticks)
+    srttAx.set_xticklabels(xlabels, rotation=45)
+    srttAx.set_xlabel('日期')
+    
+    srttAx.set_ylim([0, 3000])
     srttAx.set_yticks(yticks, ylabels)
     srttAx.set_ylabel('时延')
 
     srttAx.scatter(list(srttFiltered['curTimestamp']), list(srttFiltered['srtt']), 
-                s=1, alpha=0.1)
+                s=1, alpha=0.5)
     #####################################################
     #####################################################
     # # 设置图片长宽比，结合dpi确定图片大小
@@ -159,10 +148,10 @@ def drawCDF(csvFileList, delayDir):
     #####################################################
     #####################################################
     print('过滤W0pingrtt, W1pingrtt, minPingRtt, srtt填充数据')
-    w0PingRttFiltered = dfAll[(dfAll['W0pingrtt'] % 1000 != 0)]
-    w1PingRttFiltered = dfAll[(dfAll['W1pingrtt'] % 1000 != 0)]
-    minPingRttFiltered = dfAll[(dfAll['minPingRtt'] % 1000 != 0)]
-    srttFiltered = dfAll[(dfAll['srtt'] % 1000 != 0)]
+    w0PingRttFiltered = dfAll[(dfAll['W0pingrtt'] % 1000 != 0)]['W0pingrtt']
+    w1PingRttFiltered = dfAll[(dfAll['W1pingrtt'] % 1000 != 0)]['W1pingrtt']
+    minPingRttFiltered = dfAll[(dfAll['minPingRtt'] % 1000 != 0)]['minPingRtt']
+    srttFiltered = dfAll[(dfAll['srtt'] % 1000 != 0)]['srtt']
     #####################################################
     #####################################################
     print('构造CDF数据')
@@ -195,10 +184,10 @@ def drawCDF(csvFileList, delayDir):
     pd.DataFrame(statics, index=[0]).to_csv(os.path.join(delayDir, 'statics.csv'))
 
     print('将cdf统计数据写入文件')
-    pd.DataFrame({'w0PingRtt':w0RttRatio, 
-                  'w1PingRtt':w1RttRatio, 
-                  'minPingRtt':minRttRatio, 
-                  'srtt':srttRatio}).to_csv(os.path.join(delayDir, '时延cdf数据.csv'))
+    pd.DataFrame({'w0PingRtt':list(w0RttRatio), 
+                  'w1PingRtt':list(w1RttRatio), 
+                  'minPingRtt':list(minRttRatio), 
+                  'srtt':list(srttRatio)}).to_csv(os.path.join(delayDir, '时延cdf数据.csv'))
     print('**********第二阶段结束**********')
     ###############################################################################
 
@@ -213,6 +202,7 @@ def drawCDF(csvFileList, delayDir):
     plt.ylim([0, 1])
 
     plt.xlabel('时延 (ms)')
+    plt.xscale('log')
     # plt.xticks([0, 10, 20, 50, 100, 200],
     #            ['0', '10ms', '20ms', '50ms', '100ms', '200ms'])
     plt.yticks(np.arange(0, 1.1, 0.1))
