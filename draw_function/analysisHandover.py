@@ -469,9 +469,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.title('漫游时长CDF')
 
     plt.xscale('log')
-    plt.xticks([0, 200, 1000, 4000, 5000, 6000, 9000, 30000],
-               ['0', '200ms', '1s', '4s', '5s', '6s', '9s', '30s'])
-    plt.xlabel('漫游时长 (ms)')
+    plt.xticks([0, 200, 1000, 4000, 5000, 9000, 30000],
+               ['0', '0.2', '1', '4', '5', '9', '30'])
+    plt.xlabel('漫游时长 (s)')
     plt.ylim([0, 1])
     # range不能迭代float
     # TypeError: 'float' object cannot be interpreted as an integer
