@@ -259,12 +259,16 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w0HoTimeMap = w0HoDf[['posX', 'posY', 'duration']][(w0HoDf['posX'] != 0) | (w0HoDf['posY'] != 0)].reset_index(drop=True) \
         .groupby(['posX', 'posY']).mean('duration').reset_index().astype(int)
     w0HoTimeMap['timeType'] = w0HoTimeMap.apply(generateHoTimeType, axis=1)
+    # 2020/12/5:22: 保存平均漫游时长数据，写入文件，方便进行正确性分析
+    w0HoTimeMapForAnalysis = w0HoTimeMap
     w0HoTimeMap = w0HoTimeMap.pivot(index='posY', columns='posX', values='timeType').fillna(0).astype(int)
     w0HoTimeMap = w0HoTimeMap.reindex(index=range(139), columns=range(265), fill_value=0).values
 
     w1HoTimeMap = w1HoDf[['posX', 'posY', 'duration']][(w1HoDf['posX'] != 0) | (w1HoDf['posY'] != 0)].reset_index(drop=True) \
         .groupby(['posX', 'posY']).mean('duration').reset_index().astype(int)
     w1HoTimeMap['timeType'] = w1HoTimeMap.apply(generateHoTimeType, axis=1)
+    # 2020/12/5:22: 保存平均漫游时长数据，写入文件，方便进行正确性分析
+    w1HoTimeMapForAnalysis = w1HoTimeMap
     w1HoTimeMap = w1HoTimeMap.pivot(index='posY', columns='posX', values='timeType').fillna(0).astype(int)
     w1HoTimeMap = w1HoTimeMap.reindex(index=range(139), columns=range(265), fill_value=0).values
     #####################################################
@@ -356,6 +360,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     # list转dataframe自动写入则携带行列信息，通过index=False与header=False参数设置不写入行列信息．
     pd.DataFrame(w0HoMap).to_csv(os.path.join(tmpDir, 'WLAN0漫游热力图统计数据.csv'), index=False, header=False)
     pd.DataFrame(w1HoMap).to_csv(os.path.join(tmpDir, 'WLAN1漫游热力图统计数据.csv'), index=False, header=False)
+    #####################################################
+    #####################################################
+    print('2020/12/5:22: 将漫游平均时长统计数据写入文件')
+    w0HoTimeMapForAnalysis.to_csv(os.path.join(tmpDir, 'WLAN0漫游平均时长统计数据.csv'))
+    w1HoTimeMapForAnalysis.to_csv(os.path.join(tmpDir, 'WLAN1漫游平均时长统计数据.csv'))
     #####################################################
     #####################################################
     print('将漫游时长CDF信息写入文件')
