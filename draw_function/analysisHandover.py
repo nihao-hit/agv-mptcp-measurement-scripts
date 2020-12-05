@@ -517,6 +517,12 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
 
     plt.bar(x, list(w0DurationBarData), width=width, label='WLAN0', tick_label=labels)
     plt.bar(x + width, list(w1DurationBarData), width=width, label='WLAN1')
+
+    # 显示数值
+    for xi in range(len(x)):
+        plt.text(x[xi], w0DurationBarData[xi], '{:.2f}'.format(w0DurationBarData[xi]), ha='center', va= 'bottom')
+        plt.text(x[xi] + width, w1DurationBarData[xi], '{:.2f}'.format(w1DurationBarData[xi]), ha='center', va= 'bottom')
+
     plt.legend()
     #####################################################
     #####################################################
