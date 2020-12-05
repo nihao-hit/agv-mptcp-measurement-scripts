@@ -1064,7 +1064,7 @@ if __name__ == '__main__':
             print('画漫游事件全景图，漫游事件RSSI分析图　')
             w0HoCsvFile = os.path.join(handoverDir, 'WLAN0漫游时段汇总.csv')
             w1HoCsvFile = os.path.join(handoverDir, 'WLAN1漫游时段汇总.csv')
-            count = 50
+            count = 20
             drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, handoverDir, count)
     #####################################################
     print('**********漫游分析->第一阶段结束**********')
