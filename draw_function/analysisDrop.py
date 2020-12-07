@@ -160,9 +160,11 @@ def drawDrop(csvFileList, dropDir):
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-    # 暂时不清楚平均掉线上限
+    # 2020/12/7:11: 若刻度小于等于5，步长设为1；否则步长设为5.
+    cbarMaxTick = max(list(map(max, w0DropMap)))
+    cbarTicks = range(0, cbarMaxTick + 1) if cbarMaxTick <= 5 else range(0, cbarMaxTick + 1, 5)
     ax = sns.heatmap(w0DropMap, cmap="Blues", vmin=0, 
-                     cbar_kws={'label' : '掉线次数'})
+                     cbar_kws={'ticks': cbarTicks, 'label' : '掉线次数'})
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     # 逆置Y轴
@@ -179,9 +181,11 @@ def drawDrop(csvFileList, dropDir):
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-    # 暂时不清楚平均掉线上限
+    # 2020/12/7:11: 若刻度小于等于5，步长设为1；否则步长设为5.
+    cbarMaxTick = max(list(map(max, w1DropMap)))
+    cbarTicks = range(0, cbarMaxTick + 1) if cbarMaxTick <= 5 else range(0, cbarMaxTick + 1, 5)
     ax = sns.heatmap(w1DropMap, cmap="Blues", vmin=0, 
-                     cbar_kws={'label' : '掉线次数'})
+                     cbar_kws={'ticks': cbarTicks, 'label' : '掉线次数'})
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     # 逆置Y轴
@@ -198,9 +202,11 @@ def drawDrop(csvFileList, dropDir):
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-    # 暂时不清楚平均掉线上限
+    # 2020/12/7:11: 若刻度小于等于5，步长设为1；否则步长设为5.
+    cbarMaxTick = max(list(map(max, minDropMap)))
+    cbarTicks = range(0, cbarMaxTick + 1) if cbarMaxTick <= 5 else range(0, cbarMaxTick + 1, 5)
     ax = sns.heatmap(minDropMap, cmap="Blues", vmin=0, 
-                     cbar_kws={'label' : '掉线次数'})
+                     cbar_kws={'ticks': cbarTicks, 'label' : '掉线次数'})
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     # 逆置Y轴
@@ -217,9 +223,11 @@ def drawDrop(csvFileList, dropDir):
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-    # 暂时不清楚平均掉线上限
+    # 2020/12/7:11: 若刻度小于等于5，步长设为1；否则步长设为5.
+    cbarMaxTick = max(list(map(max, srttDropMap)))
+    cbarTicks = range(0, cbarMaxTick + 1) if cbarMaxTick <= 5 else range(0, cbarMaxTick + 1, 5)
     ax = sns.heatmap(srttDropMap, cmap="Blues", vmin=0, 
-                     cbar_kws={'label' : '掉线次数'})
+                     cbar_kws={'ticks': cbarTicks, 'label' : '掉线次数'})
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     # 逆置Y轴
