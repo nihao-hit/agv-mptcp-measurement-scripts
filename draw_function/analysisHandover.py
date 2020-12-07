@@ -3,7 +3,7 @@
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator 
 import seaborn as sns
-from seaborn.colors import ListedColormap
+from matplotlib.colors import ListedColormap
 import numpy as np
 import pandas as pd 
 import time
