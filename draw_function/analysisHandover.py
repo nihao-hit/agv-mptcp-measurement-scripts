@@ -242,11 +242,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     def generateHoTimeType(row):
         if row['duration'] == 0:
             return 0
-        elif row['duration'] <= 200:
+        elif row['duration'] < 200:
             return 1
-        elif row['duration'] <= 1000:
+        elif row['duration'] < 1000:
             return 2
-        elif row['duration'] <= 30000:
+        elif row['duration'] < 30000:
             return 3
         else:
             return 4
@@ -274,9 +274,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     ratio = np.arange(0, 1.01, 0.01)
     bins = [0, 200, 1000, 30000, sys.maxsize]
-    labels = ['<=200ms', '200ms-1s', '1s-30s', '>30s']
-    w0DurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index())))
-    w1DurationCategory = dict(list(w1HoDf.groupby(pd.cut(w1HoDf['duration'], bins=bins, labels=labels).sort_index())))
+    labels = ['<200ms', '200ms-1s', '1s-30s', '>=30s']
+    w0DurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels, right=False).sort_index())))
+    w1DurationCategory = dict(list(w1HoDf.groupby(pd.cut(w1HoDf['duration'], bins=bins, labels=labels, right=False).sort_index())))
     #####################################################
     print('构造漫游时长CDF数据')
     w0DurationRatio = w0HoDf['duration'].quantile(ratio)
@@ -284,8 +284,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('构造漫游时长柱状图数据')
-    w0DurationBarData = pd.cut(w0HoDf['duration'], bins=bins, labels=labels).value_counts().sort_index() / len(w0HoDf)
-    w1DurationBarData = pd.cut(w1HoDf['duration'], bins=bins, labels=labels).value_counts().sort_index() / len(w1HoDf)
+    w0DurationBarData = pd.cut(w0HoDf['duration'], bins=bins, labels=labels, right=False).value_counts().sort_index() / len(w0HoDf)
+    w1DurationBarData = pd.cut(w1HoDf['duration'], bins=bins, labels=labels, right=False).value_counts().sort_index() / len(w1HoDf)
     #####################################################
     #####################################################
     print('构造WLAN0漫游时长分类，漫游类型柱状图数据')
@@ -915,8 +915,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     #####################################################
     print('按漫游时长各分类提取时段数据进行分析')
     bins = [0, 200, 1000, 30000, sys.maxsize]
-    labels = ['<=200ms', '200ms-1s', '1s-30s', '>30s']
-    w0HoDurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels).sort_index())))
+    labels = ['<200ms', '200ms-1s', '1s-30s', '>=30s']
+    w0HoDurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels, right=False).sort_index())))
     #####################################################
     #####################################################
     print('设置图片长宽比，结合dpi确定图片大小')
@@ -1026,8 +1026,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     #####################################################
     print('按漫游时长各分类提取时段数据进行分析')
     bins = [0, 200, 1000, 30000, sys.maxsize]
-    labels = ['<=200ms', '200ms-1s', '1s-30s', '>30s']
-    w1HoDurationCategory = dict(list(w1HoDf.groupby(pd.cut(w1HoDf['duration'], bins=bins, labels=labels).sort_index())))
+    labels = ['<200ms', '200ms-1s', '1s-30s', '>=30s']
+    w1HoDurationCategory = dict(list(w1HoDf.groupby(pd.cut(w1HoDf['duration'], bins=bins, labels=labels, right=False).sort_index())))
     #####################################################
     #####################################################
     print('设置图片长宽比，结合dpi确定图片大小')
