@@ -31,16 +31,16 @@ def drawDrop(csvFileList, dropDir):
     #####################################################
     print('分别提取W0pingrtt, W1pingrtt, minPingRtt, srtt列对应值等于30000，即超时30s时刻数据，作为掉线数据')
     print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
-    w0DropDf = dfAll[(dfAll['W0pingrtt'] == 30000)]
+    w0DropDf = dfAll[(dfAll['W0pingrtt'] == 30000) & ((dfAll['curPosX'] != 0) | (dfAll['curPosY'] != 0))].reset_index(drop=True)
     w0DropDf['date'] = w0DropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
 
-    w1DropDf = dfAll[(dfAll['W1pingrtt'] == 30000)]
+    w1DropDf = dfAll[(dfAll['W1pingrtt'] == 30000) & ((dfAll['curPosX'] != 0) | (dfAll['curPosY'] != 0))].reset_index(drop=True)
     w1DropDf['date'] = w1DropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
 
-    minDropDf = dfAll[(dfAll['minPingRtt'] == 30000)]
+    minDropDf = dfAll[(dfAll['minPingRtt'] == 30000) & ((dfAll['curPosX'] != 0) | (dfAll['curPosY'] != 0))].reset_index(drop=True)
     minDropDf['date'] = minDropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
 
-    srttDropDf = dfAll[(dfAll['srtt'] == 30000)]
+    srttDropDf = dfAll[(dfAll['srtt'] == 30000) & ((dfAll['curPosX'] != 0) | (dfAll['curPosY'] != 0))].reset_index(drop=True)
     srttDropDf['date'] = srttDropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
     #####################################################
     #####################################################
@@ -51,28 +51,28 @@ def drawDrop(csvFileList, dropDir):
     # ９．将index也就是posY转换为int；
     # １０．将columns也就是posX转换为int;
     # １１．使用连续的posY, posX替换index, columns，并返回二元数组．
-    w0DropMap = w0DropDf[['curPosX', 'curPosY']][(w0DropDf['curPosX'] != 0) | (w0DropDf['curPosX'] != 0)].reset_index(drop=True) \
+    w0DropMap = w0DropDf[['curPosX', 'curPosY']][(w0DropDf['curPosX'] != 0) | (w0DropDf['curPosY'] != 0)].reset_index(drop=True) \
         .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
         .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
     w0DropMap.index = w0DropMap.index.astype(int)
     w0DropMap.columns = w0DropMap.columns.astype(int)
     w0DropMap = w0DropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
 
-    w1DropMap = w1DropDf[['curPosX', 'curPosY']][(w1DropDf['curPosX'] != 0) | (w1DropDf['curPosX'] != 0)].reset_index(drop=True) \
+    w1DropMap = w1DropDf[['curPosX', 'curPosY']][(w1DropDf['curPosX'] != 0) | (w1DropDf['curPosY'] != 0)].reset_index(drop=True) \
         .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
         .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
     w1DropMap.index = w1DropMap.index.astype(int)
     w1DropMap.columns = w1DropMap.columns.astype(int)
     w1DropMap = w1DropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
 
-    minDropMap = minDropDf[['curPosX', 'curPosY']][(minDropDf['curPosX'] != 0) | (minDropDf['curPosX'] != 0)].reset_index(drop=True) \
+    minDropMap = minDropDf[['curPosX', 'curPosY']][(minDropDf['curPosX'] != 0) | (minDropDf['curPosY'] != 0)].reset_index(drop=True) \
         .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
         .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
     minDropMap.index = minDropMap.index.astype(int)
     minDropMap.columns = minDropMap.columns.astype(int)
     minDropMap = minDropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
 
-    srttDropMap = srttDropDf[['curPosX', 'curPosY']][(srttDropDf['curPosX'] != 0) | (srttDropDf['curPosX'] != 0)].reset_index(drop=True) \
+    srttDropMap = srttDropDf[['curPosX', 'curPosY']][(srttDropDf['curPosX'] != 0) | (srttDropDf['curPosY'] != 0)].reset_index(drop=True) \
         .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
         .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
     srttDropMap.index = srttDropMap.index.astype(int)
