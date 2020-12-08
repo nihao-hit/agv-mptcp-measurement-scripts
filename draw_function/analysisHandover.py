@@ -99,9 +99,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 for j in range(w0Ap1Idx, -1, -1):
                     if W0pingrtt[j] % 1000 != 0:
                         beforeRttInvalid = curTimestamp[w0Ap1Idx] - curTimestamp[j]
+                        break
                 for j in range(i, len(curTimestamp)):
                     if W0pingrtt[j] % 1000 != 0:
                         afterRttValid = curTimestamp[j] - curTimestamp[i]
+                        break
                 
                 # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
                 w0HoStartIdx = w0NotIdx
@@ -146,9 +148,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 for j in range(w1Ap1Idx, -1, -1):
                     if W1pingrtt[j] % 1000 != 0:
                         beforeRttInvalid = curTimestamp[w1Ap1Idx] - curTimestamp[j]
+                        break
                 for j in range(i, len(curTimestamp)):
                     if W1pingrtt[j] % 1000 != 0:
                         afterRttValid = curTimestamp[j] - curTimestamp[i]
+                        break
                 
                 # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
                 w1HoStartIdx = w1NotIdx
