@@ -76,10 +76,6 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1Ap1Idx = -1
     w1NotIdx = -1
     w1HoFlag = -1
-
-    # 补充数据结构，记录RTT采样时刻距离漫游时刻的距离
-    w0RTTSampleTuple = []
-    w1RTTSampleTuple = []
     #####################################################
     #####################################################
     print('提取漫游时段、漫游前后rtt与RSSI对比，构造dataframe')
@@ -96,21 +92,16 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                     w0HoFlag = 1
                 else:
                     w0HoFlag = 2
-                beforeRtt = -sys.maxsize - 1
-                afterRtt = sys.maxsize
-                w0RTTSample = [1, 1]
-
-                # 由于rtt存在滞后性，因此将rtt的选取向后推1-3ｓ．
-                # 对于漫游前，选最大值；对于漫游后，选最小值
-                for j in range(w0Ap1Idx + 1, min(i + 1, w0Ap1Idx + 4)):
-                    if W0pingrtt[j] % 1000 != 0 and W0pingrtt[j] > beforeRtt:
-                        beforeRtt = W0pingrtt[j]
-                        w0RTTSample[0] = j - w0Ap1Idx
-                for j in range(i + 1, min(i + 4, len(curTimestamp))):
-                    if W0pingrtt[j] % 1000 != 0 and W0pingrtt[j] < afterRtt:
-                        afterRtt = W0pingrtt[j]
-                        w0RTTSample[1] = j - i
-                w0RTTSampleTuple.append(w0RTTSample)
+                
+                beforeRttInvalid = 0
+                afterRttValid = 0
+                # 2020/12/8:21: 将rtt列改为记录一般漫游开始前多久失去正常时延，一般漫游结束后多久恢复正常时延
+                for j in range(w0Ap1Idx, -1, -1):
+                    if W0pingrtt[j] % 1000 != 0:
+                        beforeRttInvalid = curTimestamp[w0Ap1Idx] - curTimestamp[j]
+                for j in range(i, len(curTimestamp)):
+                    if W0pingrtt[j] % 1000 != 0:
+                        afterRttValid = curTimestamp[j] - curTimestamp[i]
                 
                 # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
                 w0HoStartIdx = w0NotIdx
@@ -122,7 +113,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 # if duration < 30000:
                 w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
                                 W0level[w0Ap1Idx], W0level[i], 
-                                beforeRtt, afterRtt,
+                                beforeRttInvalid, afterRttValid,
                                 curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
                                 w0HoFlag])
         #####################################################
@@ -148,21 +139,16 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                     w1HoFlag = 1
                 else:
                     w1HoFlag = 2
-                beforeRtt = -sys.maxsize - 1
-                afterRtt = sys.maxsize
-                w1RTTSample = [1, 1]
-
-                # 由于rtt存在滞后性，因此将rtt的选取向后推１－3ｓ．
-                #　对于漫游前，选最大值；对于漫游后，选最小值
-                for j in range(w1Ap1Idx + 1, min(i + 1, w1Ap1Idx + 4)):
-                    if W1pingrtt[j] % 1000 != 0 and W1pingrtt[j] > beforeRtt:
-                        beforeRtt = W1pingrtt[j]
-                        w1RTTSample[0] = j - w1Ap1Idx
-                for j in range(i + 1, min(i + 4, len(curTimestamp))):
-                    if W1pingrtt[j] % 1000 != 0 and W1pingrtt[j] < afterRtt:
-                        afterRtt = W1pingrtt[j]
-                        w1RTTSample[1] = j - i
-                w1RTTSampleTuple.append(w1RTTSample)
+                
+                beforeRttInvalid = 0
+                afterRttValid = 0
+                # 2020/12/8:21: 将rtt列改为记录一般漫游开始前多久失去正常时延，一般漫游结束后多久恢复正常时延
+                for j in range(w1Ap1Idx, -1, -1):
+                    if W1pingrtt[j] % 1000 != 0:
+                        beforeRttInvalid = curTimestamp[w1Ap1Idx] - curTimestamp[j]
+                for j in range(i, len(curTimestamp)):
+                    if W1pingrtt[j] % 1000 != 0:
+                        afterRttValid = curTimestamp[j] - curTimestamp[i]
                 
                 # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
                 w1HoStartIdx = w1NotIdx
@@ -174,7 +160,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 # if duration < 30000:
                 w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
                                 W1level[w1Ap1Idx], W1level[i], 
-                                beforeRtt, afterRtt,
+                                beforeRttInvalid, afterRttValid,
                                 curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
                                 w1HoFlag])
         #####################################################
