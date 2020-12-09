@@ -1,5 +1,6 @@
 # drawHandover : 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游RSSI增益CDF
 # drawHandoverFineGrained : 画漫游事件全景图，漫游事件RSSI分析图　
+# drawHoRssiAndDelayBreakRecoverTime : 画漫游前后rssi与delay break/recover时间箱型图
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator 
 import seaborn as sns
@@ -1122,6 +1123,92 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
 
 
 
+# 画漫游前后rssi与delay break/recover时间箱型图
+def drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, hoDir):
+    ###############################################################################
+    print('**********第一阶段：准备数据**********')
+    #####################################################
+    print('读取所有车或单台车的WLAN0漫游时段汇总.csv文件，并连接为一个dataframe')
+    w0HoDfList = []
+    for w0HoCsvFile in w0HoCsvFileList:
+        w0HoDf = pd.read_csv(w0HoCsvFile, usecols=['level1', 'level2', 'rtt1', 'rtt2'], 
+                                          dtype={'level1':int, 'level2':int, 'rtt1':int, 'rtt2':int})
+        w0HoDfList.append(w0HoDf)
+    w0HoDfAll = pd.concat(w0HoDfList, ignore_index=True)
+    #####################################################
+    #####################################################
+    print('读取所有车或单台车的WLAN1漫游时段汇总.csv文件，并连接为一个dataframe')
+    w1HoDfList = []
+    for w1HoCsvFile in w1HoCsvFileList:
+        w1HoDf = pd.read_csv(w1HoCsvFile, usecols=['level1', 'level2', 'rtt1', 'rtt2'], 
+                                          dtype={'level1':int, 'level2':int, 'rtt1':int, 'rtt2':int})
+        w1HoDfList.append(w1HoDf)
+    w1HoDfAll = pd.concat(w1HoDfList, ignore_index=True)
+    #####################################################
+    #####################################################
+    print('构造漫游前后rssi与delay break/recover时间的分布数据')
+    ratio = np.arange(0, 1.01, 0.01)
+
+    w0HoDfAllCdf = w0HoDfAll.quantile(ratio)
+    w1HoDfAllCdf = w1HoDfAll.quantile(ratio)
+    #####################################################
+    print('**********第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第二阶段：将关键统计数据写入文件**********')
+    #####################################################
+    w0HoDfAllCdf.to_csv(os.path.join(hoDir, 'wlan0漫游前后rssi与delay break recover时间分布统计数据.csv'))
+    w1HoDfAllCdf.to_csv(os.path.join(hoDir, 'wlan1漫游前后rssi与delay break recover时间分布统计数据.csv'))
+    #####################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第三阶段：画漫游前后rssi与delay break/recover时间箱型图**********')
+    #####################################################
+    _, (rssiAx, delayAx) = plt.subplots(1, 2)
+    plt.suptitle('漫游前后rssi与delay break/recover时间箱型图')
+    #####################################################
+    #####################################################
+    print('画漫游前后rssi箱型图')
+    rssiBp1 = rssiAx.boxplot([list(w0HoDfAll['level1']), list(w0HoDfAll['level2'])], positions=[-0.2, 0.8],
+                             widths=0.3, patch_artist=True, boxprops=dict(facecolor='C0'))
+    rssiBp2 = rssiAx.boxplot([list(w1HoDfAll['level1']), list(w1HoDfAll['level2'])], positions=[0.2, 1.2],
+                             widths=0.3, patch_artist=True, boxprops=dict(facecolor='C2'))
+    rssiAx.set_xticks([0, 1])
+    rssiAx.set_xticklabels(['漫游前', '漫游后'])
+    rssiAx.set_ylabel('rssi (dBm)')
+    rssiAx.legend([rssiBp1["boxes"][0], rssiBp2["boxes"][0]], ['wlan0', 'wlan1'], loc='lower right')
+    #####################################################
+    #####################################################
+    print('画漫游前后delay break/recover时间箱型图')
+    delayBp1 = delayAx.boxplot([list(w0HoDfAll['rtt1']), list(w0HoDfAll['rtt2'])], positions=[-0.2, 0.8],
+                             widths=0.3, patch_artist=True, boxprops=dict(facecolor='C0'), showfliers=False)
+    delayBp2 = delayAx.boxplot([list(w1HoDfAll['rtt1']), list(w1HoDfAll['rtt2'])], positions=[0.2, 1.2],
+                             widths=0.3, patch_artist=True, boxprops=dict(facecolor='C2'), showfliers=False)
+    delayAx.set_xticks([0, 1])
+    delayAx.set_xticklabels(['delay break', 'delay recover'])
+    yticks = delayAx.get_yticks()
+    delayAx.set_yticklabels(list(map(str, list(map(lambda x : int(x / 1e3), yticks)))))
+    delayAx.set_ylabel('break/recover time (s)')
+    delayAx.legend([delayBp1["boxes"][0], delayBp2["boxes"][0]], ['wlan0', 'wlan1'], loc='upper left')
+    #####################################################
+    #####################################################
+    plt.tight_layout()
+    # 保存图片
+    plt.savefig(os.path.join(hoDir, '漫游前后rssi与delay break recover时间箱型图.png'), dpi=200)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    print('**********第三阶段结束**********')
+    ###############################################################################
+
+
+
 
 if __name__ == '__main__':
     # 显示中文
@@ -1149,11 +1236,40 @@ if __name__ == '__main__':
             print('画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游RSSI增益CDF')
             drawHandover(csvFile, connCsvFile, handoverDir)
 
-            print('画漫游事件全景图，漫游事件RSSI分析图　')
             w0HoCsvFile = os.path.join(handoverDir, 'WLAN0漫游时段汇总.csv')
             w1HoCsvFile = os.path.join(handoverDir, 'WLAN1漫游时段汇总.csv')
+            
+            print('画单台车的漫游前后rssi与delay break/recover时间箱型图')
+            drawHoRssiAndDelayBreakRecoverTime([w0HoCsvFile], [w1HoCsvFile], handoverDir)
+
+            print('画漫游事件全景图，漫游事件RSSI分析图')
             count = 20
             drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, handoverDir, count)
     #####################################################
     print('**********漫游分析->第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********漫游分析->第二阶段：所有车数据统计**********')
+    #####################################################
+    print('构造文件夹')
+    topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
+    topDataPath = r'/home/cx/Desktop/sdb-dir/'
+
+    w0HoCsvFileList = [os.path.join(os.path.join(topTmpPath, path), 'analysisHandover/WLAN0漫游时段汇总.csv') 
+                        for path in os.listdir(topTmpPath)
+                        if os.path.isfile(os.path.join(os.path.join(topTmpPath, path), 'analysisHandover/WLAN0漫游时段汇总.csv'))]
+    w1HoCsvFileList = [os.path.join(os.path.split(f)[0], 'WLAN1漫游时段汇总.csv') for f in w0HoCsvFileList]
+    #####################################################
+    #####################################################
+    print("漫游分析")
+    hoDir = os.path.join(topDataPath, 'analysisHandover')
+    if not os.path.isdir(hoDir):
+        os.makedirs(hoDir)
+
+    print('画所有车的漫游前后rssi与delay break/recover时间箱型图')
+    drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, handoverDir)
+    #####################################################
+    print('**********漫游分析->第二阶段结束**********')
     ###############################################################################
