@@ -1,4 +1,5 @@
 # drawDrop : 画单台车或所有车的掉线热力图
+# drawDropLinechart : 画单台车的掉线折线图(两个关键字参数：１是时间划分粒度，２是时段截取)
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -242,6 +243,148 @@ def drawDrop(csvFileList, dropDir):
 
 
 
+# 画单台车的掉线折线图(两个关键字参数：１是时间划分粒度，２是时段截取)
+def drawDropLinechart(dropStaticsFile, w0DropFile, w1DropFile, minDropFile, srttDropFile, dropDir):
+    ###############################################################################
+    print('**********第一阶段：准备数据**********')
+    #####################################################
+    print('读入static.csv, drop.csv')
+    staticsDf = pd.read_csv(dropStaticsFile, usecols=['start', 'end'], dtype={'start':int, 'end':int})
+    w0DropDf = pd.read_csv(w0DropFile, usecols=['curTimestamp'], dtype={'curTimestamp':int})
+    w1DropDf = pd.read_csv(w1DropFile, usecols=['curTimestamp'], dtype={'curTimestamp':int})
+    minDropDf = pd.read_csv(minDropFile, usecols=['curTimestamp'], dtype={'curTimestamp':int})
+    srttDropDf = pd.read_csv(srttDropFile, usecols=['curTimestamp'], dtype={'curTimestamp':int})
+    #####################################################
+    #####################################################
+    print('构造以小时为粒度的掉线次数折线图数据')
+    sHour, eHour = int(staticsDf['start'].min() / 3600), int(staticsDf['end'].min() / 3600)
+    
+    w0DropDf['hour'] = w0DropDf.apply(lambda row : int(row['curTimestamp'] / 3600), axis=1)
+    w0DropHour = w0DropDf.groupby('hour').size().to_frame('count') \
+        .reindex(index=range(sHour, eHour), fill_value=0)
+
+    w1DropDf['hour'] = w1DropDf.apply(lambda row : int(row['curTimestamp'] / 3600), axis=1)
+    w1DropHour = w1DropDf.groupby('hour').size().to_frame('count') \
+        .reindex(index=range(sHour, eHour), fill_value=0)
+
+    minDropDf['hour'] = minDropDf.apply(lambda row : int(row['curTimestamp'] / 3600), axis=1)
+    minDropHour = minDropDf.groupby('hour').size().to_frame('count') \
+        .reindex(index=range(sHour, eHour), fill_value=0)
+
+    srttDropDf['hour'] = srttDropDf.apply(lambda row : int(row['curTimestamp'] / 3600), axis=1)
+    srttDropHour = srttDropDf.groupby('hour').size().to_frame('count') \
+        .reindex(index=range(sHour, eHour), fill_value=0)
+    #####################################################
+    print('**********第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第二阶段：将关键统计数据写入文件**********')
+    #####################################################
+    print('将掉线折线图数据写入文件')
+    w0DropHour.merge(w1DropHour, on='hour') \
+              .merge(minDropHour, on='hour') \
+              .merge(srttDropHour, on='hour') \
+              .to_csv(os.path.join(dropDir, '掉线折线图统计数据.csv'))
+    #####################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
+
+
+    #####################################################
+    print('画两次抵消第一次设置长宽比不生效的bug')
+    print('构造折线图x轴日期刻度')
+    xticks = [i for i in range(sHour, eHour+1, 24)]
+    xlabels = [time.strftime('%d日%H时', time.localtime(i * 3600)) for i in xticks]
+    #####################################################
+    #####################################################
+    print('画图前的初始化：设置标题、坐标轴')
+    plt.title('掉线折线图')
+
+    plt.xlim([sHour, eHour])
+    plt.xticks(xticks, xlabels)
+
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (12.8, 4.8)    
+    #####################################################
+    #####################################################
+    print("画wlan0掉线折线图")
+    lineW0, = plt.plot(list(w0DropHour.index), list(w0DropHour['count']), c='red')
+    #####################################################
+    #####################################################
+    print("设置标注")
+    plt.legend([lineW0],
+            ['wlan0单网络'],
+            loc='lower right')
+    #####################################################
+    #####################################################
+    figName = os.path.join(dropDir, '掉线折线图.png')
+    print('保存到：', figName)
+    plt.savefig(figName, dpi=200)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+
+
+    ###############################################################################
+    print('**********第三阶段：画掉线折线图**********')
+    #####################################################
+    print('构造折线图x轴日期刻度')
+    xticks = [i for i in range(sHour, eHour+1, 24)]
+    xlabels = [time.strftime('%d日%H时', time.localtime(i * 3600)) for i in xticks]
+    #####################################################
+    #####################################################
+    print('画图前的初始化：设置标题、坐标轴')
+    plt.title('掉线折线图')
+
+    plt.xlim([sHour, eHour])
+    plt.xticks(xticks, xlabels)
+
+    plt.ylabel('掉线次数')
+
+    print('设置图片长宽比，结合dpi确定图片大小')
+    plt.rcParams['figure.figsize'] = (12.8, 4.8)    
+    #####################################################
+    #####################################################
+    print("画wlan0掉线折线图")
+    lineW0, = plt.plot(list(w0DropHour.index), list(w0DropHour['count']), c='blue')
+    #####################################################
+    #####################################################
+    print("画wlan1掉线折线图")
+    lineW1, = plt.plot(list(w1DropHour.index), list(w1DropHour['count']), c='green')
+    #####################################################
+    #####################################################
+    print("画双网络理论掉线折线图")
+    lineMin, = plt.plot(list(minDropHour.index), list(minDropHour['count']), c='yellow')
+    #####################################################
+    #####################################################
+    print("画双网络+mptcp实际掉线折线图")
+    lineSrtt, = plt.plot(list(srttDropHour.index), list(srttDropHour['count']), c='red')
+    #####################################################
+    #####################################################
+    print("设置标注")
+    plt.legend([lineW0, lineW1, lineMin, lineSrtt],
+            ['wlan0单网络', 
+             'wlan1单网络', 
+             '双网络理论', 
+             '双网络+mptcp实际'],
+            loc='upper right')
+    #####################################################
+    #####################################################
+    figName = os.path.join(dropDir, '掉线折线图.png')
+    print('保存到：', figName)
+    plt.savefig(figName, dpi=200)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    print('**********第三阶段结束**********')
+    ###############################################################################
+
+
+
 
 if __name__ == '__main__':
     # 显示中文
@@ -267,6 +410,15 @@ if __name__ == '__main__':
 
             print('单车数据的掉线热力图')
             drawDrop([csvFile], dropDir)
+
+            print('单车数据的掉线次数折线图')
+            dropStaticsFile = os.path.join(dropDir, 'statics.csv')
+            w0DropFile = os.path.join(dropDir, 'wlan0单网络掉线时刻.csv')
+            w1DropFile = os.path.join(dropDir, 'wlan1单网络掉线时刻.csv')
+            minDropFile = os.path.join(dropDir, '双网络理论掉线时刻.csv')
+            srttDropFile = os.path.join(dropDir, '双网络+mptcp实际掉线时刻.csv')
+            
+            drawDropLinechart(dropStaticsFile, w0DropFile, w1DropFile, minDropFile, srttDropFile, dropDir)
     #####################################################
     print('**********掉线分析->第一阶段结束**********')
     ###############################################################################
