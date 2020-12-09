@@ -1,5 +1,6 @@
 # drawDrop : 画单台车或所有车的掉线热力图
 # drawDropLinechart : 画单台车的掉线折线图(两个关键字参数：１是时间划分粒度，２是时段截取)
+# exploreHoAndDrop : 探究漫游与掉线的关系
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -385,6 +386,60 @@ def drawDropLinechart(dropStaticsFile, w0DropFile, w1DropFile, minDropFile, srtt
 
 
 
+# 探究漫游与掉线的关系
+def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, dropDir):
+    ###############################################################################
+    print('**********第一阶段：准备数据**********')
+    #####################################################
+    print('读入漫游时段汇总.csv')
+    w0HoDf = pd.read_csv(w0HoCsvFile, usecols=['start', 'end', 'duration', 'rtt1', 'rtt2'], 
+                                    dtype={'start':int, 'end':int, 'duration':int, 'rtt1':int, 'rtt2':int})
+    w1HoDf = pd.read_csv(w1HoCsvFile, usecols=['start', 'end', 'duration', 'rtt1', 'rtt2'], 
+                                    dtype={'start':int, 'end':int, 'duration':int, 'rtt1':int, 'rtt2':int})
+    #####################################################
+    #####################################################
+    print('读入单网络掉线时刻.csv')
+    w0DropDf = pd.read_csv(w0DropCsvFile, usecols=['curTimestamp'], 
+                                    dtype={'curTimestamp':int})
+    w1DropDf = pd.read_csv(w1DropCsvFile, usecols=['curTimestamp'], 
+                                    dtype={'curTimestamp':int})
+    #####################################################
+    #####################################################
+    print('探究漫游与无线网络业务掉线的关系')
+    # 这里实现的不太好，通过apply实现了两层循环：外层以掉线事件迭代，内层以漫游事件迭代，比较掉线事件时间戳与漫游影响时延时段
+    def isHo(dropDfRow, hoDf):
+        for _, hoDfRow in hoDf.iterrows():
+            if dropDfRow['curTimestamp'] * 1e3 > hoDfRow['rttBreakTimestamp'] \
+                    and dropDfRow['curTimestamp'] * 1e3 < hoDfRow['rttRecoverTimestamp']:
+                return hoDfRow['start']
+        return np.nan
+
+    w0HoDf['rttBreakTimestamp'] = w0HoDf.apply(lambda row : row['start'] - row['rtt1'], axis=1)
+    w0HoDf['rttRecoverTimestamp'] = w0HoDf.apply(lambda row : row['end'] + row['rtt2'], axis=1)
+    w0DropDf['isHo'] = w0DropDf.apply(isHo, args=(w0HoDf,), axis=1)
+    w0HoAndDropDf = w0DropDf.dropna()
+
+    w1HoDf['rttBreakTimestamp'] = w1HoDf.apply(lambda row : row['start'] - row['rtt1'], axis=1)
+    w1HoDf['rttRecoverTimestamp'] = w1HoDf.apply(lambda row : row['end'] + row['rtt2'], axis=1)
+    w1DropDf['isHo'] = w1DropDf.apply(isHo, args=(w1HoDf,), axis=1)
+    w1HoAndDropDf = w1DropDf.dropna()
+    #####################################################
+    print('**********第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第二阶段：将关键统计数据写入文件**********')
+    #####################################################
+    print('将漫游与无线网络业务掉线的关系数据写入文件')
+    w0HoAndDropDf.to_csv(os.path.join(dropDir, 'w0HoAndDrop.csv'))
+    w1HoAndDropDf.to_csv(os.path.join(dropDir, 'w1HoAndDrop.csv'))
+    #####################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
+
+
+
 
 if __name__ == '__main__':
     # 显示中文
@@ -419,6 +474,12 @@ if __name__ == '__main__':
             srttDropFile = os.path.join(dropDir, '双网络+mptcp实际掉线时刻.csv')
             
             drawDropLinechart(dropStaticsFile, w0DropFile, w1DropFile, minDropFile, srttDropFile, dropDir)
+
+            print('探究漫游与掉线的关系')
+            w0HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN0漫游时段汇总.csv')
+            w1HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN1漫游时段汇总.csv')
+
+            exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropFile, w1DropFile)
     #####################################################
     print('**********掉线分析->第一阶段结束**********')
     ###############################################################################
