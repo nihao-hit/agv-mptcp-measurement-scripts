@@ -426,7 +426,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     # 逆置Y轴
     ax.invert_yaxis()
 
-    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游热力图.png'), dpi=100)
+    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -447,7 +447,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     # 逆置Y轴
     ax.invert_yaxis()
 
-    plt.savefig(os.path.join(tmpDir, 'WLAN1漫游热力图.png'), dpi=100)
+    plt.savefig(os.path.join(tmpDir, 'WLAN1漫游热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -476,7 +476,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     # 逆置Y轴
     ax.invert_yaxis()
 
-    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游时长热力图.png'), dpi=100)
+    plt.savefig(os.path.join(tmpDir, 'WLAN0漫游时长热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
@@ -498,7 +498,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     # 逆置Y轴
     ax.invert_yaxis()
 
-    plt.savefig(os.path.join(tmpDir, 'WLAN1漫游时长热力图.png'), dpi=100)
+    plt.savefig(os.path.join(tmpDir, 'WLAN1漫游时长热力图.png'), dpi=150)
     plt.pause(1)
     plt.close()
     plt.pause(1)
