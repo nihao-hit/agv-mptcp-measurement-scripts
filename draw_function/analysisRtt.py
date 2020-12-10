@@ -36,7 +36,7 @@ def drawDelayScatter(csvFile, delayDir):
     sTime, eTime = df['curTimestamp'].min(), df['curTimestamp'].max()
     xticks = [i for i in range(sTime, eTime+1, 86400)]
     yticks = np.arange(0, 3001, 500)
-    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i)) for i in xticks]
+    xlabels = [time.strftime('%d日%H时', time.localtime(i)) for i in xticks]
     ylabels = ['0', '0.5s', '1s', '1.5s', '2s', '2.5s', '3s']
     #####################################################
     #####################################################
