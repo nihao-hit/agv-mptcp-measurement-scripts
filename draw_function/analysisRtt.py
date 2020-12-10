@@ -1,5 +1,5 @@
-# drawDelayScatter : w0rtt，w1rtt，w0rtt与w1rtt最小值，srtt随时间分布散点图
-# drawCDF : 画w0rtt、w1rtt、w0rtt与w1rtt最小值、srtt的CDF图
+# drawDelayScatter : 画时延散点图
+# drawCDFAndBar : 画时延CDF图，时延分类柱状图
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -7,27 +7,40 @@ import pandas as pd
 import time
 import os
 
-# 画w0rtt，w1rtt，w0rtt与w1rtt最小值，srtt随时间分布散点图
+
+
+# 画时延散点图
 def drawDelayScatter(csvFile, delayDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
     print('读取单台车的data.csv数据，构造minPingRtt列')
     df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 
-                                                        'W0pingrtt', 'W1pingrtt', 'srtt'],
+                                                        'W0pingrtt', 'W1pingrtt', 'srtt',
+                                                        'src'],
                               dtype={'curTimestamp' : int, 
                                      'W0pingrtt': int, 
                                      'W1pingrtt': int,
-                                     'srtt' : int})
+                                     'srtt' : int,
+                                     'src' : str})
     # print(df.describe())
     df['minPingRtt'] = df.apply(lambda x: min(x['W0pingrtt'], x['W1pingrtt']), axis=1)
+    df['minPingRttSrc'] = df.apply(lambda x : '30.113.151.1' if x['W0pingrtt'] < x['W1pingrtt'] 
+                                                             else '30.113.127.1', axis=1)
     #####################################################
     #####################################################
     print('过滤W0pingrtt, W1pingrtt, minPingRtt, srtt填充数据')
-    w0PingRttFiltered = df[(df['W0pingrtt'] % 1000 != 0)]
-    w1PingRttFiltered = df[(df['W1pingrtt'] % 1000 != 0)]
-    minPingRttFiltered = df[(df['minPingRtt'] % 1000 != 0)]
-    srttFiltered = df[(df['srtt'] % 1000 != 0)]
+    w0PingRttFiltered = df[(df['W0pingrtt'] % 1000 != 0)][['curTimestamp', 'W0pingrtt']]
+
+    w1PingRttFiltered = df[(df['W1pingrtt'] % 1000 != 0)][['curTimestamp', 'W1pingrtt']]
+
+    minPingRttFiltered = df[(df['minPingRtt'] % 1000 != 0)][['curTimestamp', 'minPingRtt', 'minPingRttSrc']]
+    minPingRttFilteredW0 = minPingRttFiltered[minPingRttFiltered['minPingRttSrc'] == '30.113.151.1']
+    minPingRttFilteredW1 = minPingRttFiltered[minPingRttFiltered['minPingRttSrc'] == '30.113.127.1']
+    
+    srttFiltered = df[(df['srtt'] % 1000 != 0)][['curTimestamp', 'srtt', 'src']]
+    srttFilteredW0 = srttFiltered[srttFiltered['src'] == '30.113.151.1']
+    srttFilteredW1 = srttFiltered[srttFiltered['src'] == '30.113.127.1']
     #####################################################
     #####################################################
     print('构造散点图x轴日期刻度与y轴时延刻度')
@@ -50,7 +63,11 @@ def drawDelayScatter(csvFile, delayDir):
     statics['过滤后w0PingRtt总数'] = len(w0PingRttFiltered)
     statics['过滤后w1PingRtt总数'] = len(w1PingRttFiltered)
     statics['过滤后minPingRtt总数'] = len(minPingRttFiltered)
+    statics['minPingRtt中属于w0总数'] = len(minPingRttFilteredW0)
+    statics['minPingRtt中属于w1总数'] = len(minPingRttFilteredW1)
     statics['过滤后srtt总数'] = len(srttFiltered)
+    statics['srtt中属于w0总数'] = len(srttFilteredW0)
+    statics['srtt中属于w1总数'] = len(srttFilteredW1)
 
     statics['start'] = df['curTimestamp'].min()
     statics['end'] = df['curTimestamp'].max()
@@ -80,21 +97,23 @@ def drawDelayScatter(csvFile, delayDir):
     w0Ax.set_title('wlan0时延散点图')
 
     w0Ax.scatter(list(w0PingRttFiltered['curTimestamp']), list(w0PingRttFiltered['W0pingrtt']), 
-                s=1, alpha=0.5)
+                c='tab:blue', s=0.5, alpha=0.5)
     #####################################################
     #####################################################
     print("画wlan1时延散点图")
     w1Ax.set_title('wlan1时延散点图')
 
     w1Ax.scatter(list(w1PingRttFiltered['curTimestamp']), list(w1PingRttFiltered['W1pingrtt']), 
-                s=1, alpha=0.5)
+                c='tab:red', s=0.5, alpha=0.5)
     #####################################################
     #####################################################
     print("画双网络最低时延散点图")
     minAx.set_title('双网络最低时延散点图')
 
-    minAx.scatter(list(minPingRttFiltered['curTimestamp']), list(minPingRttFiltered['minPingRtt']), 
-                s=1, alpha=0.5)
+    minAx.scatter(list(minPingRttFilteredW0['curTimestamp']), list(minPingRttFilteredW0['minPingRtt']), 
+                c='tab:blue', s=0.5, alpha=0.5)
+    minAx.scatter(list(minPingRttFilteredW1['curTimestamp']), list(minPingRttFilteredW1['minPingRtt']), 
+                c='tab:red', s=0.5, alpha=0.5)
     #####################################################
     #####################################################
     print("画mptcp时延散点图")
@@ -107,10 +126,12 @@ def drawDelayScatter(csvFile, delayDir):
     
     srttAx.set_ylim([0, 3000])
     srttAx.set_yticks(yticks, ylabels)
-    srttAx.set_ylabel('时延')
+    srttAx.set_ylabel('时延 (ms)')
 
-    srttAx.scatter(list(srttFiltered['curTimestamp']), list(srttFiltered['srtt']), 
-                s=1, alpha=0.5)
+    srttAx.scatter(list(srttFilteredW0['curTimestamp']), list(srttFilteredW0['srtt']), 
+                c='tab:blue', s=0.5, alpha=0.5)
+    srttAx.scatter(list(srttFilteredW1['curTimestamp']), list(srttFilteredW1['srtt']), 
+                c='tab:red', s=0.5, alpha=0.5)
     #####################################################
     #####################################################
     # # 设置图片长宽比，结合dpi确定图片大小
@@ -130,8 +151,8 @@ def drawDelayScatter(csvFile, delayDir):
 
 
 
-# 画w0rtt、w1rtt、w0rtt与w1rtt最小值、srtt的CDF图
-def drawCDF(csvFileList, delayDir):
+# 画时延CDF图，时延分类柱状图
+def drawCDFAndBar(csvFileList, delayDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
@@ -139,11 +160,12 @@ def drawCDF(csvFileList, delayDir):
     dfList = []
     for csvFile in csvFileList:
         df = pd.read_csv(csvFile, usecols=['W0pingrtt', 'W1pingrtt', 'srtt'],
-                                  dtype={'W0pingrtt' : int, 
-                                         'W1pingrtt' : int,
-                                         'srtt' : int})
+                                dtype={'W0pingrtt' : int, 
+                                       'W1pingrtt' : int,
+                                       'srtt' : int})
         dfList.append(df)
     dfAll = pd.concat(dfList, ignore_index=True)
+
     dfAll['minPingRtt'] = dfAll.apply(lambda x : min(x['W0pingrtt'], x['W1pingrtt']), axis=1)
     #####################################################
     #####################################################
@@ -160,6 +182,23 @@ def drawCDF(csvFileList, delayDir):
     w1RttRatio = w1PingRttFiltered.quantile(ratio)
     minRttRatio = minPingRttFiltered.quantile(ratio)
     srttRatio = srttFiltered.quantile(ratio)
+    #####################################################
+    #####################################################
+    print('2020/12/10:16: 构造分类柱状图数据')
+    bins = [0, 200, sys.maxsize]
+    labels = ['<200ms', '>=200ms']
+    # 注意：这里计算柱状图数据占比时被除数是dfAll而不是.*Filtered
+    # 因为时延>=200ms的分类不足1%，因此合并['200ms-1s', '1s-30s', '>=30s']，且增加'Non-Usable'分类．
+    w0RttBarData = pd.cut(w0PingRttFiltered, bins=bins, labels=labels, right=False).value_counts().sort_index() / len(dfAll)
+    w1RttBarData = pd.cut(w1PingRttFiltered, bins=bins, labels=labels, right=False).value_counts().sort_index() / len(dfAll)
+    minRttBarData = pd.cut(minPingRttFiltered, bins=bins, labels=labels, right=False).value_counts().sort_index() / len(dfAll)
+    srttBarData = pd.cut(srttFiltered, bins=bins, labels=labels, right=False).value_counts().sort_index() / len(dfAll)
+
+    labels += ['Non-Usable']
+    w0RttBarData = list(w0RttBarData) + [1 - sum(list(w0RttBarData))]
+    w1RttBarData = list(w1RttBarData) + [1 - sum(list(w1RttBarData))]
+    minRttBarData = list(minRttBarData) + [1 - sum(list(minRttBarData))]
+    srttBarData = list(srttBarData) + [1 - sum(list(srttBarData))]
     #####################################################
     #####################################################
     print('非图表型统计数据构造')
@@ -249,6 +288,48 @@ def drawCDF(csvFileList, delayDir):
     ###############################################################################
 
 
+    # 2020/12/10:16
+    ###############################################################################
+    print('**********第四阶段：画时延分类柱状图**********')
+    #####################################################
+    print("设置时延分类柱状图坐标轴")
+    plt.title('时延分类柱状图')
+
+    plt.xlabel('时延分类')
+    plt.ylabel('比例')
+    # 设置图片长宽比，结合dpi确定图片大小
+    plt.rcParams['figure.figsize'] = (6.4, 4.8)
+
+    width = 0.2
+    x = np.arange(len(w0RttBarData))
+
+    plt.bar(x - 1.5 * width, w0RttBarData, width=width, label='wlan0时延')
+    plt.bar(x - 0.5 * width, w1RttBarData, width=width, label='wlan1时延')
+    plt.bar(x + 0.5 * width, minRttBarData, width=width, label='双网络最低时延')
+    plt.bar(x + 1.5 * width, srttBarData, width=width, label='mptcp时延')
+    plt.xticks(x, labels)
+
+    # 显示数值
+    for xi in range(len(x)):
+        plt.text(x[xi] - 1.5 * width, w0RttBarData[xi], '{:.2f}'.format(w0RttBarData[xi]), ha='center', va= 'bottom')
+        plt.text(x[xi] - 0.5 * width, w1RttBarData[xi], '{:.2f}'.format(w1RttBarData[xi]), ha='center', va= 'bottom')
+        plt.text(x[xi] + 0.5 * width, minRttBarData[xi], '{:.2f}'.format(minRttBarData[xi]), ha='center', va= 'bottom')
+        plt.text(x[xi] + 1.5 * width, srttBarData[xi], '{:.2f}'.format(srttBarData[xi]), ha='center', va= 'bottom')
+
+    plt.legend()
+    #####################################################
+    #####################################################
+    figName = os.path.join(delayDir, '时延分类柱状图.png')
+    print('保存到：', figName)
+    plt.savefig(figName, dpi=200)
+    plt.pause(1)
+    plt.close()
+    plt.pause(1)
+    #####################################################
+    print('**********第四阶段结束**********')
+    ###############################################################################
+
+
 
 
 if __name__ == '__main__':
@@ -276,8 +357,8 @@ if __name__ == '__main__':
             print('单车数据的时延散点图')
             drawDelayScatter(csvFile, delayDir)
 
-            print('单车数据的时延CDF图')
-            drawCDF([csvFile], delayDir)
+            print('单车数据的时延CDF图，时延分类柱状图')
+            drawCDFAndBar([csvFile], delayDir)
     #####################################################
     print('**********时延分析->第一阶段结束**********')
     ###############################################################################
@@ -300,8 +381,8 @@ if __name__ == '__main__':
     if not os.path.isdir(delayDir):
         os.makedirs(delayDir)
 
-    print('所有车数据的时延CDF图')
-    drawCDF(csvFileList, delayDir)
+    print('所有车数据的时延CDF图，时延分类柱状图')
+    drawCDFAndBar(csvFileList, delayDir)
     #####################################################
     print('**********时延分析->第二阶段结束**********')
     ###############################################################################
