@@ -79,6 +79,11 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w1HoFlag = -1
     #####################################################
     #####################################################
+    # 2020/12/10:21: 统计漫游造成时延Non-Usable总时长
+    w0RttBreakTime = 0
+    w1RttBreakTime = 0
+    #####################################################
+    #####################################################
     print('提取漫游时段、漫游前后rtt与RSSI对比，构造dataframe')
     for i in range(len(curTimestamp)):
         #####################################################
@@ -105,6 +110,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                     if W0pingrtt[j] % 1000 != 0:
                         afterRttValid = curTimestamp[j] - curTimestamp[i]
                         break
+                
+                # 2020/12/10:21: 统计漫游造成时延Non-Usable总时长
+                w0RttBreakTime += afterRttValid + curTimestamp[i] - curTimestamp[w0Ap1Idx] + beforeRttInvalid
                 
                 # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
                 w0HoStartIdx = w0NotIdx
@@ -154,6 +162,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                     if W1pingrtt[j] % 1000 != 0:
                         afterRttValid = curTimestamp[j] - curTimestamp[i]
                         break
+                
+                # 2020/12/10:21: 统计漫游造成时延Non-Usable总时长
+                w1RttBreakTime += afterRttValid + curTimestamp[i] - curTimestamp[w1Ap1Idx] + beforeRttInvalid
                 
                 # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
                 w1HoStartIdx = w1NotIdx
@@ -313,6 +324,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w0TypeCategory = dict(list(w0HoDf.groupby('flag')))
     statics['WLAN0 flag=0漫游次数'] = len(w0TypeCategory[0])
     statics['WLAN0 flag=1漫游次数'] = len(w0TypeCategory[1])
+    statics['wlan0造成时延Non-Usable总时长'] = w0RttBreakTime
+    statics['wlan1造成时延Non-Usable总时长'] = w1RttBreakTime
     # 2020/11/19:10 可能没有flag=2的漫游类别
     try:
         statics['WLAN0 flag=2漫游次数'] = len(w0TypeCategory[2])
