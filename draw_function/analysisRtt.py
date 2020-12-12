@@ -25,8 +25,8 @@ def drawDelayScatter(csvFile, delayDir):
                                      'src' : str})
     # print(df.describe())
     df['minPingRtt'] = df.apply(lambda x: min(x['W0pingrtt'], x['W1pingrtt']), axis=1)
-    df['minPingRttSrc'] = df.apply(lambda x : '30.113.151.1' if x['W0pingrtt'] < x['W1pingrtt'] 
-                                                             else '30.113.127.1', axis=1)
+    df['minPingRttSrc'] = df.apply(lambda x : '151' if x['W0pingrtt'] < x['W1pingrtt'] 
+                                                             else '127', axis=1)
     #####################################################
     #####################################################
     print('过滤W0pingrtt, W1pingrtt, minPingRtt, srtt填充数据')
@@ -35,12 +35,12 @@ def drawDelayScatter(csvFile, delayDir):
     w1PingRttFiltered = df[(df['W1pingrtt'] % 1000 != 0)][['curTimestamp', 'W1pingrtt']]
 
     minPingRttFiltered = df[(df['minPingRtt'] % 1000 != 0)][['curTimestamp', 'minPingRtt', 'minPingRttSrc']]
-    minPingRttFilteredW0 = minPingRttFiltered[minPingRttFiltered['minPingRttSrc'] == '30.113.151.1']
-    minPingRttFilteredW1 = minPingRttFiltered[minPingRttFiltered['minPingRttSrc'] == '30.113.127.1']
+    minPingRttFilteredW0 = minPingRttFiltered[minPingRttFiltered['minPingRttSrc'] == '151']
+    minPingRttFilteredW1 = minPingRttFiltered[minPingRttFiltered['minPingRttSrc'] == '127']
     
     srttFiltered = df[(df['srtt'] % 1000 != 0)][['curTimestamp', 'srtt', 'src']]
-    srttFilteredW0 = srttFiltered[srttFiltered['src'] == '30.113.151.1']
-    srttFilteredW1 = srttFiltered[srttFiltered['src'] == '30.113.127.1']
+    srttFilteredW0 = srttFiltered[srttFiltered.src.str.contains('151')]
+    srttFilteredW1 = srttFiltered[srttFiltered.src.str.contains('127')]
     #####################################################
     #####################################################
     print('构造散点图x轴日期刻度与y轴时延刻度')
