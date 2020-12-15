@@ -76,3 +76,26 @@ def parseStatics(staticsFile, tmpDir):
     # mptcpDf需要按mptcpNum排序，即按时间轴顺序.
     mptcpDf.to_csv(os.path.join(tmpDir, 'mptcpData.csv'))
     print("try-except错误次数：{}".format(count))
+
+
+
+
+if __name__ == '__main__':
+    ###############################################################################
+    print('**********Tcpdump文件解析**********')
+    #####################################################
+    for i in range(1, 42):
+        fileName = '30.113.151.' + str(i)
+        print(fileName)
+        csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+        if os.path.isdir(csvPath):
+            print('解析Tcpdump文件，生成statics.txt')
+            dataPath = os.path.join(csvPath, 'data')
+            parseTcpdump(dataPath)
+            
+            print('解析statics.txt，生成mptcpData.csv')
+            staticsFile = os.path.join(csvPath, 'mptcpData/statics.txt')
+            parseStatics(staticsFile, csvPath)
+    #####################################################
+    print('**********Tcpdump文件解析阶段结束**********')
+    ###############################################################################
