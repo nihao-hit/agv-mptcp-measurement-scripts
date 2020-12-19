@@ -878,3 +878,48 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, tmpDir, subflowLe
             #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
+
+
+
+
+if __name__ == '__main__':
+    # 显示中文
+    import locale
+    locale.setlocale(locale.LC_CTYPE, 'zh_CN.utf8')
+    from pylab import *
+    mpl.rcParams['font.sans-serif'] = ['SimHei']
+    mpl.rcParams['axes.unicode_minus'] = False
+
+    ###############################################################################
+    print('**********MPTCP协议分析->第一阶段：单车数据统计**********')
+    #####################################################
+    for i in range(1, 42):
+        fileName = '30.113.151.' + str(i)
+        print(fileName)
+        csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+        csvFile = os.path.join(csvPath, 'data.csv')
+        tcpprobeCsvFile = os.path.join(csvPath, 'tcpprobeData.csv')
+        if os.path.isdir(csvPath):
+            print('mptcp分析')
+            mptcpDir = os.path.join(csvPath, 'analysisMptcp')
+            print(mptcpDir)
+            if not os.path.isdir(mptcpDir):
+                os.makedirs(mptcpDir)
+
+            print("统计当前子流状态变动")
+            drawSubflowUseTime(tcpprobeCsvFile, mptcpDir)
+
+            count = 20
+            w0HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN0漫游时段汇总.csv')
+
+            print('分析连续使用子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt')
+            w0SubflowDurationCsvFile = os.path.join(mptcpDir, 'w0SubflowDuration.csv')
+            subflowLenTuple = [20 * 1000, 30 * 1000]
+            drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoCsvFile, mptcpDir, subflowLenTuple, count)
+            
+            print('分析漫游事件对应的子流的snd_nxt, snd_una, snd_cwnd, ssthresh, snd_wnd, rcv_wnd, srtt')
+            subflowLen = 30 * 1000
+            drawMptcpInHandover(csvFile, tcpprobeCsvFile, w0HoCsvFile, mptcpDir, subflowLen, count)
+    #####################################################
+    print('**********MPTCP协议分析->第一阶段结束**********')
+    ###############################################################################
