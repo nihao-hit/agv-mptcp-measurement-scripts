@@ -7,6 +7,7 @@ import time
 import datetime
 import pandas as pd
 import functools
+import csv
 
 class MptcpStatus:
     # mptcp
@@ -45,26 +46,6 @@ class MptcpStatus:
     remoteMptcpPacket = 0                   #23 
     remoteMptcpDataPacket = 0               #24
     remoteMptcpPayloadByte = 0              #25
-    # subflow
-    subStats = []                           #26
-    # subflow : agv -> server && server -> agv
-    subFirstTs = []                         #27
-    subLastTs = []                          #28
-
-    subFirstDataTs = []                     #29
-    subLastDataTs = []                      #30
-    
-    subFirstFastcloseTs = []                #31
-    subLastFastcloseTs = []                 #32
-    
-    subFirstDatafinTs = []                  #33
-    subLastDatafinTs = []                   #34
-    
-    subFinRstTs = []                        #35
-
-    subPacket = []                          #36
-    subDataPacket = []                      #37
-    subPayloadByte = []                     #38
 
     def __init__(self):
         # mptcp
@@ -103,26 +84,105 @@ class MptcpStatus:
         self.remoteMptcpPacket = 0                   #23
         self.remoteMptcpDataPacket = 0               #24
         self.remoteMptcpPayloadByte = 0              #25
+    
+    def __setitem__(self, k, v):
+        self.k = v
+
+    def __getitem__(self, k):
+        return getattr(self, k)
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def keys(self):
+        return [attr for attr in self.__dict__ if not callable(getattr(self, attr)) and not attr.startswith("__")]
+
+
+
+
+class SubflowStatus:
+    # mptcp
+    mptcpNum = 0                            #1
+    # subflow
+    subStats = ''                           #2
+    # subflow : agv -> server             
+    originSubFirstTs = 0                    #3
+    originSubLastTs = 0                     #4
+
+    originSubFirstDataTs = 0                #5
+    originSubLastDataTs = 0                 #6
+    
+    originSubFirstFastcloseTs = 0           #7
+    originSubLastFastcloseTs = 0            #8
+    
+    originSubFirstDatafinTs = 0             #9
+    originSubLastDatafinTs = 0              #10
+
+    originSubFinrstTs = 0                   #11
+    
+    originSubPacket = 0                     #12
+    originSubDataPacket = 0                 #13
+    originSubPayloadByte = 0                #14
+    # subflow : server -> agv
+    remoteSubFirstTs = 0                    #15
+    remoteSubLastTs = 0                     #16
+
+    remoteSubFirstDataTs = 0                #17
+    remoteSubLastDataTs = 0                 #18
+    
+    remoteSubFirstFastcloseTs = 0           #19
+    remoteSubLastFastcloseTs = 0            #20
+    
+    remoteSubFirstDatafinTs = 0             #21
+    remoteSubLastDatafinTs = 0              #22
+
+    remoteSubFinrstTs = 0                   #23
+    
+    remoteSubPacket = 0                     #24 
+    remoteSubDataPacket = 0                 #25
+    remoteSubPayloadByte = 0                #26
+
+    def __init__(self):
+        # mptcp
+        self.mptcpNum = 0                            #1
         # subflow
-        self.subStats = []                           #26
-        # subflow : agv -> server && server -> agv
-        self.subFirstTs = []                         #27
-        self.subLastTs = []                          #28
+        self.subStats = ''                           #2
+        # subflow : agv -> server             
+        self.originSubFirstTs = 0                    #3
+        self.originSubLastTs = 0                     #4
 
-        self.subFirstDataTs = []                     #29
-        self.subLastDataTs = []                      #30
+        self.originSubFirstDataTs = 0                #5
+        self.originSubLastDataTs = 0                 #6
         
-        self.subFirstFastcloseTs = []                #31
-        self.subLastFastcloseTs = []                 #32
+        self.originSubFirstFastcloseTs = 0           #7
+        self.originSubLastFastcloseTs = 0            #8
         
-        self.subFirstDatafinTs = []                  #33
-        self.subLastDatafinTs = []                   #34
-        
-        self.subFinRstTs = []                        #35
+        self.originSubFirstDatafinTs = 0             #9
+        self.originSubLastDatafinTs = 0              #10
 
-        self.subPacket = []                          #36
-        self.subDataPacket = []                      #37
-        self.subPayloadByte = []                     #38
+        self.originSubFinrstTs = 0                   #11
+        
+        self.originSubPacket = 0                     #12
+        self.originSubDataPacket = 0                 #13
+        self.originSubPayloadByte = 0                #14
+        # subflow : server -> agv
+        self.remoteSubFirstTs = 0                    #15
+        self.remoteSubLastTs = 0                     #16
+
+        self.remoteSubFirstDataTs = 0                #17
+        self.remoteSubLastDataTs = 0                 #18
+        
+        self.remoteSubFirstFastcloseTs = 0           #19
+        self.remoteSubLastFastcloseTs = 0            #20
+        
+        self.remoteSubFirstDatafinTs = 0             #21
+        self.remoteSubLastDatafinTs = 0              #22
+
+        self.remoteSubFinrstTs = 0                   #23
+        
+        self.remoteSubPacket = 0                     #24 
+        self.remoteSubDataPacket = 0                 #25
+        self.remoteSubPayloadByte = 0                #26
     
     def __setitem__(self, k, v):
         self.k = v
@@ -193,18 +253,15 @@ def parseStatics(staticsFile, tmpDir):
     print('**********第一阶段：解析statics.txt文件，写入mptcpStatusList**********')
     count = 0
     mptcpStatusList = []
+    subflowStatusList = []
     with open(staticsFile, 'r') as f:
         mptcpList = f.read()
         mptcpList = list(filter(lambda content: len(content) != 0, mptcpList.split('||')))
         for mptcp in mptcpList:
             try:
-                mptcpStatus = MptcpStatus()
-                
-                # mptcp
-                mptcpStatus.mptcpNum = int(re.findall(r'(?<=mptcpNum: )\d+(?=\n)', mptcp)[0])
-                mptcpStatus.connStats = re.findall(r'(?<=Connection stats: ).*?(?= )', mptcp)[0]
-                mptcpStatus.numSub = int(re.findall(r'(?<=num_subflows: )\d+(?= )', mptcp)[0])
-
+                #####################################################
+                # 提取每条mptcp连接的元数据写入变量
+                subStats = re.findall(r'(?<=\n)30\.113\.\d+\.\d+:\d+:30\.113\.\d+\.\d+:\d+(?= )', mptcp)
                 firstTs = list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
                                    re.findall(r'(?<=first_timestamp: ).*?(?= )', mptcp)
                                   )
@@ -253,7 +310,16 @@ def parseStatics(staticsFile, tmpDir):
                                        re.findall(r'(?<=payload_byte_count: ).*?(?=\n)', mptcp)
                                       )
                                   )
-                # mptcp : agv -> server             
+                #####################################################
+                #####################################################
+                # 创建并赋值mptcpStatus，接着写入mptcpStatusList
+                # 创建mptcpStatus
+                mptcpStatus = MptcpStatus()
+                # mptcp
+                mptcpStatus.mptcpNum = int(re.findall(r'(?<=mptcpNum: )\d+(?=\n)', mptcp)[0])
+                mptcpStatus.connStats = re.findall(r'(?<=Connection stats: ).*?(?= )', mptcp)[0]
+                mptcpStatus.numSub = int(re.findall(r'(?<=num_subflows: )\d+(?= )', mptcp)[0])
+                # mptcp : agv -> server
                 mptcpStatus.originMptcpFirstTs = firstTs[0]
                 mptcpStatus.originMptcpLastTs = lastTs[0]
 
@@ -285,28 +351,56 @@ def parseStatics(staticsFile, tmpDir):
                 mptcpStatus.remoteMptcpPacket = packet[1]
                 mptcpStatus.remoteMptcpDataPacket = dataPacket[1]
                 mptcpStatus.remoteMptcpPayloadByte = payloadByte[1]
-                # subflow
-                mptcpStatus.subStats = re.findall(r'(?<=\n)30\.113\.\d+\.\d+:\d+:30\.113\.\d+\.\d+:\d+(?= )', mptcp)
-                # subflow : agv -> server && server -> agv
-                mptcpStatus.subFirstTs = firstTs[2:]
-                mptcpStatus.subLastTs = lastTs[2:]
-
-                mptcpStatus.subFirstDataTs = firstDataTs[2:]
-                mptcpStatus.subLastDataTs = lastDataTs[2:]
-                
-                mptcpStatus.subFirstFastcloseTs = firstFastcloseTs[2:]
-                mptcpStatus.subLastFastcloseTs = lastFastcloseTs[2:]
-                
-                mptcpStatus.subFirstDatafinTs = firstDatafinTs[2:]
-                mptcpStatus.subLastDatafinTs = lastDatafinTs[2:]
-                
-                mptcpStatus.subFinRstTs = finrstTs
-
-                mptcpStatus.subPacket = packet[2:]
-                mptcpStatus.subDataPacket = dataPacket[2:]
-                mptcpStatus.subPayloadByte = payloadByte[2:]
-                
+                # 写入mptcpStatusList
                 mptcpStatusList.append(mptcpStatus)
+                #####################################################
+                #####################################################
+                # 创建并赋值subStatus，接着写入subflowStatusList
+                for i in range(mptcpStatus.numSub):
+                    # 创建subStatus
+                    subStatus = SubflowStatus()
+                    # subflow
+                    subStatus.mptcpNum = mptcpStatus.mptcpNum
+                    subStatus.subStats = subStats[i*2]
+                    # subflow : agv -> server             
+                    subStatus.originSubFirstTs = firstTs[i*2 + 2]
+                    subStatus.originSubLastTs = lastTs[i*2 + 2]
+
+                    subStatus.originSubFirstDataTs = firstDataTs[i*2 + 2]
+                    subStatus.originSubLastDataTs = lastDataTs[i*2 + 2]
+                    
+                    subStatus.originSubFirstFastcloseTs = firstFastcloseTs[i*2 + 2]
+                    subStatus.originSubLastFastcloseTs = lastFastcloseTs[i*2 + 2]
+                    
+                    subStatus.originSubFirstDatafinTs = firstDatafinTs[i*2 + 2]
+                    subStatus.originSubLastDatafinTs = lastDatafinTs[i*2 + 2]
+
+                    subStatus.originSubFinrstTs = finrstTs[i*2]
+                    
+                    subStatus.originSubPacket = packet[i*2 + 2]
+                    subStatus.originSubDataPacket = dataPacket[i*2 + 2]
+                    subStatus.originSubPayloadByte = payloadByte[i*2 + 2]
+                    # subflow : server -> agv
+                    subStatus.remoteSubFirstTs = firstTs[i*2 + 2 + 1]
+                    subStatus.remoteSubLastTs = lastTs[i*2 + 2 + 1]
+
+                    subStatus.remoteSubFirstDataTs = firstDataTs[i*2 + 2 + 1]
+                    subStatus.remoteSubLastDataTs = lastDataTs[i*2 + 2 + 1]
+                    
+                    subStatus.remoteSubFirstFastcloseTs = firstFastcloseTs[i*2 + 2 + 1]
+                    subStatus.remoteSubLastFastcloseTs = lastFastcloseTs[i*2 + 2 + 1]
+                    
+                    subStatus.remoteSubFirstDatafinTs = firstDatafinTs[i*2 + 2 + 1]
+                    subStatus.remoteSubLastDatafinTs = lastDatafinTs[i*2 + 2 + 1]
+                    
+                    subStatus.remoteSubFinrstTs = finrstTs[i*2 + 1]
+
+                    subStatus.remoteSubPacket = packet[i*2 + 2 + 1]
+                    subStatus.remoteSubDataPacket = dataPacket[i*2 + 2 + 1]
+                    subStatus.remoteSubPayloadByte = payloadByte[i*2 + 2 + 1]
+                    # 写入subflowStatusList
+                    subflowStatusList.append(subStatus)
+                #####################################################
             except:
                 count += 1
                 print(mptcp)
@@ -317,17 +411,51 @@ def parseStatics(staticsFile, tmpDir):
 
     ###############################################################################
     print('**********第二阶段：将mptcpStatusList写入mptcpData.csv文件**********')
-    with open(os.path.join(tmpDir, 'mptcpData.csv'), 'w') as f:
-        for status in mptcpStatusList:
-            tmpList = []
-            # 在MptcpStatus.keys()中将dir(self)修改为self.__dict__以获得有序的keys．
-            for key in status.keys():
-                if type(status[key]) == list:
-                    tmpList += status[key]
-                else:
-                    tmpList.append(status[key])
-            f.write(','.join(map(str, tmpList)) + '\n')
+    mptcpHeaders = ['mptcpNum', 'connStats', 'numSub', 
+
+                    'originMptcpFirstTs', 'originMptcpLastTs', 
+                    'originMptcpFirstDataTs', 'originMptcpLastDataTs', 
+                    'originMptcpFirstFastcloseTs', 'originMptcpLastFastcloseTs', 
+                    'originMptcpFirstDatafinTs', 'originMptcpLastDatafinTs', 
+                    'originMptcpPacket', 'originMptcpDataPacket', 'originMptcpPayloadByte', 
+                    
+                    'remoteMptcpFirstTs', 'remoteMptcpLastTs', 
+                    'remoteMptcpFirstDataTs', 'remoteMptcpLastDataTs', 
+                    'remoteMptcpFirstFastcloseTs', 'remoteMptcpLastFastcloseTs', 
+                    'remoteMptcpFirstDatafinTs', 'remoteMptcpLastDatafinTs', 
+                    'remoteMptcpPacket', 'remoteMptcpDataPacket', 'remoteMptcpPayloadByte']
+    with open(os.path.join(tmpDir, 'mptcpData.csv'), 'w', newline='') as f:
+        f_csv = csv.DictWriter(f, mptcpHeaders)
+        f_csv.writeheader()
+        for s in mptcpStatusList:
+            f_csv.writerow(dict(s))
     print('**********第二阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第三阶段：将subflowStatusList写入subflowData.csv文件**********')
+    subflowHeaders= ['mptcpNum', 'subStats',
+
+                    'originSubFirstTs', 'originSubLastTs', 
+                    'originSubFirstDataTs', 'originSubLastDataTs', 
+                    'originSubFirstFastcloseTs', 'originSubLastFastcloseTs', 
+                    'originSubFirstDatafinTs', 'originSubLastDatafinTs', 
+                    'originSubFinrstTs',
+                    'originSubPacket', 'originSubDataPacket', 'originSubPayloadByte', 
+                    
+                    'remoteSubFirstTs', 'remoteSubLastTs', 
+                    'remoteSubFirstDataTs', 'remoteSubLastDataTs', 
+                    'remoteSubFirstFastcloseTs', 'remoteSubLastFastcloseTs', 
+                    'remoteSubFirstDatafinTs', 'remoteSubLastDatafinTs', 
+                    'remoteSubFinrstTs',
+                    'remoteSubPacket', 'remoteSubDataPacket', 'remoteSubPayloadByte']
+    with open(os.path.join(tmpDir, 'subflowData.csv'), 'w', newline='') as f:
+        f_csv = csv.DictWriter(f, subflowHeaders)
+        f_csv.writeheader()
+        for s in subflowStatusList:
+            f_csv.writerow(dict(s))
+    print('**********第三阶段结束**********')
     ###############################################################################
 
 
@@ -346,7 +474,7 @@ if __name__ == '__main__':
             dataPath = os.path.join(csvPath, 'data')
             parseTcpdump(dataPath)
             
-            print('解析statics.txt，生成mptcpData.csv')
+            print('解析statics.txt，生成mptcpData.csv与subflowData.csv')
             staticsFile = os.path.join(csvPath, 'mptcpData/statics.txt')
             parseStatics(staticsFile, csvPath)
     #####################################################
