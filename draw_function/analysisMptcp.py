@@ -456,7 +456,8 @@ def drawMptcpInSubflow(csvFile, tcpprobeCsvFile, w0SubflowDurationCsvFile, w0HoC
                   ssthresh['ssthresh'].max() + 1])
 
         plt.xlabel('time(ms)')
-        plt.yticks(range(ssthresh['ssthresh'].min() - 1,  ssthresh['ssthresh'].max() + 2))
+        # 2020/11/18:19 2号车的ssthresh['ssthresh'] min值与max值相差过大导致numpy memoryerror
+        # plt.yticks(range(ssthresh['ssthresh'].min() - 1,  ssthresh['ssthresh'].max() + 2))
         
         plt.scatter(list(ssthresh['timestamp']), list(ssthresh['ssthresh']), c='red', s=1, alpha=0.7, label='ssthresh')
         # 画漫游事件竖线
