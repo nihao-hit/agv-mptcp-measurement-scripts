@@ -33,17 +33,22 @@ def drawDrop(csvFileList, dropDir):
     #####################################################
     print('分别提取W0pingrtt, W1pingrtt, minPingRtt, srtt列对应值等于30000，即超时30s时刻数据，作为掉线数据')
     print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
+    # 2020/12/19:15: 当*DropDf为空时，apply()会抛出错误，fixed.
     w0DropDf = dfAll[(dfAll['W0pingrtt'] == 30000) & ((dfAll['curPosX'] != 0) | (dfAll['curPosY'] != 0))].reset_index(drop=True)
-    w0DropDf['date'] = w0DropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
+    if len(w0DropDf) != 0:
+        w0DropDf['date'] = w0DropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
 
     w1DropDf = dfAll[(dfAll['W1pingrtt'] == 30000) & ((dfAll['curPosX'] != 0) | (dfAll['curPosY'] != 0))].reset_index(drop=True)
-    w1DropDf['date'] = w1DropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
+    if len(w1DropDf) != 0:
+        w1DropDf['date'] = w1DropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
 
     minDropDf = dfAll[(dfAll['minPingRtt'] == 30000) & ((dfAll['curPosX'] != 0) | (dfAll['curPosY'] != 0))].reset_index(drop=True)
-    minDropDf['date'] = minDropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
+    if len(minDropDf) != 0:
+        minDropDf['date'] = minDropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
 
     srttDropDf = dfAll[(dfAll['srtt'] == 30000) & ((dfAll['curPosX'] != 0) | (dfAll['curPosY'] != 0))].reset_index(drop=True)
-    srttDropDf['date'] = srttDropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
+    if len(srttDropDf) != 0:
+        srttDropDf['date'] = srttDropDf.apply(lambda row : datetime.datetime.fromtimestamp(row['curTimestamp']), axis=1)
     #####################################################
     #####################################################
     print('分别构造掉线热力图数据')
@@ -53,33 +58,35 @@ def drawDrop(csvFileList, dropDir):
     # ９．将index也就是posY转换为int；
     # １０．将columns也就是posX转换为int;
     # １１．使用连续的posY, posX替换index, columns，并返回二元数组．
+    
+    # 2020/12/19:15: 当*DropMap为空时，reindex()会导致dtype变为float64，因此结尾再强转一次类型．
     w0DropMap = w0DropDf[['curPosX', 'curPosY']][(w0DropDf['curPosX'] != 0) | (w0DropDf['curPosY'] != 0)].reset_index(drop=True) \
         .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
         .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
     w0DropMap.index = w0DropMap.index.astype(int)
     w0DropMap.columns = w0DropMap.columns.astype(int)
-    w0DropMap = w0DropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+    w0DropMap = w0DropMap.reindex(index=range(139), columns=range(265), fill_value=0).values.astype(int)
 
     w1DropMap = w1DropDf[['curPosX', 'curPosY']][(w1DropDf['curPosX'] != 0) | (w1DropDf['curPosY'] != 0)].reset_index(drop=True) \
         .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
         .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
     w1DropMap.index = w1DropMap.index.astype(int)
     w1DropMap.columns = w1DropMap.columns.astype(int)
-    w1DropMap = w1DropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+    w1DropMap = w1DropMap.reindex(index=range(139), columns=range(265), fill_value=0).values.astype(int)
 
     minDropMap = minDropDf[['curPosX', 'curPosY']][(minDropDf['curPosX'] != 0) | (minDropDf['curPosY'] != 0)].reset_index(drop=True) \
         .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
         .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
     minDropMap.index = minDropMap.index.astype(int)
     minDropMap.columns = minDropMap.columns.astype(int)
-    minDropMap = minDropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+    minDropMap = minDropMap.reindex(index=range(139), columns=range(265), fill_value=0).values.astype(int)
 
     srttDropMap = srttDropDf[['curPosX', 'curPosY']][(srttDropDf['curPosX'] != 0) | (srttDropDf['curPosY'] != 0)].reset_index(drop=True) \
         .groupby(['curPosX', 'curPosY']).size().to_frame('count').reset_index() \
         .pivot(index='curPosY', columns='curPosX', values='count').fillna(0).astype(int)
     srttDropMap.index = srttDropMap.index.astype(int)
     srttDropMap.columns = srttDropMap.columns.astype(int)
-    srttDropMap = srttDropMap.reindex(index=range(139), columns=range(265), fill_value=0).values
+    srttDropMap = srttDropMap.reindex(index=range(139), columns=range(265), fill_value=0).values.astype(int)
     #####################################################
     #####################################################
     print('非图表型统计数据构造')
@@ -479,7 +486,7 @@ if __name__ == '__main__':
             w0HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN0漫游时段汇总.csv')
             w1HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN1漫游时段汇总.csv')
 
-            exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropFile, w1DropFile)
+            exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropFile, w1DropFile, dropDir)
     #####################################################
     print('**********掉线分析->第一阶段结束**********')
     ###############################################################################
