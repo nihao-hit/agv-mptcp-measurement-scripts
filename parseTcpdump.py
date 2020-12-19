@@ -167,7 +167,8 @@ def parseTcpdump(dataPath):
     #####################################################
     print('使用mptcpcrunch工具统计单条mptcp连接的信息')
     print('使用mptcpplot工具生成time sequence graph文件')
-    pcapFileList = sorted(list(map(lambda fileName : os.path.join(pcapDir, fileName), os.listdir(pcapDir))))
+    pcapFileNameList = sorted(os.listdir(pcapDir), key=lambda fileName : int(re.findall(r'\d+', fileName)[0]))
+    pcapFileList = list(map(lambda fileName : os.path.join(pcapDir, fileName), pcapFileNameList))
     # 为了解决多次调用parseTcpdump对statics.txt文件的追加内容bug，在这里重置文件
     subprocess.call('echo > {}'.format(staticsFile), shell=True)
     for pcapFile in pcapFileList:
