@@ -213,7 +213,7 @@ if __name__ == '__main__':
     #         #####################################################
     #         #####################################################
     #         print('解析文件数据，写入StatusList, ScanStatusList')
-    #         reportInfoLogCsvFile = os.path.join(tmpPath, 'infoLog/NEW_REPORT.csv')
+    #         reportInfoLogCsvFile = os.path.join(tmpPath, 'analysisApp/infoLog/NEW_REPORT.csv')
     #         writeDataIntoStatusList(reportInfoLogCsvFile, dataPath)
     #         #####################################################
     #         #####################################################
