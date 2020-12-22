@@ -164,45 +164,6 @@ class Status:
         return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
 
 # 时间戳精度为ms
-class CommStatus:
-    agvCode = ''            #1
-    dspStatus = ''          #2
-    destPosX = 0            #3
-    destPosY = 0            #4
-    curPosX = 0             #5
-    curPosY = 0             #6
-    curTimestamp = 0        #7
-    direction = 0.0         #8
-    speed = 0.0             #9
-    withBucket = -1         #10
-    jobSn = 0               #11
-
-    def __init__(self):
-        self.agvCode = ''            #1
-        self.dspStatus = ''          #2
-        self.destPosX = 0            #3
-        self.destPosY = 0            #4
-        self.curPosX = 0             #5
-        self.curPosY = 0             #6
-        self.curTimestamp = 0        #7
-        self.direction = 0.0         #8
-        self.speed = 0.0             #9
-        self.withBucket = -1         #10
-        self.jobSn = 0               #11
-    
-    def __setitem__(self, k, v):
-        self.k = v
-
-    def __getitem__(self, k):
-        return getattr(self, k)
-
-    def __str__(self):
-        return str(self.__dict__)
-
-    def keys(self):
-        return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
-
-# 时间戳精度为ms
 class ConnStatus:
     timestamp = 0
 
@@ -344,7 +305,6 @@ scanStatusList = [ScanStatus() for _ in range(86400*15)]
 #####################################################
 #####################################################
 # 时间戳精度为ms，不能预分配大小
-CommStatusList = []
 ConnStatusList = []
 TcpprobeStatusList = []
 #####################################################
