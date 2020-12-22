@@ -17,7 +17,8 @@ def parseComm(reportInfoLogCsvFile):
             try:
                 #####################################################
                 # 从文件中提取数据，赋值变量
-                line = str(line, encoding="utf-8")
+                # 2020/12/22:19: 当日志文件修改为reportInfoLogCsvFile后，必须注释下一句
+                # line = str(line, encoding="utf-8")
                 curTimestamp = int(float(re.findall('(?<=curTimestamp=).*?(?=,)', line)[0]) / 1000)
                 #####################################################
                 #####################################################
