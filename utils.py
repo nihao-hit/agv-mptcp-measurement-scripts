@@ -22,7 +22,37 @@ def deleteAnalysisDirList(analysisDirName):
         if os.path.isdir(filePath):
             print(filePath)
             # shutil.rmtree(filePath)
-    
+
+# merge data.csv and job.csv，输出dfAndJobDf.csv文件用于验证任务数据一致性
+def checkJob(tmpPath, outputDir):
+    #####################################################
+    print('读取单台车的data.csv数据')
+    df = pd.read_csv(os.path.join(tmpPath, 'data.csv'), 
+                                usecols=['agvCode', 'dspStatus', 'destPosX', 'destPosY', 
+                                        'curPosX', 'curPosY', 'curTimestamp', 'direction', 
+                                        'speed', 'withBucket', 'jobSn'],
+                                dtype={'agvCode' : str, 'dspStatus' : str, 
+                                        'destPosX' : int, 'destPosY' : int, 
+                                        'curPosX' : int, 'curPosY' : int, 
+                                        'curTimestamp' : int, 'direction' : float, 
+                                        'speed' : float, 'withBucket' : int, 
+                                        'jobSn' : int},
+                                na_filter=False)
+    #####################################################
+    #####################################################
+    print('读取单台车的job.csv数据')
+    jobDf = pd.read_csv(os.path.join(tmpPath, 'job.csv'), 
+                                usecols=['timestamp', 'status', 'jobId', 'bucketId', 
+                                        'jobType', 'wayPointId'],
+                                dtype={'timestamp' : int, 'status' : str, 
+                                        'jobId' : int, 'bucketId' : int, 
+                                        'jobType' : str, 'wayPointId' : int})
+    #####################################################
+    #####################################################
+    print('输出dfAndJobDf.csv文件')
+    dfAndJobDf = df.groupby('jobSn').first().reset_index()[['curTimestamp', 'jobSn']].merge(jobDf.groupby('jobId').first().reset_index()[['timestamp', 'jobId']], how='outer', left_on='jobSn', right_on='jobId').sort_values('timestamp')
+    dfAndJobDf.to_csv(os.path.join(outputDir, 'dfAndJobDf.csv'))
+    #####################################################
 
 
 if __name__ == '__main__':
@@ -30,3 +60,7 @@ if __name__ == '__main__':
     # countHotMap(fileName)
 
     # deleteAnalysisDirList('analysisRtt')
+
+    # tmpPath = '/home/cx/Desktop/sdb-dir/tmp/30.113.151.1'
+    # outputDir = '/home/cx/Desktop'
+    # checkJob(tmpPath, outputDir)
