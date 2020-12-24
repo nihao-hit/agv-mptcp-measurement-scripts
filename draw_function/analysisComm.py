@@ -1,4 +1,4 @@
-# drawApplication : 画分类任务时长与距离直方图
+# drawApplication : 画分类任务时长与距离直方图，任务轨迹图
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -9,7 +9,7 @@ import os
 import sys
 import math
 
-# 画分类任务时长与距离直方图
+# 画分类任务时长与距离直方图，任务轨迹图
 def drawApplication(csvFile, jobCsvFile, appDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -65,6 +65,12 @@ def drawApplication(csvFile, jobCsvFile, appDir):
     chargeJob = jobDict['Charge']
     #####################################################
     #####################################################
+    print('关注分类任务中的经历时长离群点')
+    slowMoveJob = moveJob[moveJob['duration'] >= moveJob['duration'].quantile(0.9)]
+    slowBucketMoveJob = bucketMoveJob[bucketMoveJob['duration'] >= bucketMoveJob['duration'].quantile(0.9)]
+    slowChargeJob = chargeJob[chargeJob['duration'] >= chargeJob['duration'].quantile(0.9)]
+    #####################################################
+    #####################################################
     print('非图表型统计数据构造')
     staticsFile = os.path.join(appDir, 'statics.csv')
     statics = dict()
@@ -86,6 +92,12 @@ def drawApplication(csvFile, jobCsvFile, appDir):
     #####################################################
     print('将任务统计信息写入文件')
     dfAndJobDf.to_csv(os.path.join(appDir, 'dfAndJobDf.csv'))
+    #####################################################
+    #####################################################
+    print('将分类任务中的经历时长离群点统计信息写入文件')
+    slowMoveJob.to_csv(os.path.join(appDir, 'slowMoveJob.csv'))
+    slowBucketMoveJob.to_csv(os.path.join(appDir, 'slowBucketMoveJob.csv'))
+    slowChargeJob.to_csv(os.path.join(appDir, 'slowChargeJob.csv'))
     #####################################################
     #####################################################
     print('将非图表型统计数据写入文件')
@@ -178,6 +190,56 @@ def drawApplication(csvFile, jobCsvFile, appDir):
     ###############################################################################
 
 
+    ###############################################################################
+    print('**********第四阶段：画分类任务轨迹图**********')
+    #####################################################
+    jobDataDict = dict(list(df[df['jobSn'] != 0].groupby('jobSn')))
+    
+    print('创建slow.*JobDir')
+    slowMoveJobDir = os.path.join(appDir, 'slowMoveJob')
+    if not os.path.isdir(slowMoveJobDir):
+        os.makedirs(slowMoveJobDir)
+    slowBucketMoveJobDir = os.path.join(appDir, 'slowBucketMoveJob')
+    if not os.path.isdir(slowBucketMoveJobDir):
+        os.makedirs(slowBucketMoveJobDir)
+    slowChargeJobDir = os.path.join(appDir, 'slowChargeJob')
+    if not os.path.isdir(slowChargeJobDir):
+        os.makedirs(slowChargeJobDir)
+    
+    def drawJobTrack(jobId, outputDir):
+        ax = plt.gca()
+        # 逆置Y轴
+        ax.invert_yaxis()
+        ax.set_xlim([0, 264])
+        ax.set_ylim([0, 138])
+        ax.set_title('{}/{}'.format(os.path.split(outputDir)[1], jobId))
+        sns.scatterplot(data=jobDataDict[row['jobId']], x="curPosX", y="curPosY", hue="curTimestamp", ax=ax, s=2)
+
+        plt.savefig(os.path.join(outputDir, '{}.png'.format(jobId)), dpi=200)
+        plt.pause(1)
+        plt.close()
+        plt.pause(1)
+    #####################################################
+    #####################################################
+    print('画moveJob的经历时长离群点任务轨迹图')
+    for _, row in slowMoveJob.iterrows():
+        print('slowMoveJob : {}'.format(row['jobId']))
+        drawJobTrack(row['jobId'], slowMoveJobDir)
+        
+    print('画bucketMoveJob的经历时长离群点任务轨迹图')
+    for _, row in slowBucketMoveJob.iterrows():
+        print('slowBucketMoveJob : {}'.format(row['jobId']))
+        drawJobTrack(row['jobId'], slowBucketMoveJobDir)
+
+    print('画chargeJob的经历时长离群点任务轨迹图')
+    for _, row in slowChargeJob.iterrows():
+        print('slowChargeJob : {}'.format(row['jobId']))
+        drawJobTrack(row['jobId'], slowChargeJobDir)
+    #####################################################
+    print('**********第四阶段结束**********')
+    ###############################################################################
+
+
 
 
 if __name__ == '__main__':
@@ -203,7 +265,7 @@ if __name__ == '__main__':
             if not os.path.isdir(appDir):
                 os.makedirs(appDir)
 
-            print("画分类任务时长与距离直方图")
+            print("画分类任务时长与距离直方图，任务轨迹图")
             drawApplication(csvFile, jobCsvFile, appDir)
     #####################################################
     print('**********应用日志分析阶段结束**********')
