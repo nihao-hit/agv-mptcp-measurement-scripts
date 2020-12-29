@@ -142,7 +142,7 @@ def classifyLog(commCsvFileList, appDir):
     #####################################################
     #####################################################
     print('进一步解析info日志')
-    infoDfDict = dict(list(infoDf.groupby('logType')))
+    infoDfDict = dict(list(infoDf.groupby('logType', sort=False)))
     infoLogDir = os.path.join(appDir, 'infoLog')
     if not os.path.isdir(infoLogDir):
         os.makedirs(infoLogDir)
@@ -152,7 +152,7 @@ def classifyLog(commCsvFileList, appDir):
     #####################################################
     #####################################################
     print('进一步解析debug日志')
-    debugDfDict = dict(list(debugDf.groupby('logType')))
+    debugDfDict = dict(list(debugDf.groupby('logType', sort=False)))
     debugLogDir = os.path.join(appDir, 'debugLog')
     if not os.path.isdir(debugLogDir):
         os.makedirs(debugLogDir)
@@ -218,12 +218,12 @@ def classifyReqInfoLog(reqInfoLogCsvFile, tmpDir):
     reqInfoLogDir = os.path.join(os.path.split(reqInfoLogCsvFile)[0], 'reqInfoLog')
     if not os.path.isdir(reqInfoLogDir):
         os.makedirs(reqInfoLogDir)
-    for label, group in reqDf.groupby('path'):
+    for label, group in reqDf.groupby('path', sort=False):
         group.to_csv(os.path.join(reqInfoLogDir, '{}.csv'.format(os.path.split(label)[1])))
     #####################################################
     #####################################################
     print('进一步解析path=/DUBackend/job/state/confirm，得到jobDf并写入文件')
-    jobDf = dict(list(reqDf.groupby('path')))['/DUBackend/job/state/confirm']
+    jobDf = dict(list(reqDf.groupby('path', sort=False)))['/DUBackend/job/state/confirm']
     jobDf['status'] = jobDf.apply(lambda row : re.findall('(?<=feedback=JS_).*?(?=, )', row['content'])[0], axis=1)
     jobDf['jobId'] = jobDf.apply(lambda row : int(re.findall('(?<=jobid=).*?(?=, )', row['content'])[0]), axis=1)
     # bucketId可能为null
@@ -235,7 +235,7 @@ def classifyReqInfoLog(reqInfoLogCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('进一步解析path=/DUBackend/das/duEvent/record，得到recordDf并写入文件')
-    recordDf = dict(list(reqDf.groupby('path')))['/DUBackend/das/duEvent/record']
+    recordDf = dict(list(reqDf.groupby('path', sort=False)))['/DUBackend/das/duEvent/record']
     recordDf['lastRobotState'] = recordDf.apply(lambda row : int(re.findall('(?<=lastRobotState=).*?(?=, )', row['content'])[0]), axis=1)
     recordDf['opstate'] = recordDf.apply(lambda row : int(re.findall('(?<=opstate=).*?(?=, )', row['content'])[0]), axis=1)
     recordDf['workingPattern'] = recordDf.apply(lambda row : re.findall('(?<=workingPattern=).*?(?=, )', row['content'])[0], axis=1)
@@ -256,7 +256,7 @@ def classifyReqInfoLog(reqInfoLogCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('进一步解析path=/DUBackend/zkProxy/sendNotification，得到notifyDf并写入文件')
-    notifyDf = dict(list(reqDf.groupby('path')))['/DUBackend/zkProxy/sendNotification']
+    notifyDf = dict(list(reqDf.groupby('path', sort=False)))['/DUBackend/zkProxy/sendNotification']
     notifyDf['level'] = notifyDf.apply(lambda row : re.findall('(?<=level=).*?(?=, )', row['content'])[0], axis=1)
     notifyDf['biz'] = notifyDf.apply(lambda row : re.findall('(?<=biz=).*?(?=, )', row['content'])[0], axis=1)
     notifyDf['type'] = notifyDf.apply(lambda row : re.findall('(?<=type=).*?(?=, )', row['content'])[1], axis=1)
