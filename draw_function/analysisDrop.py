@@ -459,10 +459,13 @@ def exploreMptcpDropAndAgvSuspend(csvFile, notifyCsvFile, dropDir):
     #####################################################
     #####################################################
     print('探究mptcp掉线与agv停车的关系')
+    notifyDf = notifyDf[notifyDf['type'] == 'AGV_SUSPEND']
     notifyDf['srtt'] = notifyDf.apply(lambda row : df[(df['curTimestamp'] >= row['timestamp'] - 5) & 
                                                   (df['curTimestamp'] <= row['timestamp'] + 5)].srtt.max(), axis=1)
     # 截取并丢弃notification日志时间轴超出df的部分停车数据
     notifyDf = notifyDf.dropna()
+    
+    notifyDf = notifyDf.drop(['Unnamed: 0', 'biz', 'code'], axis=1).reset_index(drop=True)
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
