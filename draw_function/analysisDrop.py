@@ -1,6 +1,7 @@
 # drawDrop : 画单台车或所有车的掉线热力图
 # drawDropLinechart : 画单台车的掉线折线图(两个关键字参数：１是时间划分粒度，２是时段截取)
-# exploreHoAndDrop : 探究漫游与掉线的关系
+# exploreHoAndDrop : 探究网络漫游与网络掉线的关系
+# exploreMptcpDropAndAgvSuspend : 探究mptcp掉线与agv停车的关系
 from matplotlib import pyplot as plt 
 import seaborn as sns
 import numpy as np
@@ -393,7 +394,7 @@ def drawDropLinechart(dropStaticsFile, w0DropFile, w1DropFile, minDropFile, srtt
 
 
 
-# 探究漫游与掉线的关系
+# 探究网络漫游与网络掉线的关系
 def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, dropDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -447,6 +448,37 @@ def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, dro
 
 
 
+# 探究mptcp掉线与agv停车的关系
+def exploreMptcpDropAndAgvSuspend(csvFile, notifyCsvFile, dropDir):
+    ###############################################################################
+    print('**********第一阶段：准备数据**********')
+    #####################################################
+    print('读入notification日志信息与全部数据')
+    notifyDf = pd.read_csv(notifyCsvFile)
+    df = pd.read_csv(csvFile, usecols=['curTimestamp', 'srtt'])
+    #####################################################
+    #####################################################
+    print('探究mptcp掉线与agv停车的关系')
+    notifyDf['srtt'] = notifyDf.apply(lambda row : df[(df['curTimestamp'] >= row['timestamp'] - 5) & 
+                                                  (df['curTimestamp'] <= row['timestamp'] + 5)].srtt.max(), axis=1)
+    # 截取并丢弃notification日志时间轴超出df的部分停车数据
+    notifyDf = notifyDf.dropna()
+    #####################################################
+    print('**********第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第二阶段：将关键统计数据写入文件**********')
+    #####################################################
+    print('将mptcp掉线与agv停车的关系数据写入文件')
+    notifyDf.to_csv(os.path.join(dropDir, 'agvStopAndMptcpDrop.csv'))
+    #####################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
+
+
+
 
 if __name__ == '__main__':
     # 显示中文
@@ -487,6 +519,10 @@ if __name__ == '__main__':
             w1HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN1漫游时段汇总.csv')
 
             exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropFile, w1DropFile, dropDir)
+
+            print('探究mptcp掉线与agv停车的关系')
+            notifyCsvFile = os.path.join(csvPath, 'notification.csv')
+            exploreMptcpDropAndAgvSuspend(csvFile, notifyCsvFile, dropDir)
     #####################################################
     print('**********掉线分析->第一阶段结束**********')
     ###############################################################################
