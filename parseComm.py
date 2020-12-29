@@ -117,6 +117,10 @@ def classifyLog(commCsvFileList, appDir):
     #####################################################
     print('按照日志级别划分info, debug, warn日志')
     df = pd.DataFrame(statusList)
+    # 2020/12/29:17: 不知道为什么2号车df解析出来有9列，后4列为None．
+    if len(df.columns) > 5:
+        df.drop(df.columns[5:], axis=1, inplace=True)
+        
     df.columns = ['date', 'logLevel', 'logger', 'loggerType', 'content']
     
     # 不能成功解析timestamp与logType的日志行可以直接舍弃
