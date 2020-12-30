@@ -1,5 +1,6 @@
 # drawApplication : 画分类任务时长与距离直方图，任务轨迹图
-from matplotlib import pyplot as plt 
+from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 import numpy as np
 import pandas as pd 
@@ -242,15 +243,34 @@ def drawApplication(csvFile, jobCsvFile, appDir):
 
 
 
-def drawNine(csvFile, jobMetaCsvFile, 
+def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
              w0HoCsvFile, w0DropCsvFile, w0NoGoodApCoverCsvFile,
              w1HoCsvFile, w1DropCsvFile, w1NoGoodApCoverCsvFile,
-             mptcpDropCsvFile, w1ApCountCsvFile, appDir):
+             mptcpDropCsvFile, w1ApCountCsvFile, 
+             mptcpCsvFile, subflowCsvFile, 
+             appDir):
     #####################################################
     print('读入任务元数据与全部时刻数据')
     df = pd.read_csv(csvFile, dtype={'W0APMac':str, 'W1APMac':str, 'src':str}, na_filter=False)
     jobMetaDf = pd.read_csv(jobMetaCsvFile)
+    # 作为热力图背景
     w1ApCountDf = pd.read_csv(w1ApCountCsvFile, header=None).astype(bool).astype(int)
+    # 停车事件
+    suspendDf = pd.read_csv(notifyCsvFile)
+    suspendDf = suspendDf[suspendDf['type'] == 'AGV_SUSPEND']
+    
+    # mptcp连接及subflow存在指示
+    mptcpDf = pd.read_csv(mptcpCsvFile, usecols=['connStats', 'originMptcpFirstTs', 'originMptcpLastTs'],
+                                        dtype={'connStats':str})
+    mptcpDf = mptcpDf[mptcpDf.connStats.str.contains('7070')]
+    mptcpDf['originMptcpFirstTs'] = mptcpDf['originMptcpFirstTs'] / 1e3
+    mptcpDf['originMptcpLastTs'] = mptcpDf['originMptcpLastTs'] / 1e3
+    
+    subflowDf = pd.read_csv(subflowCsvFile, usecols=['subStats', 'originSubFirstTs', 'originSubLastTs'],
+                                            dtype={'subStats':str})
+    subflowDf = subflowDf[subflowDf.subStats.str.contains('7070')]
+    subflowDf['originSubFirstTs'] = subflowDf['originSubFirstTs'] / 1e3
+    subflowDf['originSubLastTs'] = subflowDf['originSubLastTs'] / 1e3
     #####################################################
     #####################################################
     print('构造文件夹')
@@ -275,6 +295,17 @@ def drawNine(csvFile, jobMetaCsvFile,
         jobTrackAx.set_xlim([0, 264])
         jobTrackAx.set_ylim([0, 138])
         sns.scatterplot(data=jobDf, x='curPosX', y='curPosY', hue='curTimestamp', ax=jobTrackAx, s=1)
+        
+        # 添加停车事件
+        for _, row in suspendDf.iterrows():
+            tmpDf = jobDf[jobDf['curTimestamp'] == row['timestamp']]
+            if len(tmpDf) == 1:
+               suspendPosX = tmpDf['curPosX'].max()
+               suspendPosY = tmpDf['curPosY'].max()
+               jobTrackAx.plot([suspendPosX], [suspendPosY], marker='o', ms=2)
+               jobTrackAx.annotate('AGV_SUSPEND', xy=(suspendPosX, suspendPosY), xytext=(0.9, 0.9),
+                                    textcoords='axes fraction',
+                                    arrowprops=dict(arrowstyle='->'))
         #####################################################
         #####################################################
         print('画掉线热力图')
@@ -356,6 +387,7 @@ def drawNine(csvFile, jobMetaCsvFile,
         print('画wlan0网络连接基站rssi折线图')
         w0RssiAx.set_title('wlan0网络连接基站rssi折线图')
         w0RssiAx.set_ylabel('rssi (dBm)')
+        w0RssiAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
         # 过滤零值
         w0RssiDf = jobDf[jobDf['W0level'] != 0]
 
@@ -368,6 +400,7 @@ def drawNine(csvFile, jobMetaCsvFile,
         print('画wlan1网络连接基站rssi折线图')
         w1RssiAx.set_title('wlan1网络连接基站rssi折线图')
         w1RssiAx.set_ylabel('rssi (dBm)')
+        w1RssiAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
         # 过滤零值
         w1RssiDf = jobDf[jobDf['W1level'] != 0]
 
@@ -390,6 +423,22 @@ def drawNine(csvFile, jobMetaCsvFile,
         # 添加掉线事件
         for _, row in mptcpDropDf.iterrows():
             srttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
+        
+        # 添加mptcp连接及subflow存在指示
+        srttAx2 = srttAx.twinx()
+        srttAx2.set_xlim([jobDf['curTimestamp'].min(), jobDf['curTimestamp'].max()])
+        srttAx2.get_yaxis().set_major_locator(MaxNLocator(integer=True))
+        srttAx2.set_yticks(range(4))
+        srttAx2.set_yticklabels(['', 'sub-wlan1', 'sub-wlan0', 'mptcp'])
+        for _, mptcpRow in mptcpDf.iterrows():
+            srttAx2.plot([mptcpRow['originMptcpFirstTs'], mptcpRow['originMptcpLastTs']], [3, 3], alpha=0.5)
+        for _, subRow in subflowDf.iterrows():
+            y = [0, 0]
+            if '151' in subRow['subStats']:
+                y = [2, 2]
+            else:
+                y = [1, 1]
+            srttAx2.plot([subRow['originSubFirstTs'], subRow['originSubLastTs']], y, alpha=0.5)
         #####################################################
         #####################################################
         print('画wlan0网络时延折线图')
@@ -459,6 +508,7 @@ if __name__ == '__main__':
             slowMoveJobCsvFile = os.path.join(appDir, 'slowMoveJob.csv')
             slowBucketMoveJobCsvFile = os.path.join(appDir, 'slowBucketMoveJob.csv')
             slowChargeJobCsvFile = os.path.join(appDir, 'slowChargeJob.csv')
+            notifyCsvFile = os.path.join(csvPath, 'notification.csv')
 
             w0HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN0漫游时段汇总.csv')
             w0DropCsvFile = os.path.join(csvPath, 'analysisDrop/wlan0单网络掉线时刻.csv')
@@ -470,10 +520,15 @@ if __name__ == '__main__':
 
             mptcpDropCsvFile = os.path.join(csvPath, 'analysisDrop/双网络+mptcp实际掉线时刻.csv')
             w1ApCountCsvFile = os.path.join(topPath, 'analysisApCover/w1apCount.csv')
-            drawNine(csvFile, slowMoveJobCsvFile, 
+            
+            mptcpCsvFile = os.path.join(csvPath, 'mptcpData.csv')
+            subflowCsvFile = os.path.join(csvPath, 'subflowData.csv')
+            drawNine(csvFile, slowMoveJobCsvFile, notifyCsvFile,
                      w0HoCsvFile, w0DropCsvFile, w0NoGoodApCoverCsvFile,
                      w1HoCsvFile, w1DropCsvFile, w1NoGoodApCoverCsvFile,
-                     mptcpDropCsvFile, w1ApCountCsvFile, appDir)
+                     mptcpDropCsvFile, w1ApCountCsvFile, 
+                     mptcpCsvFile, subflowCsvFile, 
+                     appDir)
     #####################################################
     print('**********应用日志分析阶段结束**********')
     ###############################################################################
