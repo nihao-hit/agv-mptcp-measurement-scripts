@@ -362,7 +362,7 @@ def drawNine(csvFile, jobMetaCsvFile,
         sns.lineplot(data=w0RssiDf, x='curTimestamp', y='W0level', hue='W0APMac', ax=w0RssiAx, lw=0.5)
         # 添加漫游事件
         for _, row in w0HoDf.iterrows():
-            w0RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3, color='blue')
+            w0RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3)
         #####################################################
         #####################################################
         print('画wlan1网络连接基站rssi折线图')
@@ -374,7 +374,7 @@ def drawNine(csvFile, jobMetaCsvFile,
         sns.lineplot(data=w1RssiDf, x='curTimestamp', y='W1level', hue='W1APMac', ax=w1RssiAx, lw=0.5)
         # 添加漫游事件
         for _, row in w1HoDf.iterrows():
-            w1RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3, color='blue')
+            w1RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3)
         #####################################################
         #####################################################
         print('画mptcp时延折线图')
@@ -389,7 +389,7 @@ def drawNine(csvFile, jobMetaCsvFile,
         sns.lineplot(data=srttDf, x='curTimestamp', y='srtt', hue='src', style='src', markers=True, ms=2, alpha=0.5, ax=srttAx, lw=0.5)
         # 添加掉线事件
         for _, row in mptcpDropDf.iterrows():
-            srttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3, color='blue')
+            srttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
         #####################################################
         #####################################################
         print('画wlan0网络时延折线图')
@@ -398,7 +398,7 @@ def drawNine(csvFile, jobMetaCsvFile,
         sns.lineplot(data=jobDf, x='curTimestamp', y='W0pingrtt', ax=w0PingRttAx, lw=0.5)
         # 添加掉线事件
         for _, row in w0DropDf.iterrows():
-            w0PingRttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3, color='blue')
+            w0PingRttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
         #####################################################
         #####################################################
         print('画wlan1网络时延折线图')
@@ -407,7 +407,7 @@ def drawNine(csvFile, jobMetaCsvFile,
         sns.lineplot(data=jobDf, x='curTimestamp', y='W1pingrtt', ax=w1PingRttAx, lw=0.5)
         # 添加掉线事件
         for _, row in w1DropDf.iterrows():
-            w1PingRttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3, color='blue')
+            w1PingRttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
         #####################################################
         #####################################################     
         # 设置标题
