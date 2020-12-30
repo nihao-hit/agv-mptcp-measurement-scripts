@@ -537,7 +537,7 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     print('将没有WLAN0基站覆盖的点写入文件')
     with open(os.path.join(tmpDir, 'w0NoApCover.csv'), 'w') as f:
         for y in range(len(w0NoApCover)):
-            for x in range(len(w0NoApCover)):
+            for x in range(len(w0NoApCover[0])):
                 if w0NoApCover[y][x] == 1:
                     f.write('{},{}\n'.format(x, y))
     #####################################################
@@ -569,7 +569,7 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     print('将WLAN0有效基站覆盖空白坐标写入文件')
     with open(os.path.join(tmpDir, 'w0NoGoodApCover.csv'), 'w') as f:
         for y in range(len(w0NoGoodApCover)):
-            for x in range(len(w0NoGoodApCover)):
+            for x in range(len(w0NoGoodApCover[0])):
                 if w0NoGoodApCover[y][x] == 1:
                     f.write('{},{}\n'.format(x, y))
     #####################################################
@@ -577,7 +577,7 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     print('将没有WLAN1基站覆盖的点写入文件')
     with open(os.path.join(tmpDir, 'w1NoApCover.csv'), 'w') as f:
         for y in range(len(w1NoApCover)):
-            for x in range(len(w1NoApCover)):
+            for x in range(len(w1NoApCover[0])):
                 if w1NoApCover[y][x] == 1:
                     f.write('{},{}\n'.format(x, y))
     #####################################################
@@ -609,7 +609,7 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     print('将WLAN1有效基站覆盖空白坐标写入文件')
     with open(os.path.join(tmpDir, 'w1NoGoodApCover.csv'), 'w') as f:
         for y in range(len(w1NoGoodApCover)):
-            for x in range(len(w1NoGoodApCover)):
+            for x in range(len(w1NoGoodApCover[0])):
                 if w1NoGoodApCover[y][x] == 1:
                     f.write('{},{}\n'.format(x, y))
     #####################################################
