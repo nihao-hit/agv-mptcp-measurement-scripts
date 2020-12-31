@@ -303,7 +303,7 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
         jobTrackAx.set_title('任务轨迹图')
         # 2020/12/31:13: 将任务时间序列数据提取条件从jobId修改为指定时段，因为任务进行时jobId可能为0.
         jobDf = df[(df['curTimestamp'] >= jobRow['startTs']) & 
-                   (df['curTimestamp'] >= jobRow['startTs'])]
+                   (df['curTimestamp'] <= jobRow['endTs'])]
         jobTrackAx.set_xlim([0, 264])
         jobTrackAx.set_ylim([0, 138])
         sns.scatterplot(data=jobDf, x='curPosX', y='curPosY', hue='curTimestamp', ax=jobTrackAx, s=1)
