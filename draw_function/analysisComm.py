@@ -260,7 +260,7 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
     suspendDf = suspendDf[suspendDf['type'] == 'AGV_SUSPEND']
     
     # mptcp连接及subflow存在指示
-    mptcpDf = pd.read_csv(mptcpCsvFile, usecols=['connStats', 'originMptcpFirstTs', 'originMptcpLastTs'],
+    mptcpDf = pd.read_csv(mptcpCsvFile, usecols=['mptcpNum', 'connStats', 'originMptcpFirstTs', 'originMptcpLastTs'],
                                         dtype={'connStats':str})
     mptcpDf = mptcpDf[mptcpDf.connStats.str.contains('7070')]
     mptcpDf['originMptcpFirstTs'] = mptcpDf['originMptcpFirstTs'] / 1e3
@@ -271,6 +271,16 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
     subflowDf = subflowDf[subflowDf.subStats.str.contains('7070')]
     subflowDf['originSubFirstTs'] = subflowDf['originSubFirstTs'] / 1e3
     subflowDf['originSubLastTs'] = subflowDf['originSubLastTs'] / 1e3
+    #####################################################
+    #####################################################
+    # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
+    jobMetaDf['mptcpNums'] = ''
+    jobMetaDf['suspends'] = ''
+    jobMetaDf['mptcpDrops'] = ''
+    jobMetaDf['w0Drops'] = ''
+    jobMetaDf['w1Drops'] = ''
+    jobMetaDf['w0Hos'] = ''
+    jobMetaDf['w1Hos'] = ''
     #####################################################
     #####################################################
     print('构造文件夹')
@@ -300,12 +310,14 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
         for _, row in suspendDf.iterrows():
             tmpDf = jobDf[jobDf['curTimestamp'] == row['timestamp']]
             if len(tmpDf) == 1:
-               suspendPosX = tmpDf['curPosX'].max()
-               suspendPosY = tmpDf['curPosY'].max()
-               jobTrackAx.plot([suspendPosX], [suspendPosY], marker='o', ms=2)
-               jobTrackAx.annotate('AGV_SUSPEND', xy=(suspendPosX, suspendPosY), xytext=(0.9, 0.9),
+                suspendPosX = tmpDf['curPosX'].max()
+                suspendPosY = tmpDf['curPosY'].max()
+                jobTrackAx.plot([suspendPosX], [suspendPosY], marker='o', ms=2)
+                jobTrackAx.annotate('AGV_SUSPEND', xy=(suspendPosX, suspendPosY), xytext=(0.9, 0.9),
                                     textcoords='axes fraction',
                                     arrowprops=dict(arrowstyle='->'))
+                # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
+                jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], 'suspends'] += '{}|'.format(row['timestamp'])
         #####################################################
         #####################################################
         print('画掉线热力图')
@@ -336,6 +348,11 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
             sns.scatterplot(data=dropDf, x='curPosX', y='curPosY', hue='type', ax=dropAx, s=1)
         except:
             pass
+        # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
+        for _, row in dropDf.iterrows():
+            keyDict = {'mptcp':'mptcpDrops', 'wlan0':'w0Drops', 'wlan1':'w1Drops'}
+            key = keyDict[row['type']]
+            jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], key] += '{}|'.format(row['curTimestamp'])
         #####################################################
         #####################################################
         print('画漫游热力图')
@@ -362,6 +379,11 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
             sns.scatterplot(data=hoDf, x='curPosX', y='curPosY', hue='type', ax=hoAx, s=1)
         except:
             pass
+        # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
+        for _, row in hoDf.iterrows():
+            keyDict = {'wlan0':'w0Hos', 'wlan1':'w1Hos'}
+            key = keyDict[row['type']]
+            jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], key] += '{}|'.format(row['start'])
         #####################################################
         #####################################################
         print('画有效基站覆盖空白热力图')
@@ -426,12 +448,22 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
         
         # 添加mptcp连接及subflow存在指示
         srttAx2 = srttAx.twinx()
-        srttAx2.set_xlim([jobDf['curTimestamp'].min(), jobDf['curTimestamp'].max()])
+        jobStart, jobEnd = jobDf['curTimestamp'].min(), jobDf['curTimestamp'].max()
+        
+        srttAx2.set_xlim([jobStart, jobEnd])
         srttAx2.get_yaxis().set_major_locator(MaxNLocator(integer=True))
         srttAx2.set_yticks(range(4))
         srttAx2.set_yticklabels(['', 'sub-wlan1', 'sub-wlan0', 'mptcp'])
+        
         for _, mptcpRow in mptcpDf.iterrows():
-            srttAx2.plot([mptcpRow['originMptcpFirstTs'], mptcpRow['originMptcpLastTs']], [3, 3], alpha=0.5)
+            mptcpStart, mptcpEnd = mptcpRow['originMptcpFirstTs'], mptcpRow['originMptcpLastTs']
+            if mptcpStart > jobStart and mptcpStart < jobEnd or \
+               mptcpEnd > jobStart and mptcpEnd < jobEnd or \
+               mptcpStart <= jobStart and mptcpEnd >= jobEnd:
+            
+                srttAx2.plot([mptcpStart, mptcpEnd], [3, 3], alpha=0.5)
+                # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
+                jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], 'mptcpNums'] += '{}|'.format(mptcpRow['mptcpNum'])
         for _, subRow in subflowDf.iterrows():
             y = [0, 0]
             if '151' in subRow['subStats']:
@@ -473,6 +505,10 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
         plt.close()
         plt.pause(1)
         #####################################################     
+    #####################################################     
+    print('修改后的jobMetaDf写回文件')
+    jobMetaDf.to_csv(jobMetaCsvFile)
+    #####################################################     
 
 
 
