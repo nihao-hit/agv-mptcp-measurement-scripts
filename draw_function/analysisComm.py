@@ -541,6 +541,7 @@ if __name__ == '__main__':
 
             print('画AGV跨层分析图')
             topPath = os.path.split(os.path.split(csvPath)[0])[0]
+            dataAndJobCsvFile = os.path.join(appDir, 'dfAndJobDf.csv')
             slowMoveJobCsvFile = os.path.join(appDir, 'slowMoveJob.csv')
             slowBucketMoveJobCsvFile = os.path.join(appDir, 'slowBucketMoveJob.csv')
             slowChargeJobCsvFile = os.path.join(appDir, 'slowChargeJob.csv')
@@ -559,7 +560,7 @@ if __name__ == '__main__':
             
             mptcpCsvFile = os.path.join(csvPath, 'mptcpData.csv')
             subflowCsvFile = os.path.join(csvPath, 'subflowData.csv')
-            drawNine(csvFile, slowMoveJobCsvFile, notifyCsvFile,
+            drawNine(csvFile, dataAndJobCsvFile, notifyCsvFile,
                      w0HoCsvFile, w0DropCsvFile, w0NoGoodApCoverCsvFile,
                      w1HoCsvFile, w1DropCsvFile, w1NoGoodApCoverCsvFile,
                      mptcpDropCsvFile, w1ApCountCsvFile, 
