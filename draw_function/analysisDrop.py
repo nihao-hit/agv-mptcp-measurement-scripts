@@ -395,7 +395,7 @@ def drawDropLinechart(dropStaticsFile, w0DropFile, w1DropFile, minDropFile, srtt
 
 
 # 探究网络漫游与网络掉线的关系
-def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, dropDir):
+def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, mptcpDropCsvFile, dropDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
     #####################################################
@@ -410,6 +410,8 @@ def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, dro
     w0DropDf = pd.read_csv(w0DropCsvFile, usecols=['curTimestamp'], 
                                     dtype={'curTimestamp':int})
     w1DropDf = pd.read_csv(w1DropCsvFile, usecols=['curTimestamp'], 
+                                    dtype={'curTimestamp':int})
+    mptcpDropDf = pd.read_csv(mptcpDropCsvFile, usecols=['curTimestamp'], 
                                     dtype={'curTimestamp':int})
     #####################################################
     #####################################################
@@ -431,6 +433,9 @@ def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, dro
     w1HoDf['rttRecoverTimestamp'] = w1HoDf.apply(lambda row : row['end'] + row['rtt2'], axis=1)
     w1DropDf['isHo'] = w1DropDf.apply(isHo, args=(w1HoDf,), axis=1)
     w1HoAndDropDf = w1DropDf.dropna()
+
+    mptcpDropDf['isW0Ho'] = mptcpDropDf.apply(isHo, args=(w0HoDf,), axis=1)
+    mptcpDropDf['isW1Ho'] = mptcpDropDf.apply(isHo, args=(w1HoDf,), axis=1)
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -442,6 +447,7 @@ def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, dro
     print('将漫游与无线网络业务掉线的关系数据写入文件')
     w0HoAndDropDf.to_csv(os.path.join(dropDir, 'w0HoAndDrop.csv'))
     w1HoAndDropDf.to_csv(os.path.join(dropDir, 'w1HoAndDrop.csv'))
+    mptcpDropDf.to_csv(os.path.join(dropDir, 'hoAndMptcpDrop.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
@@ -521,7 +527,7 @@ if __name__ == '__main__':
             w0HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN0漫游时段汇总.csv')
             w1HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN1漫游时段汇总.csv')
 
-            exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropFile, w1DropFile, dropDir)
+            exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropFile, w1DropFile, srttDropFile, dropDir)
 
             print('探究mptcp掉线与agv停车的关系')
             notifyCsvFile = os.path.join(csvPath, 'notification.csv')
