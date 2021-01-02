@@ -291,222 +291,225 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
     #####################################################
     for _, jobRow in jobMetaDf.iterrows():
         print('jobId : {}'.format(jobRow['jobId']))
-        fig, ((jobTrackAx, dropAx, hoAx), 
-              (noGoodApCoverAx, w0RssiAx, w1RssiAx), 
-              (srttAx, w0PingRttAx, w1PingRttAx)) = plt.subplots(3, 3)
-        #####################################################
-        #####################################################
-        print('画任务轨迹图')
-        # 添加仓库轮廓背景
-        sns.heatmap(data=w1ApCountDf, cbar=False, cmap='Blues', vmax=20, ax=jobTrackAx)
-
-        jobTrackAx.set_title('任务轨迹图')
         # 2020/12/31:13: 将任务时间序列数据提取条件从jobId修改为指定时段，因为任务进行时jobId可能为0.
         jobDf = df[(df['curTimestamp'] >= jobRow['startTs']) & 
                    (df['curTimestamp'] <= jobRow['endTs'])]
-        jobTrackAx.set_xlim([0, 264])
-        jobTrackAx.set_ylim([0, 138])
-        sns.scatterplot(data=jobDf, x='curPosX', y='curPosY', hue='curTimestamp', ax=jobTrackAx, s=1)
-        
-        # 添加停车事件
+        # 2021/1/2:15: 只画带有停车事件的AGV跨层分析图
+        suspends = []
         for _, row in suspendDf.iterrows():
             tmpDf = jobDf[jobDf['curTimestamp'] == row['timestamp']]
             if len(tmpDf) == 1:
-                suspendPosX = tmpDf['curPosX'].max()
-                suspendPosY = tmpDf['curPosY'].max()
+                suspends.append((tmpDf['curPosX'].max(), tmpDf['curPosY'].max()))
+        if suspends:
+            fig, ((jobTrackAx, dropAx, hoAx), 
+                (noGoodApCoverAx, w0RssiAx, w1RssiAx), 
+                (srttAx, w0PingRttAx, w1PingRttAx)) = plt.subplots(3, 3)
+            #####################################################
+            #####################################################
+            print('画任务轨迹图')
+            # 添加仓库轮廓背景
+            sns.heatmap(data=w1ApCountDf, cbar=False, cmap='Blues', vmax=20, ax=jobTrackAx)
+
+            jobTrackAx.set_title('任务轨迹图')
+            jobTrackAx.set_xlim([0, 264])
+            jobTrackAx.set_ylim([0, 138])
+            sns.scatterplot(data=jobDf, x='curPosX', y='curPosY', hue='curTimestamp', ax=jobTrackAx, s=1)
+            
+            # 添加停车事件
+            for (suspendPosX, suspendPosY) in suspends:
                 jobTrackAx.plot([suspendPosX], [suspendPosY], marker='o', ms=2)
                 jobTrackAx.annotate('AGV_SUSPEND', xy=(suspendPosX, suspendPosY), xytext=(0.9, 0.9),
                                     textcoords='axes fraction',
                                     arrowprops=dict(arrowstyle='->'))
                 # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
                 jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], 'suspends'] += '{}|'.format(row['timestamp'])
-        #####################################################
-        #####################################################
-        print('画掉线热力图')
-        # 添加仓库轮廓背景
-        sns.heatmap(data=w1ApCountDf, cbar=False, cmap='Blues', vmax=20, ax=dropAx)
+            #####################################################
+            #####################################################
+            print('画掉线热力图')
+            # 添加仓库轮廓背景
+            sns.heatmap(data=w1ApCountDf, cbar=False, cmap='Blues', vmax=20, ax=dropAx)
 
-        dropAx.set_title('掉线热力图')
-        mptcpDropDf = pd.read_csv(mptcpDropCsvFile)
-        mptcpDropDf = mptcpDropDf[(mptcpDropDf['curTimestamp'] >= jobDf['curTimestamp'].min()) & 
-                                  (mptcpDropDf['curTimestamp'] <= jobDf['curTimestamp'].max())]
-        mptcpDropDf['type'] = 'mptcp'
+            dropAx.set_title('掉线热力图')
+            mptcpDropDf = pd.read_csv(mptcpDropCsvFile)
+            mptcpDropDf = mptcpDropDf[(mptcpDropDf['curTimestamp'] >= jobDf['curTimestamp'].min()) & 
+                                    (mptcpDropDf['curTimestamp'] <= jobDf['curTimestamp'].max())]
+            mptcpDropDf['type'] = 'mptcp'
 
-        w0DropDf = pd.read_csv(w0DropCsvFile)
-        w0DropDf = w0DropDf[(w0DropDf['curTimestamp'] >= jobDf['curTimestamp'].min()) & 
-                            (w0DropDf['curTimestamp'] <= jobDf['curTimestamp'].max())]
-        w0DropDf['type'] = 'wlan0'
+            w0DropDf = pd.read_csv(w0DropCsvFile)
+            w0DropDf = w0DropDf[(w0DropDf['curTimestamp'] >= jobDf['curTimestamp'].min()) & 
+                                (w0DropDf['curTimestamp'] <= jobDf['curTimestamp'].max())]
+            w0DropDf['type'] = 'wlan0'
 
-        w1DropDf = pd.read_csv(w1DropCsvFile)
-        w1DropDf = w1DropDf[(w1DropDf['curTimestamp'] >= jobDf['curTimestamp'].min()) & 
-                            (w1DropDf['curTimestamp'] <= jobDf['curTimestamp'].max())]
-        w1DropDf['type'] = 'wlan1'
+            w1DropDf = pd.read_csv(w1DropCsvFile)
+            w1DropDf = w1DropDf[(w1DropDf['curTimestamp'] >= jobDf['curTimestamp'].min()) & 
+                                (w1DropDf['curTimestamp'] <= jobDf['curTimestamp'].max())]
+            w1DropDf['type'] = 'wlan1'
 
-        dropDf = pd.concat([mptcpDropDf, w0DropDf, w1DropDf], ignore_index=True)
-        
-        dropAx.set_xlim([0, 264])
-        dropAx.set_ylim([0, 138])
-        try:
-            sns.scatterplot(data=dropDf, x='curPosX', y='curPosY', hue='type', ax=dropAx, s=1)
-        except:
-            pass
-        # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
-        for _, row in dropDf.iterrows():
-            keyDict = {'mptcp':'mptcpDrops', 'wlan0':'w0Drops', 'wlan1':'w1Drops'}
-            key = keyDict[row['type']]
-            jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], key] += '{}|'.format(row['curTimestamp'])
-        #####################################################
-        #####################################################
-        print('画漫游热力图')
-        # 添加仓库轮廓背景
-        sns.heatmap(data=w1ApCountDf, cbar=False, cmap='Blues', vmax=20, ax=hoAx)
-
-        hoAx.set_title('漫游热力图')
-        w0HoDf = pd.read_csv(w0HoCsvFile)
-        w0HoDf = w0HoDf[(w0HoDf['start'] / 1e3 >= jobDf['curTimestamp'].min()) & 
-                        (w0HoDf['start'] / 1e3 <= jobDf['curTimestamp'].max())]
-        w0HoDf['type'] = 'wlan0'
-        
-        w1HoDf = pd.read_csv(w1HoCsvFile)
-        w1HoDf = w1HoDf[(w1HoDf['start'] / 1e3 >= jobDf['curTimestamp'].min()) & 
-                        (w1HoDf['start'] / 1e3 <= jobDf['curTimestamp'].max())]
-        w1HoDf['type'] = 'wlan1'
-
-        hoDf = pd.concat([w0HoDf, w1HoDf], ignore_index=True)
-        hoDf.rename(columns={'posX': 'curPosX', 'posY': 'curPosY'}, inplace=True)
-
-        hoAx.set_xlim([0, 264])
-        hoAx.set_ylim([0, 138])
-        try:
-            sns.scatterplot(data=hoDf, x='curPosX', y='curPosY', hue='type', ax=hoAx, s=1)
-        except:
-            pass
-        # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
-        for _, row in hoDf.iterrows():
-            keyDict = {'wlan0':'w0Hos', 'wlan1':'w1Hos'}
-            key = keyDict[row['type']]
-            jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], key] += '{}|'.format(row['start'])
-        #####################################################
-        #####################################################
-        print('画有效基站覆盖空白热力图')
-        # 添加仓库轮廓背景
-        sns.heatmap(data=w1ApCountDf, cbar=False, cmap='Blues', vmax=20, ax=noGoodApCoverAx)
-
-        noGoodApCoverAx.set_title('有效基站覆盖空白热力图')
-        w0NoGoodApCoverDf = pd.read_csv(w0NoGoodApCoverCsvFile, header=None)
-        w0NoGoodApCoverDf.columns = ['curPosX', 'curPosY']
-        w0NoGoodApCoverDf['type'] = 'wlan0'
-
-        w1NoGoodApCoverDf = pd.read_csv(w1NoGoodApCoverCsvFile, header=None)
-        w1NoGoodApCoverDf.columns = ['curPosX', 'curPosY']
-        w1NoGoodApCoverDf['type'] = 'wlan1'
-
-        noGoodApCoverDf = pd.concat([w0NoGoodApCoverDf, w1NoGoodApCoverDf], ignore_index=True)
-
-        noGoodApCoverAx.set_xlim([0, 264])
-        noGoodApCoverAx.set_ylim([0, 138])
-        sns.scatterplot(data=noGoodApCoverDf, x='curPosX', y='curPosY', hue='type', ax=noGoodApCoverAx, s=1)
-        #####################################################
-        #####################################################
-        print('画wlan0网络连接基站rssi折线图')
-        w0RssiAx.set_title('wlan0网络连接基站rssi折线图')
-        w0RssiAx.set_ylabel('rssi (dBm)')
-        w0RssiAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
-        # 过滤零值
-        w0RssiDf = jobDf[jobDf['W0level'] != 0]
-
-        sns.lineplot(data=w0RssiDf, x='curTimestamp', y='W0level', hue='W0APMac', ax=w0RssiAx, lw=0.5)
-        # 添加漫游事件
-        for _, row in w0HoDf.iterrows():
-            w0RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3)
-        #####################################################
-        #####################################################
-        print('画wlan1网络连接基站rssi折线图')
-        w1RssiAx.set_title('wlan1网络连接基站rssi折线图')
-        w1RssiAx.set_ylabel('rssi (dBm)')
-        w1RssiAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
-        # 过滤零值
-        w1RssiDf = jobDf[jobDf['W1level'] != 0]
-
-        sns.lineplot(data=w1RssiDf, x='curTimestamp', y='W1level', hue='W1APMac', ax=w1RssiAx, lw=0.5)
-        # 添加漫游事件
-        for _, row in w1HoDf.iterrows():
-            w1RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3)
-        #####################################################
-        #####################################################
-        print('画mptcp时延折线图')
-        srttAx.set_title('mptcp时延折线图')
-        srttAx.set_ylabel('srtt (ms)')
-        # 过滤src==''
-        srttDf = jobDf[jobDf['src'] != '']
-
-        srttDf['src'] = srttDf.apply(lambda row : 'wlan0:{}'.format(row['srcPort']) 
-                                                  if '151' in row['src'] 
-                                                  else 'wlan1:{}'.format(row['srcPort']), axis=1)
-        sns.lineplot(data=srttDf, x='curTimestamp', y='srtt', hue='src', style='src', markers=True, ms=2, alpha=0.5, ax=srttAx, lw=0.5)
-        # 添加掉线事件
-        for _, row in mptcpDropDf.iterrows():
-            srttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
-        
-        # 添加mptcp连接及subflow存在指示
-        srttAx2 = srttAx.twinx()
-        jobStart, jobEnd = jobDf['curTimestamp'].min(), jobDf['curTimestamp'].max()
-        
-        srttAx2.set_xlim([jobStart, jobEnd])
-        srttAx2.get_yaxis().set_major_locator(MaxNLocator(integer=True))
-        srttAx2.set_yticks(range(4))
-        srttAx2.set_yticklabels(['', 'sub-wlan1', 'sub-wlan0', 'mptcp'])
-        
-        for _, mptcpRow in mptcpDf.iterrows():
-            mptcpStart, mptcpEnd = mptcpRow['originMptcpFirstTs'], mptcpRow['originMptcpLastTs']
-            if mptcpStart > jobStart and mptcpStart < jobEnd or \
-               mptcpEnd > jobStart and mptcpEnd < jobEnd or \
-               mptcpStart <= jobStart and mptcpEnd >= jobEnd:
+            dropDf = pd.concat([mptcpDropDf, w0DropDf, w1DropDf], ignore_index=True)
             
-                srttAx2.plot([mptcpStart, mptcpEnd], [3, 3], alpha=0.5)
-                # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
-                jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], 'mptcpNums'] += '{}|'.format(mptcpRow['mptcpNum'])
-        for _, subRow in subflowDf.iterrows():
-            y = [0, 0]
-            if '151' in subRow['subStats']:
-                y = [2, 2]
-            else:
-                y = [1, 1]
-            srttAx2.plot([subRow['originSubFirstTs'], subRow['originSubLastTs']], y, alpha=0.5)
-        #####################################################
-        #####################################################
-        print('画wlan0网络时延折线图')
-        w0PingRttAx.set_title('wlan0网络时延折线图')
-        w0PingRttAx.set_ylabel('pingRtt (ms)')
-        sns.lineplot(data=jobDf, x='curTimestamp', y='W0pingrtt', ax=w0PingRttAx, lw=0.5)
-        # 添加掉线事件
-        for _, row in w0DropDf.iterrows():
-            w0PingRttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
-        #####################################################
-        #####################################################
-        print('画wlan1网络时延折线图')
-        w1PingRttAx.set_title('wlan1网络时延折线图')
-        w1PingRttAx.set_ylabel('pingRtt (ms)')
-        sns.lineplot(data=jobDf, x='curTimestamp', y='W1pingrtt', ax=w1PingRttAx, lw=0.5)
-        # 添加掉线事件
-        for _, row in w1DropDf.iterrows():
-            w1PingRttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
-        #####################################################
-        #####################################################     
-        # 设置标题
-        fig.suptitle("AGV跨层分析图")
+            dropAx.set_xlim([0, 264])
+            dropAx.set_ylim([0, 138])
+            try:
+                sns.scatterplot(data=dropDf, x='curPosX', y='curPosY', hue='type', ax=dropAx, s=1)
+            except:
+                pass
+            # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
+            for _, row in dropDf.iterrows():
+                keyDict = {'mptcp':'mptcpDrops', 'wlan0':'w0Drops', 'wlan1':'w1Drops'}
+                key = keyDict[row['type']]
+                jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], key] += '{}|'.format(row['curTimestamp'])
+            #####################################################
+            #####################################################
+            print('画漫游热力图')
+            # 添加仓库轮廓背景
+            sns.heatmap(data=w1ApCountDf, cbar=False, cmap='Blues', vmax=20, ax=hoAx)
 
-        # 减小字体
-        plt.rcParams.update({'font.size': 4})
+            hoAx.set_title('漫游热力图')
+            w0HoDf = pd.read_csv(w0HoCsvFile)
+            w0HoDf = w0HoDf[(w0HoDf['start'] / 1e3 >= jobDf['curTimestamp'].min()) & 
+                            (w0HoDf['start'] / 1e3 <= jobDf['curTimestamp'].max())]
+            w0HoDf['type'] = 'wlan0'
+            
+            w1HoDf = pd.read_csv(w1HoCsvFile)
+            w1HoDf = w1HoDf[(w1HoDf['start'] / 1e3 >= jobDf['curTimestamp'].min()) & 
+                            (w1HoDf['start'] / 1e3 <= jobDf['curTimestamp'].max())]
+            w1HoDf['type'] = 'wlan1'
 
-        # 调整图像避免截断xlabel
-        fig.tight_layout()
+            hoDf = pd.concat([w0HoDf, w1HoDf], ignore_index=True)
+            hoDf.rename(columns={'posX': 'curPosX', 'posY': 'curPosY'}, inplace=True)
 
-        fig.savefig(os.path.join(figDir, '{}.png'.format(jobRow['jobId'])), dpi=200)
-        plt.pause(1)
-        plt.close()
-        plt.pause(1)
-        #####################################################     
+            hoAx.set_xlim([0, 264])
+            hoAx.set_ylim([0, 138])
+            try:
+                sns.scatterplot(data=hoDf, x='curPosX', y='curPosY', hue='type', ax=hoAx, s=1)
+            except:
+                pass
+            # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
+            for _, row in hoDf.iterrows():
+                keyDict = {'wlan0':'w0Hos', 'wlan1':'w1Hos'}
+                key = keyDict[row['type']]
+                jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], key] += '{}|'.format(row['start'])
+            #####################################################
+            #####################################################
+            print('画有效基站覆盖空白热力图')
+            # 添加仓库轮廓背景
+            sns.heatmap(data=w1ApCountDf, cbar=False, cmap='Blues', vmax=20, ax=noGoodApCoverAx)
+
+            noGoodApCoverAx.set_title('有效基站覆盖空白热力图')
+            w0NoGoodApCoverDf = pd.read_csv(w0NoGoodApCoverCsvFile, header=None)
+            w0NoGoodApCoverDf.columns = ['curPosX', 'curPosY']
+            w0NoGoodApCoverDf['type'] = 'wlan0'
+
+            w1NoGoodApCoverDf = pd.read_csv(w1NoGoodApCoverCsvFile, header=None)
+            w1NoGoodApCoverDf.columns = ['curPosX', 'curPosY']
+            w1NoGoodApCoverDf['type'] = 'wlan1'
+
+            noGoodApCoverDf = pd.concat([w0NoGoodApCoverDf, w1NoGoodApCoverDf], ignore_index=True)
+
+            noGoodApCoverAx.set_xlim([0, 264])
+            noGoodApCoverAx.set_ylim([0, 138])
+            sns.scatterplot(data=noGoodApCoverDf, x='curPosX', y='curPosY', hue='type', ax=noGoodApCoverAx, s=1)
+            #####################################################
+            #####################################################
+            print('画wlan0网络连接基站rssi折线图')
+            w0RssiAx.set_title('wlan0网络连接基站rssi折线图')
+            w0RssiAx.set_ylabel('rssi (dBm)')
+            w0RssiAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
+            # 过滤零值
+            w0RssiDf = jobDf[jobDf['W0level'] != 0]
+
+            sns.lineplot(data=w0RssiDf, x='curTimestamp', y='W0level', hue='W0APMac', ax=w0RssiAx, lw=0.5)
+            # 添加漫游事件
+            for _, row in w0HoDf.iterrows():
+                w0RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3)
+            #####################################################
+            #####################################################
+            print('画wlan1网络连接基站rssi折线图')
+            w1RssiAx.set_title('wlan1网络连接基站rssi折线图')
+            w1RssiAx.set_ylabel('rssi (dBm)')
+            w1RssiAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
+            # 过滤零值
+            w1RssiDf = jobDf[jobDf['W1level'] != 0]
+
+            sns.lineplot(data=w1RssiDf, x='curTimestamp', y='W1level', hue='W1APMac', ax=w1RssiAx, lw=0.5)
+            # 添加漫游事件
+            for _, row in w1HoDf.iterrows():
+                w1RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3)
+            #####################################################
+            #####################################################
+            print('画mptcp时延折线图')
+            srttAx.set_title('mptcp时延折线图')
+            srttAx.set_ylabel('srtt (ms)')
+            # 过滤src==''
+            srttDf = jobDf[jobDf['src'] != '']
+
+            srttDf['src'] = srttDf.apply(lambda row : 'wlan0:{}'.format(row['srcPort']) 
+                                                    if '151' in row['src'] 
+                                                    else 'wlan1:{}'.format(row['srcPort']), axis=1)
+            sns.lineplot(data=srttDf, x='curTimestamp', y='srtt', hue='src', style='src', markers=True, ms=2, alpha=0.5, ax=srttAx, lw=0.5)
+            # 添加掉线事件
+            for _, row in mptcpDropDf.iterrows():
+                srttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
+            
+            # 添加mptcp连接及subflow存在指示
+            srttAx2 = srttAx.twinx()
+            jobStart, jobEnd = jobDf['curTimestamp'].min(), jobDf['curTimestamp'].max()
+            
+            srttAx2.set_xlim([jobStart, jobEnd])
+            srttAx2.get_yaxis().set_major_locator(MaxNLocator(integer=True))
+            srttAx2.set_yticks(range(4))
+            srttAx2.set_yticklabels(['', 'sub-wlan1', 'sub-wlan0', 'mptcp'])
+            
+            for _, mptcpRow in mptcpDf.iterrows():
+                mptcpStart, mptcpEnd = mptcpRow['originMptcpFirstTs'], mptcpRow['originMptcpLastTs']
+                if mptcpStart > jobStart and mptcpStart < jobEnd or \
+                mptcpEnd > jobStart and mptcpEnd < jobEnd or \
+                mptcpStart <= jobStart and mptcpEnd >= jobEnd:
+                
+                    srttAx2.plot([mptcpStart, mptcpEnd], [3, 3], alpha=0.5)
+                    # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
+                    jobMetaDf.loc[jobMetaDf['jobId'] == jobRow['jobId'], 'mptcpNums'] += '{}|'.format(mptcpRow['mptcpNum'])
+            for _, subRow in subflowDf.iterrows():
+                y = [0, 0]
+                if '151' in subRow['subStats']:
+                    y = [2, 2]
+                else:
+                    y = [1, 1]
+                srttAx2.plot([subRow['originSubFirstTs'], subRow['originSubLastTs']], y, alpha=0.5)
+            #####################################################
+            #####################################################
+            print('画wlan0网络时延折线图')
+            w0PingRttAx.set_title('wlan0网络时延折线图')
+            w0PingRttAx.set_ylabel('pingRtt (ms)')
+            sns.lineplot(data=jobDf, x='curTimestamp', y='W0pingrtt', ax=w0PingRttAx, lw=0.5)
+            # 添加掉线事件
+            for _, row in w0DropDf.iterrows():
+                w0PingRttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
+            #####################################################
+            #####################################################
+            print('画wlan1网络时延折线图')
+            w1PingRttAx.set_title('wlan1网络时延折线图')
+            w1PingRttAx.set_ylabel('pingRtt (ms)')
+            sns.lineplot(data=jobDf, x='curTimestamp', y='W1pingrtt', ax=w1PingRttAx, lw=0.5)
+            # 添加掉线事件
+            for _, row in w1DropDf.iterrows():
+                w1PingRttAx.axvspan(row['curTimestamp'], row['curTimestamp']+1, alpha=0.3)
+            #####################################################
+            #####################################################     
+            # 设置标题
+            fig.suptitle("AGV跨层分析图")
+
+            # 减小字体
+            plt.rcParams.update({'font.size': 4})
+
+            # 调整图像避免截断xlabel
+            fig.tight_layout()
+
+            fig.savefig(os.path.join(figDir, '{}.png'.format(jobRow['jobId'])), dpi=200)
+            plt.pause(1)
+            plt.close()
+            plt.pause(1)
+            #####################################################     
     #####################################################     
     print('修改后的jobMetaDf写回文件')
     jobMetaDf.to_csv(jobMetaCsvFile)
