@@ -54,6 +54,16 @@ def checkJob(tmpPath, outputDir):
     dfAndJobDf.to_csv(os.path.join(outputDir, 'dfAndJobDf.csv'))
     #####################################################
 
+# 一辆车的与发生停车事件任务相关的停车，掉线，漫游事件次数计算
+def countSuspendAndDropAndHo(dfAndJobCsvFile):
+    dfAndJobDf = pd.read_csv(dfAndJobCsvFile, na_filter=False)
+    print('suspends={}'.format(len(list(filter(lambda e : e is not '', ''.join(dfAndJobDf['suspends'].values).split('|'))))))
+    print('mptcpDrops={}'.format(len(list(filter(lambda e : e is not '', ''.join(dfAndJobDf['mptcpDrops'].values).split('|'))))))
+    print('w0Drops={}'.format(len(list(filter(lambda e : e is not '', ''.join(dfAndJobDf['w0Drops'].values).split('|'))))))
+    print('w1Drops={}'.format(len(list(filter(lambda e : e is not '', ''.join(dfAndJobDf['w1Drops'].values).split('|'))))))
+    print('w0Hos={}'.format(len(list(filter(lambda e : e is not '', ''.join(dfAndJobDf['w0Hos'].values).split('|'))))))
+    print('w1Hos={}'.format(len(list(filter(lambda e : e is not '', ''.join(dfAndJobDf['w1Hos'].values).split('|'))))))
+
 
 if __name__ == '__main__':
     # fileName = '/home/cx/Desktop/sdb-dir/tmp/30.113.151.1/analysisHandover/WLAN1漫游热力图统计数据.csv'
@@ -64,3 +74,6 @@ if __name__ == '__main__':
     # tmpPath = '/home/cx/Desktop/sdb-dir/tmp/30.113.151.1'
     # outputDir = '/home/cx/Desktop'
     # checkJob(tmpPath, outputDir)
+
+    # dfAndJobCsvFile = '/home/cx/Desktop/sdb-dir/tmp/30.113.151.1/analysisApp/dfAndJobDf.csv'
+    # countSuspendAndDropAndHo(dfAndJobCsvFile)
