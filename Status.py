@@ -296,6 +296,45 @@ class TcpprobeStatus:
     def keys(self):
         return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
 
+# 时间戳精度为ms
+class TcpdumpStatus:
+    timestamp = 0
+
+    src = ''                #48
+    srcPort = 0             #49
+    dst = ''                #50
+    dstPort = 0             #51
+    ipLen = 0               #52
+    seq = 0                 #53
+    ack = 0                 #54
+    tcpFlags = ''           #55
+    options = ''            #56
+
+    def __init__(self):
+        self.timestamp = 0
+
+        self.src = ''                #48
+        self.srcPort = 0             #49
+        self.dst = ''                #50
+        self.dstPort = 0             #51
+        self.ipLen = 0               #52
+        self.seq = 0                 #53
+        self.ack = 0                 #54
+        self.tcpFlags = ''           #55
+        self.options = ''            #56
+    
+    def __setitem__(self, k, v):
+        self.k = v
+
+    def __getitem__(self, k):
+        return getattr(self, k)
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def keys(self):
+        return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
+
 
 # 对每台车提取数据都需要重置以下全局变量
 #####################################################
@@ -307,4 +346,5 @@ scanStatusList = [ScanStatus() for _ in range(86400*15)]
 # 时间戳精度为ms，不能预分配大小
 ConnStatusList = []
 TcpprobeStatusList = []
+TcpdumpStatusList = []
 #####################################################

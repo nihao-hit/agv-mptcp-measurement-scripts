@@ -6,7 +6,7 @@ from parseConn import parseConn, fillConn, parseConnForConnStatusList
 from parseScan import parseScan, fillScan
 from parsePing127 import parsePing127, fillPing127
 from parsePing151 import parsePing151, fillPing151
-from parseTcpdump import parseTcpdump, parseStatics
+from parseTcpdump import parseTcpdump, parseStatics, parseTcpdumpForTcp
 from parseTcpprobe import parseTcpprobe, parseTcpprobeForTcpprobeStatusList, fillTcpprobe
 
 import shutil
@@ -106,6 +106,17 @@ def writeDataIntoTcpprobeStatusList(dataPath):
             parseTcpprobeForTcpprobeStatusList(dataFile)
 
 
+def writeDataIntoTcpdumpStatusList(dataPath):
+    dataFiles = os.listdir(dataPath)
+    # 排序以保证按照时间顺序解析文件
+    dataFiles.sort()
+    for dataFile in dataFiles:
+        dataFile = os.path.join(dataPath, dataFile)
+        print(dataFile)
+        if 'tcpdump' in dataFile:
+            parseTcpdumpForTcp(dataFile)
+
+
 def writeStatusIntoCsv(csvPath):
     #####################################################
     print('s级时间戳对齐后的sList写入data.csv文件')
@@ -167,6 +178,20 @@ def writeTcpprobeStatusIntoCsv(csvPath):
         f_csv = csv.DictWriter(f, tcpprobeHeaders)
         f_csv.writeheader()
         for s in Status.TcpprobeStatusList:
+            f_csv.writerow(dict(s))
+    #####################################################
+
+
+def writeTcpdumpStatusIntoCsv(csvPath):
+    #####################################################
+    print('时间戳精度为ms的TcpdumpStatusList写入tcpdumpData.csv')
+    tcpdumpHeaders = [
+               'timestamp', 'src','srcPort','dst','dstPort','ipLen','seq','ack','tcpFlags','options',
+              ]
+    with open(os.path.join(csvPath, 'tcpdumpData.csv'), 'w', newline='') as f:
+        f_csv = csv.DictWriter(f, tcpdumpHeaders)
+        f_csv.writeheader()
+        for s in Status.TcpdumpStatusList:
             f_csv.writerow(dict(s))
     #####################################################
 
@@ -278,7 +303,7 @@ if __name__ == '__main__':
 
 
     # ###############################################################################
-    # print('**********第五阶段：解析文件，提取TcpprobeStatusList写入tcpprobeData.csv**********')
+    # print('**********第四阶段：解析文件，提取TcpprobeStatusList写入tcpprobeData.csv**********')
     # #####################################################
     # for i in range(1, 42):
     #     fileName = '30.113.151.' + str(i)
@@ -301,12 +326,40 @@ if __name__ == '__main__':
     #         csvPath = tmpPath
     #         writeTcpprobeStatusIntoCsv(csvPath)
     #         #####################################################
+    # print('**********第四阶段结束**********')
+    # ###############################################################################
+
+
+    # ###############################################################################
+    # print('**********第五阶段：解析文件，提取TcpdumpStatusList写入tcpdumpData.csv**********')
+    # #####################################################
+    # for i in range(1, 42):
+    #     fileName = '30.113.151.' + str(i)
+    #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
+    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+    #     dataPath = os.path.join(tmpPath, 'data')
+    #     if os.path.isdir(path):
+    #         if not os.path.isdir(dataPath):
+    #             os.makedirs(dataPath)
+    #         #####################################################
+    #         print('重置全局变量TcpdumpStatusList')
+    #         Status.TcpdumpStatusList = []
+    #         #####################################################
+    #         #####################################################
+    #         print('解析文件数据，写入TcpdumpStatusList')
+    #         writeDataIntoTcpdumpStatusList(dataPath)
+    #         #####################################################
+    #         #####################################################
+    #         print('将TcpdumpStatusList写入csv文件')
+    #         csvPath = tmpPath
+    #         writeTcpdumpStatusIntoCsv(csvPath)
+    #         #####################################################
     # print('**********第五阶段结束**********')
     # ###############################################################################
 
 
     # ###############################################################################
-    # print('**********第七阶段：解析tcpdump文件**********')
+    # print('**********第六阶段：解析tcpdump文件**********')
     # #####################################################
     # print('解析tcpdump文件')
     # for i in range(1, 42):
@@ -318,12 +371,12 @@ if __name__ == '__main__':
     #         staticsFile = os.path.join(tmpPath, 'mptcpData/statics.txt')
     #         parseStatics(staticsFile, tmpPath)
     # #####################################################
-    # print('**********第七阶段结束**********')
+    # print('**********第六阶段结束**********')
     # ###############################################################################
 
 
     # ###############################################################################
-    # print('**********第八阶段：删除data文件夹下的解压文件，减轻磁盘压力**********')
+    # print('**********第七阶段：删除data文件夹下的解压文件，减轻磁盘压力**********')
     # #####################################################
     # print('删除data文件夹及下属所有解压文件')
     # for i in range(1, 42):
@@ -333,5 +386,5 @@ if __name__ == '__main__':
     #     dataPath = os.path.join(tmpPath, 'data')
     #     rmExtractedFiles(dataPath)
     # #####################################################
-    # print('**********第八阶段结束**********')
+    # print('**********第七阶段结束**********')
     # ###############################################################################
