@@ -106,17 +106,6 @@ def writeDataIntoTcpprobeStatusList(dataPath):
             parseTcpprobeForTcpprobeStatusList(dataFile)
 
 
-def writeDataIntoTcpdumpStatusList(dataPath):
-    dataFiles = os.listdir(dataPath)
-    # 排序以保证按照时间顺序解析文件
-    dataFiles.sort()
-    for dataFile in dataFiles:
-        dataFile = os.path.join(dataPath, dataFile)
-        print(dataFile)
-        if 'tcpdump' in dataFile:
-            parseTcpdumpForTcp(dataFile)
-
-
 def writeStatusIntoCsv(csvPath):
     #####################################################
     print('s级时间戳对齐后的sList写入data.csv文件')
@@ -178,20 +167,6 @@ def writeTcpprobeStatusIntoCsv(csvPath):
         f_csv = csv.DictWriter(f, tcpprobeHeaders)
         f_csv.writeheader()
         for s in Status.TcpprobeStatusList:
-            f_csv.writerow(dict(s))
-    #####################################################
-
-
-def writeTcpdumpStatusIntoCsv(csvPath):
-    #####################################################
-    print('时间戳精度为ms的TcpdumpStatusList写入tcpdumpData.csv')
-    tcpdumpHeaders = [
-               'timestamp', 'src','srcPort','dst','dstPort','ipLen','seq','ack','tcpFlags','options',
-              ]
-    with open(os.path.join(csvPath, 'tcpdumpData.csv'), 'w', newline='') as f:
-        f_csv = csv.DictWriter(f, tcpdumpHeaders)
-        f_csv.writeheader()
-        for s in Status.TcpdumpStatusList:
             f_csv.writerow(dict(s))
     #####################################################
 
@@ -327,34 +302,6 @@ if __name__ == '__main__':
     #         writeTcpprobeStatusIntoCsv(csvPath)
     #         #####################################################
     # print('**********第四阶段结束**********')
-    # ###############################################################################
-
-
-    # ###############################################################################
-    # print('**********第五阶段：解析文件，提取TcpdumpStatusList写入tcpdumpData.csv**********')
-    # #####################################################
-    # for i in range(1, 42):
-    #     fileName = '30.113.151.' + str(i)
-    #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
-    #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
-    #     dataPath = os.path.join(tmpPath, 'data')
-    #     if os.path.isdir(path):
-    #         if not os.path.isdir(dataPath):
-    #             os.makedirs(dataPath)
-    #         #####################################################
-    #         print('重置全局变量TcpdumpStatusList')
-    #         Status.TcpdumpStatusList = []
-    #         #####################################################
-    #         #####################################################
-    #         print('解析文件数据，写入TcpdumpStatusList')
-    #         writeDataIntoTcpdumpStatusList(dataPath)
-    #         #####################################################
-    #         #####################################################
-    #         print('将TcpdumpStatusList写入csv文件')
-    #         csvPath = tmpPath
-    #         writeTcpdumpStatusIntoCsv(csvPath)
-    #         #####################################################
-    # print('**********第五阶段结束**********')
     # ###############################################################################
 
 
