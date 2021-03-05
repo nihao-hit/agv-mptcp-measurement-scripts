@@ -163,7 +163,7 @@ class Status:
     def keys(self):
         return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
 
-# 时间戳精度为ms
+# 时间戳精度为us
 class ConnStatus:
     timestamp = 0
 
@@ -239,7 +239,7 @@ class ScanStatus:
     def keys(self):
         return [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
 
-# 时间戳精度为ms
+# 时间戳精度为us
 class TcpprobeStatus:
     timestamp = 0
 
@@ -304,7 +304,7 @@ sList = [Status() for _ in range(86400*15)]
 scanStatusList = [ScanStatus() for _ in range(86400*15)]
 #####################################################
 #####################################################
-# 时间戳精度为ms，不能预分配大小
+# 时间戳精度为us，不能预分配大小
 ConnStatusList = []
 TcpprobeStatusList = []
 #####################################################

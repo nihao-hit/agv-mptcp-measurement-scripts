@@ -264,39 +264,39 @@ def parseStatics(staticsFile, tmpDir):
                 #####################################################
                 # 提取每条mptcp连接的元数据写入变量
                 subStats = re.findall(r'(?<=\n)30\.113\.\d+\.\d+:\d+:30\.113\.\d+\.\d+:\d+(?= )', mptcp)
-                firstTs = list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                firstTs = list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                    re.findall(r'(?<=first_timestamp: ).*?(?= )', mptcp)
                                   )
                               )
-                lastTs =  list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                lastTs =  list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                    re.findall(r'(?<=last_timestamp: ).*?(?= )', mptcp)
                                   )
                               )
-                firstDataTs = list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                firstDataTs = list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                        re.findall(r'(?<=first_data_timestamp: ).*?(?= )', mptcp)
                                       )
                                   )
-                lastDataTs =  list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                lastDataTs =  list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                        re.findall(r'(?<=last_data_timestamp: ).*?(?= )', mptcp)
                                       )
                                   )
-                firstFastcloseTs = list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                firstFastcloseTs = list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                             re.findall(r'(?<=first_fastclose_timestamp: ).*?(?= )', mptcp)
                                            )
                                        )
-                lastFastcloseTs =  list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                lastFastcloseTs =  list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                             re.findall(r'(?<=last_fastclose_timestamp: ).*?(?= )', mptcp)
                                            )
                                        )
-                firstDatafinTs =   list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                firstDatafinTs =   list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                             re.findall(r'(?<=first_datafin_timestamp: ).*?(?= )', mptcp)
                                            )
                                        )
-                lastDatafinTs =    list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                lastDatafinTs =    list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                             re.findall(r'(?<=last_datafin_timestamp: ).*?(?= )', mptcp)
                                            )
                                        )
-                finrstTs =    list(map(lambda x : 0 if x == '-' else int(float(x) * 1e3), 
+                finrstTs =    list(map(lambda x : 0 if x == '-' else int(float(x) * 1e6), 
                                        re.findall(r'(?<=first_fin_rst_timestamp: ).*?(?= )', mptcp)
                                       )
                                   )

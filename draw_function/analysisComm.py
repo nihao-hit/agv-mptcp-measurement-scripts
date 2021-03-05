@@ -263,14 +263,14 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
     mptcpDf = pd.read_csv(mptcpCsvFile, usecols=['mptcpNum', 'connStats', 'originMptcpFirstTs', 'originMptcpLastTs'],
                                         dtype={'connStats':str})
     mptcpDf = mptcpDf[mptcpDf.connStats.str.contains('7070')]
-    mptcpDf['originMptcpFirstTs'] = mptcpDf['originMptcpFirstTs'] / 1e3
-    mptcpDf['originMptcpLastTs'] = mptcpDf['originMptcpLastTs'] / 1e3
+    mptcpDf['originMptcpFirstTs'] = mptcpDf['originMptcpFirstTs'] / 1e6
+    mptcpDf['originMptcpLastTs'] = mptcpDf['originMptcpLastTs'] / 1e6
     
     subflowDf = pd.read_csv(subflowCsvFile, usecols=['subStats', 'originSubFirstTs', 'originSubLastTs'],
                                             dtype={'subStats':str})
     subflowDf = subflowDf[subflowDf.subStats.str.contains('7070')]
-    subflowDf['originSubFirstTs'] = subflowDf['originSubFirstTs'] / 1e3
-    subflowDf['originSubLastTs'] = subflowDf['originSubLastTs'] / 1e3
+    subflowDf['originSubFirstTs'] = subflowDf['originSubFirstTs'] / 1e6
+    subflowDf['originSubLastTs'] = subflowDf['originSubLastTs'] / 1e6
     #####################################################
     #####################################################
     # 2020/12/31:10: 记录任务及关联mptcp连接，停车，掉线，漫游事件
@@ -366,13 +366,13 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
 
             hoAx.set_title('漫游热力图')
             w0HoDf = pd.read_csv(w0HoCsvFile)
-            w0HoDf = w0HoDf[(w0HoDf['start'] / 1e3 >= jobDf['curTimestamp'].min()) & 
-                            (w0HoDf['start'] / 1e3 <= jobDf['curTimestamp'].max())]
+            w0HoDf = w0HoDf[(w0HoDf['start'] / 1e6 >= jobDf['curTimestamp'].min()) & 
+                            (w0HoDf['start'] / 1e6 <= jobDf['curTimestamp'].max())]
             w0HoDf['type'] = 'wlan0'
             
             w1HoDf = pd.read_csv(w1HoCsvFile)
-            w1HoDf = w1HoDf[(w1HoDf['start'] / 1e3 >= jobDf['curTimestamp'].min()) & 
-                            (w1HoDf['start'] / 1e3 <= jobDf['curTimestamp'].max())]
+            w1HoDf = w1HoDf[(w1HoDf['start'] / 1e6 >= jobDf['curTimestamp'].min()) & 
+                            (w1HoDf['start'] / 1e6 <= jobDf['curTimestamp'].max())]
             w1HoDf['type'] = 'wlan1'
 
             hoDf = pd.concat([w0HoDf, w1HoDf], ignore_index=True)
@@ -413,6 +413,7 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
             #####################################################
             print('画wlan0网络连接基站rssi折线图')
             w0RssiAx.set_title('wlan0网络连接基站rssi折线图')
+            w0RssiAx.set_xlabel('curTimestamp (s)')
             w0RssiAx.set_ylabel('rssi (dBm)')
             w0RssiAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
             # 过滤零值
@@ -421,11 +422,12 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
             sns.lineplot(data=w0RssiDf, x='curTimestamp', y='W0level', hue='W0APMac', ax=w0RssiAx, lw=0.5)
             # 添加漫游事件
             for _, row in w0HoDf.iterrows():
-                w0RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3)
+                w0RssiAx.axvspan(row['start'] / 1e6, row['end'] / 1e6, alpha=0.3)
             #####################################################
             #####################################################
             print('画wlan1网络连接基站rssi折线图')
             w1RssiAx.set_title('wlan1网络连接基站rssi折线图')
+            w1RssiAx.set_xlabel('curTimestamp (s)')
             w1RssiAx.set_ylabel('rssi (dBm)')
             w1RssiAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
             # 过滤零值
@@ -434,11 +436,12 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
             sns.lineplot(data=w1RssiDf, x='curTimestamp', y='W1level', hue='W1APMac', ax=w1RssiAx, lw=0.5)
             # 添加漫游事件
             for _, row in w1HoDf.iterrows():
-                w1RssiAx.axvspan(row['start'] / 1e3, row['end'] / 1e3, alpha=0.3)
+                w1RssiAx.axvspan(row['start'] / 1e6, row['end'] / 1e6, alpha=0.3)
             #####################################################
             #####################################################
             print('画mptcp时延折线图')
             srttAx.set_title('mptcp时延折线图')
+            srttAx.set_xlabel('curTimestamp (s)')
             srttAx.set_ylabel('srtt (ms)')
             # 过滤src==''
             srttDf = jobDf[jobDf['src'] != '']
@@ -480,6 +483,7 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
             #####################################################
             print('画wlan0网络时延折线图')
             w0PingRttAx.set_title('wlan0网络时延折线图')
+            w0PingRttAx.set_xlabel('curTimestamp (s)')
             w0PingRttAx.set_ylabel('pingRtt (ms)')
             sns.lineplot(data=jobDf, x='curTimestamp', y='W0pingrtt', ax=w0PingRttAx, lw=0.5)
             # 添加掉线事件
@@ -489,6 +493,7 @@ def drawNine(csvFile, jobMetaCsvFile, notifyCsvFile,
             #####################################################
             print('画wlan1网络时延折线图')
             w1PingRttAx.set_title('wlan1网络时延折线图')
+            w1PingRttAx.set_xlabel('curTimestamp (s)')
             w1PingRttAx.set_ylabel('pingRtt (ms)')
             sns.lineplot(data=jobDf, x='curTimestamp', y='W1pingrtt', ax=w1PingRttAx, lw=0.5)
             # 添加掉线事件

@@ -419,8 +419,8 @@ def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, mpt
     # 这里实现的不太好，通过apply实现了两层循环：外层以掉线事件迭代，内层以漫游事件迭代，比较掉线事件时间戳与漫游影响时延时段
     def isHo(dropDfRow, hoDf):
         for _, hoDfRow in hoDf.iterrows():
-            if dropDfRow['curTimestamp'] * 1e3 > hoDfRow['rttBreakTimestamp'] \
-                    and dropDfRow['curTimestamp'] * 1e3 < hoDfRow['rttRecoverTimestamp']:
+            if dropDfRow['curTimestamp'] * 1e6 > hoDfRow['rttBreakTimestamp'] \
+                    and dropDfRow['curTimestamp'] * 1e6 < hoDfRow['rttRecoverTimestamp']:
                 return hoDfRow['start']
         return np.nan
 

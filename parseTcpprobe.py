@@ -21,7 +21,7 @@ def parseTcpprobe(tcpprobeFile):
                 #####################################################
                 # 从文件中提取数据，赋值变量
                 # StatusList对齐时间戳使用int(timestamp)
-                # TcpprobeStatusList使用int(timestamp * 1e3)
+                # TcpprobeStatusList使用int(timestamp * 1e6)
                 timestamp = float(info[0])
                 srtt = int(float(info[9]) / 1000)
                 #####################################################
@@ -85,7 +85,7 @@ def parseTcpprobeForTcpprobeStatusList(tcpprobeFile):
                 #####################################################
                 # 从文件中提取数据，赋值变量
                 # StatusList对齐时间戳使用int(timestamp)
-                # TcpprobeStatusList使用int(timestamp * 1e3)
+                # TcpprobeStatusList使用int(timestamp * 1e6)
                 timestamp = float(info[0])
                 srtt = int(float(info[9]) / 1000)
                 #####################################################
@@ -93,7 +93,7 @@ def parseTcpprobeForTcpprobeStatusList(tcpprobeFile):
                 # 解析数据写入TcpprobeStatusList
                 tcpprobeStatus = Status.TcpprobeStatus()
 
-                tcpprobeStatus.timestamp = int(timestamp * 1e3)
+                tcpprobeStatus.timestamp = int(timestamp * 1e6)
 
                 if 'ffff' in info[1]: 
                     tcpprobeStatus.src = info[1].split('[')[1].split(']')[0].split(':')[3]

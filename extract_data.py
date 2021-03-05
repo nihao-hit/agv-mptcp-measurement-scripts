@@ -145,7 +145,7 @@ def writeScanStatusIntoCsv(csvPath):
 
 def writeConnStatusIntoCsv(csvPath):
     #####################################################
-    print('时间戳精度为ms的ConnStatusList写入connData.csv')
+    print('时间戳精度为us的ConnStatusList写入connData.csv')
     connHeaders = [
                'timestamp', 'W0APMac','W0channel','W0level','W1APMac','W1channel','W1level'
               ]
@@ -159,7 +159,7 @@ def writeConnStatusIntoCsv(csvPath):
 
 def writeTcpprobeStatusIntoCsv(csvPath):
     #####################################################
-    print('时间戳精度为ms的TcpprobeStatusList写入tcpprobeData.csv')
+    print('时间戳精度为us的TcpprobeStatusList写入tcpprobeData.csv')
     tcpprobeHeaders = [
                'timestamp', 'src','srcPort','dst','dstPort','length','snd_nxt','snd_una','snd_cwnd','ssthresh','snd_wnd','srtt','rcv_wnd','path_index','map_data_len','map_data_seq','map_subseq','snt_isn','rcv_isn'
               ]

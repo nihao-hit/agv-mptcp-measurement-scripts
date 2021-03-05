@@ -45,7 +45,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('以时间戳为轴merge df与connDf，提取指定列数据')
-    connDf['curTimestamp'] = (connDf['timestamp'] / 1e3).astype(int)
+    connDf['curTimestamp'] = (connDf['timestamp'] / 1e6).astype(int)
     # 2020/11/25:10: how参数从right改为inner，舍弃connDf时间轴先于和后于df的那部分数据
     dfAndConnDf = df.merge(connDf, on='curTimestamp', how='inner')
 
@@ -124,7 +124,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 # if duration < 30000:
                 w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
                                 W0level[w0Ap1Idx], W0level[i], 
-                                beforeRttInvalid, afterRttValid,
+                                # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
+                                beforeRttInvalid / 1e3, afterRttValid / 1e3,
                                 curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
                                 w0HoFlag])
         #####################################################
@@ -176,7 +177,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 # if duration < 30000:
                 w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
                                 W1level[w1Ap1Idx], W1level[i], 
-                                beforeRttInvalid, afterRttValid,
+                                # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
+                                beforeRttInvalid / 1e3, afterRttValid / 1e3,
                                 curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
                                 w1HoFlag])
         #####################################################
@@ -203,12 +205,17 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     
     #####################################################
     #####################################################
+    # 2020/3/5: 修改数据时间戳精度为us后，为保持漫游时长精度为ms,增加处理
+    w0HoDf['duration'] /= 1e3
+    w1HoDf['duration'] /= 1e3
+    #####################################################
+    #####################################################
     print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
-    w0HoDf['startDate'] = w0HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start'] / 1000), axis=1)
-    w0HoDf['endDate'] = w0HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end'] / 1000), axis=1)
+    w0HoDf['startDate'] = w0HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start'] / 1e6), axis=1)
+    w0HoDf['endDate'] = w0HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end'] / 1e6), axis=1)
 
-    w1HoDf['startDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start'] / 1000), axis=1)
-    w1HoDf['endDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end'] / 1000), axis=1)
+    w1HoDf['startDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['start'] / 1e6), axis=1)
+    w1HoDf['endDate'] = w1HoDf.apply(lambda row : datetime.datetime.fromtimestamp(row['end'] / 1e6), axis=1)
     
     print('构造RSSI增益列')
     w0HoDf['rssiGain'] = w0HoDf['level2'] - w0HoDf['level1']
@@ -324,8 +331,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     w0TypeCategory = dict(list(w0HoDf.groupby('flag')))
     statics['WLAN0 flag=0漫游次数'] = len(w0TypeCategory[0])
     statics['WLAN0 flag=1漫游次数'] = len(w0TypeCategory[1])
-    statics['wlan0造成时延Non-Usable总时长'] = w0RttBreakTime
-    statics['wlan1造成时延Non-Usable总时长'] = w1RttBreakTime
+    # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
+    statics['wlan0造成时延Non-Usable总时长(ms)'] = w0RttBreakTime / 1e3
+    statics['wlan1造成时延Non-Usable总时长(ms)'] = w1RttBreakTime / 1e3
     # 2020/11/19:10 可能没有flag=2的漫游类别
     try:
         statics['WLAN0 flag=2漫游次数'] = len(w0TypeCategory[2])
@@ -525,7 +533,6 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.title('漫游时长CDF')
     # 2020/11/25:17 配合进行修改
     plt.xlim(left=0)
-    # plt.xticks([0, 200, 1000, 5000], ['0', '200ms', '1s', '5s'])
     plt.xlabel('漫游时长 (ms)')
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (6.4, 4.8)
@@ -565,7 +572,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     plt.title('漫游时长CDF')
 
     plt.xscale('log')
-    plt.xticks([0, 200, 1000, 4000, 5000, 9000, 30000],
+    plt.xticks([0, 200, 1e3, 4e3, 5e3, 9e3, 30e3],
                ['0', '0.2', '1', '4', '5', '9', '30'])
     plt.xlabel('漫游时长 (s)')
     plt.ylim([0, 1])
@@ -825,8 +832,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     # 设置标题
     plt.title('WLAN0漫游事件全景图')
     # 设置坐标轴
-    xticks = [i for i in range(startTime, endTime + 1800 * 1000, 3600 * 1000)]
-    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1000)) for i in xticks]
+    xticks = [i for i in range(startTime, endTime + 1800 * 1e6, 3600 * 1e6)]
+    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1e6)) for i in xticks]
     plt.xticks(xticks, xlabels, rotation=45)
     plt.yticks([0, 1])
     plt.xlim([startTime, endTime])
@@ -856,8 +863,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     # 设置标题
     plt.title('WLAN0漫游事件全景图')
     # 设置坐标轴
-    xticks = [i for i in range(startTime, endTime + 1800 * 1000, 3600 * 1000)]
-    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1000)) for i in xticks]
+    xticks = [i for i in range(startTime, endTime + 1800 * 1e6, 3600 * 1e6)]
+    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1e6)) for i in xticks]
     plt.xticks(xticks, xlabels, rotation=45)
     plt.yticks([0, 1])
     plt.xlim([startTime, endTime])
@@ -890,8 +897,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     # 设置标题
     plt.title('WLAN1漫游事件全景图')
     # 设置坐标轴
-    xticks = [i for i in range(startTime, endTime + 1800 * 1000, 3600 * 1000)]
-    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1000)) for i in xticks]
+    xticks = [i for i in range(startTime, endTime + 1800 * 1e6, 3600 * 1e6)]
+    xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1e6)) for i in xticks]
     plt.xticks(xticks, xlabels, rotation=45)
     plt.yticks([0, 1])
     plt.xlim([startTime, endTime])
@@ -918,7 +925,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     print('**********第三阶段：画WLAN0漫游事件RSSI分析图**********')
     #####################################################
     print('按漫游时长各分类提取时段数据进行分析')
-    bins = [0, 200, 1000, 30000, sys.maxsize]
+    bins = [0, 200, 1e3, 30e3, sys.maxsize]
     labels = ['<200ms', '200ms-1s', '1s-30s', '>=30s']
     w0HoDurationCategory = dict(list(w0HoDf.groupby(pd.cut(w0HoDf['duration'], bins=bins, labels=labels, right=False).sort_index())))
     #####################################################
@@ -940,8 +947,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             innerCount -= 1
             #####################################################
             # 提取分析时段为[漫游开始时刻-10s, 漫游结束时刻+10s]
-            hoStartTime = int(ho['start'] / 1000)
-            hoEndTime = int(ho['end'] / 1000)
+            hoStartTime = int(ho['start'] / 1e6)
+            hoEndTime = int(ho['end'] / 1e6)
             analysisStartTime = hoStartTime - 10
             analysisEndTime = hoEndTime + 10
             df['bin'] = pd.cut(df['curTimestamp'], [analysisStartTime, analysisEndTime])
@@ -963,8 +970,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
             #####################################################
             # 设置第一个坐标坐标轴
-            plt.xlim([analysisStartTime * 1e3, analysisEndTime * 1e3])
-            plt.xticks(list(map(lambda x : x * 1e3, list(oneW0HoDf['curTimestamp']))), 
+            plt.xlim([analysisStartTime * 1e6, analysisEndTime * 1e6])
+            plt.xticks(list(map(lambda x : x * 1e6, list(oneW0HoDf['curTimestamp']))), 
                        list(map(lambda x : str(x)[-2:], list(oneW0HoDf['curTimestamp']))),
                        rotation=45)
             plt.xlabel('时间(s)')
@@ -979,15 +986,15 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
                     idx = (idx + 1) % len(colors)
             # 画conn　RSSI折线图与scan RSSI折线图
             for k, v in hoConnApGroup.items():
-                plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['W0level']), 
+                plt.plot(list(map(lambda x : x * 1e6, list(v['curTimestamp']))), list(v['W0level']), 
                         c=colors[colorsMap[k]], marker='+', ms=4, label='conn,mac={},freq={}'.format(k[-2:], list(v['W0channel'])[0]))
             for k, v in hoScanApGroup.items():
-                plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['scanW0APLevelMax']), 
+                plt.plot(list(map(lambda x : x * 1e6, list(v['curTimestamp']))), list(v['scanW0APLevelMax']), 
                         c=colors[colorsMap[k]], marker='x', ms=4, label='scan,mac={},freq={}'.format(k[-2:], list(v['scanW0APChannelMax'])[0]))
             #####################################################
             #####################################################
             # 提取所有在此时段的漫游事件并画竖线
-            innerHoList = w0HoDf[(w0HoDf['start'] >= analysisStartTime * 1000) & (w0HoDf['start'] <= analysisEndTime * 1000)]
+            innerHoList = w0HoDf[(w0HoDf['start'] >= analysisStartTime * 1e6) & (w0HoDf['start'] <= analysisEndTime * 1e6)]
             for _, innerHo in innerHoList.iterrows():
                 label = 'ap1->ap2'
                 c = 'green'
@@ -1029,7 +1036,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     print('**********第四阶段：画WLAN1漫游事件RSSI分析图**********')
     #####################################################
     print('按漫游时长各分类提取时段数据进行分析')
-    bins = [0, 200, 1000, 30000, sys.maxsize]
+    bins = [0, 200, 1e3, 30e3, sys.maxsize]
     labels = ['<200ms', '200ms-1s', '1s-30s', '>=30s']
     w1HoDurationCategory = dict(list(w1HoDf.groupby(pd.cut(w1HoDf['duration'], bins=bins, labels=labels, right=False).sort_index())))
     #####################################################
@@ -1050,8 +1057,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             innerCount -= 1
             #####################################################
             # 提取分析时段为[漫游开始时刻-10s, 漫游结束时刻+10s]
-            hoStartTime = int(ho['start'] / 1000)
-            hoEndTime = int(ho['end'] / 1000)
+            hoStartTime = int(ho['start'] / 1e6)
+            hoEndTime = int(ho['end'] / 1e6)
             analysisStartTime = hoStartTime - 10
             analysisEndTime = hoEndTime + 10
             df['bin'] = pd.cut(df['curTimestamp'], [analysisStartTime, analysisEndTime])
@@ -1073,8 +1080,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
             #####################################################
             # 设置第一个坐标坐标轴
-            plt.xlim([analysisStartTime * 1e3, analysisEndTime * 1e3])
-            plt.xticks(list(map(lambda x : x * 1e3, list(oneW1HoDf['curTimestamp']))), 
+            plt.xlim([analysisStartTime * 1e6, analysisEndTime * 1e6])
+            plt.xticks(list(map(lambda x : x * 1e6, list(oneW1HoDf['curTimestamp']))), 
                        list(map(lambda x : str(x)[-2:], list(oneW1HoDf['curTimestamp']))),
                        rotation=45)
             plt.xlabel('时间(s)')
@@ -1089,15 +1096,15 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
                     idx = (idx + 1) % len(colors)
             # 画conn　RSSI折线图与scan RSSI折线图
             for k, v in hoConnApGroup.items():
-                plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['W1level']), 
+                plt.plot(list(map(lambda x : x * 1e6, list(v['curTimestamp']))), list(v['W1level']), 
                         c=colors[colorsMap[k]], marker='+', ms=4, label='conn,mac={},freq={}'.format(k[-2:], list(v['W1channel'])[0]))
             for k, v in hoScanApGroup.items():
-                plt.plot(list(map(lambda x : x * 1e3, list(v['curTimestamp']))), list(v['scanW1APLevelMax']), 
+                plt.plot(list(map(lambda x : x * 1e6, list(v['curTimestamp']))), list(v['scanW1APLevelMax']), 
                         c=colors[colorsMap[k]], marker='x', ms=4, label='scan,mac={},freq={}'.format(k[-2:], list(v['scanW1APChannelMax'])[0]))
             #####################################################
             #####################################################
             # 提取所有在此时段的漫游事件并画竖线
-            innerHoList = w1HoDf[(w1HoDf['start'] >= analysisStartTime * 1000) & (w1HoDf['start'] <= analysisEndTime * 1000)]
+            innerHoList = w1HoDf[(w1HoDf['start'] >= analysisStartTime * 1e6) & (w1HoDf['start'] <= analysisEndTime * 1e6)]
             for _, innerHo in innerHoList.iterrows():
                 label = 'ap1->ap2'
                 c = 'green'

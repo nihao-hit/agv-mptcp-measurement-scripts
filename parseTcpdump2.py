@@ -9,7 +9,7 @@ import pandas as pd
 import csv
 import re
 
-# 时间戳精度为ms
+# 时间戳精度为us
 class TcpdumpStatus:
     timestamp = 0
 
@@ -61,7 +61,7 @@ class TcpdumpStatus:
 
 # 对每台车提取数据都需要重置以下全局变量
 #####################################################
-# 时间戳精度为ms，不能预分配大小
+# 时间戳精度为us，不能预分配大小
 TcpdumpStatusList = []
 #####################################################
 
@@ -77,7 +77,7 @@ def parseTcpdumpForTcp(tcpdumpFile):
         try:
             tcpdumpStatus = TcpdumpStatus()
             
-            tcpdumpStatus.timestamp = int(p.time * 1e3)
+            tcpdumpStatus.timestamp = int(p.time * 1e6)
             tcpdumpStatus.src = p.payload.src
             tcpdumpStatus.srcPort = p.payload.payload.sport
             tcpdumpStatus.dst = p.payload.dst
@@ -128,7 +128,7 @@ def writeDataIntoTcpdumpStatusList(dataPath):
 
 def writeTcpdumpStatusIntoCsv(csvPath):
     #####################################################
-    print('时间戳精度为ms的TcpdumpStatusList写入tcpdumpData.csv')
+    print('时间戳精度为us的TcpdumpStatusList写入tcpdumpData.csv')
     tcpdumpHeaders = [
                'timestamp', 'src','srcPort','dst','dstPort','tcpDataLen','seq','ack',
                'segType','dsn', 'dataAck', 'subSeq', 'mptcpDataLen',

@@ -103,7 +103,7 @@ def parseConnForConnStatusList(connFile):
                 # 解析数据写入ConnStatusList
                 connStatus = Status.ConnStatus()
 
-                connStatus.timestamp = int(time * 1e3)
+                connStatus.timestamp = int(time * 1e6)
 
                 if re.findall('(?<=dev\": \").*?(?=\")', conn)[0] == 'wlan0':
                     connStatus.W0APMac = apMac

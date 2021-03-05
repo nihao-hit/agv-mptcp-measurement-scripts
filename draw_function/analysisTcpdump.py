@@ -30,9 +30,9 @@ def drawMptcp(mptcpCsvFileList, subCsvFileList, mptcpDir):
     print('只保留data-mptcp，丢弃ka-mptcp，生成统计列')
     mptcpAll = mptcpAll[mptcpAll.connStats.str.contains('7070')]
 
-    # 保留时长单位为s而不是ms
-    mptcpAll['duration'] = (mptcpAll['originMptcpLastTs'] - mptcpAll['originMptcpFirstTs']) / 1e3
-    mptcpAll['dataDuration'] = (mptcpAll['originMptcpLastDataTs'] - mptcpAll['originMptcpFirstDataTs']) / 1e3
+    # 保留时长单位为s而不是us
+    mptcpAll['duration'] = (mptcpAll['originMptcpLastTs'] - mptcpAll['originMptcpFirstTs']) / 1e6
+    mptcpAll['dataDuration'] = (mptcpAll['originMptcpLastDataTs'] - mptcpAll['originMptcpFirstDataTs']) / 1e6
 
     mptcpAll['originRate'] = mptcpAll['originMptcpPayloadByte'] / mptcpAll['dataDuration']
     mptcpAll['originPacketRate'] = mptcpAll['originMptcpDataPacket'] / mptcpAll['dataDuration']
@@ -45,7 +45,7 @@ def drawMptcp(mptcpCsvFileList, subCsvFileList, mptcpDir):
     #####################################################
     print('只保留data-sub，丢弃ka-sub，生成统计列')
     subAll = subAll[subAll.subStats.str.contains('7070')]
-    subAll['duration'] = (subAll['originSubLastTs'] - subAll['originSubFirstTs']) / 1e3
+    subAll['duration'] = (subAll['originSubLastTs'] - subAll['originSubFirstTs']) / 1e6
     subAll['type'] = subAll.apply(lambda row : 'sub-wlan0' if '151' in row['subStats'] else 'sub-wlan1', axis=1)
     #####################################################
     #####################################################
@@ -73,9 +73,9 @@ def drawMptcp(mptcpCsvFileList, subCsvFileList, mptcpDir):
     statics['上行包大小 (B/个)'] = mptcpAll.loc[(mptcpAll['originMptcpPayloadByte'] != 0), 'originPacketSize'].mean()
     statics['下行包大小 (B/个)'] = mptcpAll.loc[(mptcpAll['remoteMptcpPayloadByte'] != 0), 'remotePacketSize'].mean()
     # 连接长度
-    statics['mptcp-duration'] = mptcpAll['duration'].mean()
-    statics['sub-wlan0-duration'] = subAll[subAll['type'] == 'sub-wlan0']['duration'].mean()
-    statics['sub-wlan1-duration'] = subAll[subAll['type'] == 'sub-wlan1']['duration'].mean()
+    statics['mptcp-duration(s)'] = mptcpAll['duration'].mean()
+    statics['sub-wlan0-duration(s)'] = subAll[subAll['type'] == 'sub-wlan0']['duration'].mean()
+    statics['sub-wlan1-duration(s)'] = subAll[subAll['type'] == 'sub-wlan1']['duration'].mean()
     # subflow存在比例
     statics['sub-wlan0-duration-ratio'] = subAll[subAll['type'] == 'sub-wlan0']['duration'].sum() / mptcpAll['duration'].sum()
     statics['sub-wlan1-duration-ratio'] = subAll[subAll['type'] == 'sub-wlan1']['duration'].sum() / mptcpAll['duration'].sum()
