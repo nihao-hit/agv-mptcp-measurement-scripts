@@ -8,7 +8,6 @@ import datetime
 import pandas as pd
 import functools
 import csv
-import scapy.all as scapy
 
 import Status
 
@@ -460,32 +459,6 @@ def parseStatics(staticsFile, tmpDir):
             f_csv.writerow(dict(s))
     print('**********第三阶段结束**********')
     ###############################################################################
-
-
-
-
-def parseTcpdumpForTcp(tcpdumpFile):
-    count = 0
-    for p in scapy.rdpcap(tcpdumpFile):
-        try:
-            tcpdumpStatus = Status.TcpdumpStatus()
-            
-            tcpdumpStatus.timestamp = int(p.time * 1e3)
-
-            tcpdumpStatus.src = p.payload.src
-            tcpdumpStatus.srcPort = p.payload.payload.sport
-            tcpdumpStatus.dst = p.payload.dst
-            tcpdumpStatus.dstPort = p.payload.payload.dport
-            tcpdumpStatus.ipLen = p.payload.len
-            tcpdumpStatus.seq = p.payload.payload.seq
-            tcpdumpStatus.ack = p.payload.payload.ack
-            tcpdumpStatus.tcpFlags = p.payload.payload.flags
-            tcpdumpStatus.options = p.payload.payload.options
-
-            Status.TcpdumpStatusList.append(tcpdumpStatus)
-        except:
-            count += 1
-    print("try-except错误次数：{}".format(count))
 
 
 

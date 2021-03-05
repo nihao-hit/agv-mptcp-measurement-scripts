@@ -6,7 +6,7 @@ from parseConn import parseConn, fillConn, parseConnForConnStatusList
 from parseScan import parseScan, fillScan
 from parsePing127 import parsePing127, fillPing127
 from parsePing151 import parsePing151, fillPing151
-from parseTcpdump import parseTcpdump, parseStatics, parseTcpdumpForTcp
+from parseTcpdump import parseTcpdump, parseStatics
 from parseTcpprobe import parseTcpprobe, parseTcpprobeForTcpprobeStatusList, fillTcpprobe
 
 import shutil
