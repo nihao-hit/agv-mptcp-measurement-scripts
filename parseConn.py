@@ -140,6 +140,7 @@ def fillConn(sList, startTime, fillDir):
             
             # 2020/11/26:11: 配合进行修改
             w0StatusIdx = w0TxTime - 1 - startTime
+            # 2021/3/6/comment: 这里'Not-Associated'的条件不影响后续操作
             if w0StatusIdx >= 0 and sList[w0StatusIdx].W0APMac != 'Not-Associated':
                 sList[i].W0APMac = sList[w0StatusIdx].W0APMac
                 sList[i].W0channel = sList[w0StatusIdx].W0channel
@@ -167,7 +168,7 @@ def fillConn(sList, startTime, fillDir):
                 w1FillTimes.append([w1TxTime, rxTime, rxTime - w1TxTime + 1])
                 # 重置w1TxTime
                 w1TxTime = -1
-    
+    # 2021/3/6/comment: 虽然不用统计conn文件测量空洞，但是可以用来判断是否脚本宕机．
     print("将WLAN0的conn数据空洞写入文件")
     w0HoleDf = pd.DataFrame(w0FillTimes, columns=['start', 'end', 'duration'])
     fileName = 'w0ConnHole-{}-{}.csv'.format(len(w0HoleDf), w0HoleDf['duration'].sum())
