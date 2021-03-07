@@ -158,12 +158,13 @@ def drawConnLevel(csvFileList, tmpDir):
     plt.rcParams['figure.figsize'] = (6.4, 4.8)
     
     print('画CDF图前的初始化：设置标题、坐标轴')
-    plt.title('AGV连接基站的RSSI')
+    plt.title('AGV连接基站的RSSI分布CDF图')
 
     plt.xlim([-110, -10])
     plt.xlabel('RSSI(dBm)')
 
     plt.ylim([0, 1])
+    plt.ylabel('CDF')
     plt.yticks(np.arange(0, 1.1, 0.1))
     #####################################################
     #####################################################
@@ -175,17 +176,17 @@ def drawConnLevel(csvFileList, tmpDir):
     cdfW1Level, = plt.plot(list(w1LevelRatio), list(w1LevelRatio.index), c='blue')
     #####################################################
     #####################################################
-    print('画25%, 50%, 75%竖线')
+    print('标注25%, 50%, 75%值')
     vlinesLabels = {0.25:'25%', 0.5:'50%', 0.75:'75%'}
     for ymax in [0.25, 0.5, 0.75]:
         w0x = w0LevelRatio[ymax]
         w1x = w1LevelRatio[ymax]
 
-        plt.vlines(w0x, 0, ymax, colors=['red'], linestyles='dotted')
-        plt.text(w0x, ymax, s='\n'.join([vlinesLabels[ymax], str(int(w0x))]))
+        # plt.vlines(w0x, 0, ymax, colors=['red'], linestyles='dotted')
+        plt.text(w0x, ymax, s='{}\n{}dBm'.format(vlinesLabels[ymax], str(int(w0x))))
         
-        plt.vlines(w1x, 0, ymax, colors=['red'], linestyles='dotted')
-        plt.text(w1x, ymax, s='\n'.join([vlinesLabels[ymax], str(int(w1x))]))
+        # plt.vlines(w1x, 0, ymax, colors=['red'], linestyles='dotted')
+        plt.text(w1x, ymax, s='{}\n{}dBm'.format(vlinesLabels[ymax], str(int(w1x))))
     #####################################################
     #####################################################
     print("设置标注")
@@ -195,7 +196,7 @@ def drawConnLevel(csvFileList, tmpDir):
             loc='lower right')
     #####################################################
     #####################################################
-    figName = os.path.join(tmpDir, 'AGV连接基站的RSSI.png')
+    figName = os.path.join(tmpDir, 'AGV连接基站的RSSI分布CDF图.png')
     print('保存到：', figName)
     plt.savefig(figName, dpi=200)
     plt.pause(1)
@@ -291,14 +292,13 @@ def drawNotConnLevel(csvFileList, connCsvFileList, tmpDir):
                                     'scanW0APLevelMax' : int,
                                     'scanW1APLevelMax' : int})
         connDf = pd.read_csv(connCsvFileList[i], na_filter=False, usecols=['timestamp', 
-                                    'second',
                                     'W0APMac', 'W1APMac'],
                                 dtype={'timestamp' : int, 
-                                    'second' : int, 
                                     'W0APMac' : str,
                                     'W1APMac' : str})
         # connDf.sort_values(by='timestamp', inplace=True)
         # connDf.reset_index(drop=True, inplace=True)
+        connDf['second'] = (connDf['timestamp'] / 1e6).astype(int)
         dfAndConnDf = df.merge(connDf, how='inner', left_on='curTimestamp', right_on='second')
         dfAndConnDfList.append(dfAndConnDf)
     dfAll = pd.concat(dfAndConnDfList, ignore_index=True)
@@ -740,8 +740,9 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-    ax = sns.heatmap(w0NoApCover, cmap="Blues", vmin=0,
-                     cbar_kws={'ticks':[0, 1]})
+    # 2021/3/7: 添加仓库背景
+    w0Bg = pd.DataFrame(w0apCount).astype(bool).astype(int).values.tolist()
+    ax = sns.heatmap(np.array(w0Bg) + np.array(w0NoApCover) * 20, cbar=False, cmap='Blues')
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     # 逆置Y轴
@@ -758,8 +759,9 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-    ax = sns.heatmap(w1NoApCover, cmap="Blues", vmin=0,
-                     cbar_kws={'ticks':[0, 1]})
+    # 2021/3/7: 添加仓库背景
+    w1Bg = pd.DataFrame(w1apCount).astype(bool).astype(int)
+    ax = sns.heatmap(np.array(w1Bg) + np.array(w1NoApCover) * 20, cbar=False, cmap='Blues')
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     # 逆置Y轴
@@ -783,8 +785,9 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-    ax = sns.heatmap(w0NoGoodApCover, cmap="Blues", vmin=0,
-                     cbar_kws={'ticks':[0, 1]})
+    # 2021/3/7: 添加仓库背景
+    w0Bg = pd.DataFrame(w0apCount).astype(bool).astype(int)
+    ax = sns.heatmap(np.array(w0Bg) + np.array(w0NoGoodApCover) * 20, cbar=False, cmap='Blues')
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     # 逆置Y轴
@@ -801,8 +804,9 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
     plt.ylim([0, 138])
     # 设置图片长宽比，结合dpi确定图片大小
     plt.rcParams['figure.figsize'] = (11.0, 5.7)
-    ax = sns.heatmap(w1NoGoodApCover, cmap="Blues", vmin=0,
-                     cbar_kws={'ticks':[0, 1]})
+    # 2021/3/7: 添加仓库背景
+    w1Bg = pd.DataFrame(w1apCount).astype(bool).astype(int)
+    ax = sns.heatmap(np.array(w1Bg) + np.array(w1NoGoodApCover) * 20, cbar=False, cmap='Blues')
     plt.xlabel('坐标X轴')
     plt.ylabel('坐标Y轴')
     # 逆置Y轴
@@ -830,6 +834,8 @@ if __name__ == '__main__':
     print('**********基站覆盖分析->第一阶段：单车数据统计**********')
     #####################################################
     for i in range(1, 42):
+        st = time.time()
+
         fileName = '30.113.151.' + str(i)
         print(fileName)
         csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -852,6 +858,8 @@ if __name__ == '__main__':
             w0GoodRSSI = -83
             w1GoodRSSI = -68
             drawApCover(w0GoodRSSI, w1GoodRSSI, [scanCsvFile], apCoverDir)
+        et = time.time()
+        print('单车{}基站覆盖分析耗时{}s'.format(fileName, int(et - st)))
     #####################################################
     print('**********基站覆盖分析->第一阶段结束**********')
     ###############################################################################
@@ -860,6 +868,8 @@ if __name__ == '__main__':
     ###############################################################################
     print('**********基站覆盖分析->第二阶段：所有车数据统计**********')
     #####################################################
+    st = time.time()
+
     print('构造文件夹')
     topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
     topDataPath = r'/home/cx/Desktop/sdb-dir/'
@@ -886,6 +896,9 @@ if __name__ == '__main__':
     w0GoodRSSI = -83
     w1GoodRSSI = -68
     drawApCover(w0GoodRSSI, w1GoodRSSI, scanCsvFileList, apCoverDir)
+    
+    et = time.time()
+    print('所有车基站覆盖分析耗时{}s'.format(int(et - st)))
     #####################################################
     print('**********基站覆盖分析->第二阶段结束**********')
     ###############################################################################
