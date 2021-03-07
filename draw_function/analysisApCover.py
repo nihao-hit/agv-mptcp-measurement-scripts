@@ -822,6 +822,142 @@ def drawApCover(minW0ConnRSSI, minW1ConnRSSI, scanCsvFileList, tmpDir):
 
 
 
+# 画基站rssi，时延分布等高线图
+def drawApContour(csvFileList, tmpDir):
+    ###############################################################################
+    print('**********第一阶段：准备数据**********')
+    #####################################################
+    print('读入所有csv文件，并连接为一个dataframe')
+    dfList = []
+    for csvFile in csvFileList:
+        df = pd.read_csv(csvFile, na_filter=False, usecols=['curTimestamp', 'curPosX', 'curPosY',
+                            'W0APMac', 'W0level', 'W0pingrtt', 'W1APMac', 'W1level', 'W1pingrtt', 
+                            'speed'],
+                                dtype={'curTimestamp' : int,
+                                       'curPosX': int,
+                                       'curPosY': int,
+                                       'W0APMac': str,
+                                       'W0level' : int, 
+                                       'W0pingrtt' : int,
+                                       'W1APMac': str,
+                                       'W1level' : int,
+                                       'W1pingrtt' : int,
+                                       'speed' : float})
+        dfList.append(df)
+    dfAll = pd.concat(dfList, ignore_index=True)
+    #####################################################
+    #####################################################
+    print('分离w0与w1的数据，按(apMac, posX, posY)分组计算每个基站在不同位置的rssi, 时延均值')
+    w0Df = dfAll.loc[:,['curPosX', 'curPosY', 'W0APMac', 'W0level', 'W0pingrtt']]
+    w0ApDict = dict(list(w0Df[((w0Df['curPosX'] != 0) | (w0Df['curPosY'] != 0)) 
+                             & (w0Df['W0level'] != 0) & (w0Df['W0pingrtt'] % 1000 != 0)].groupby('W0APMac')))
+    w0ApRssiDict = dict(); w0ApDelayDict = dict()
+    for k, v in w0ApDict.items():
+        apRssiAnDelayDf = v.groupby(['curPosX', 'curPosY']).mean().reset_index()
+        # 计算wlan0基站k在不同位置的rssi均值
+        apRssiDf = apRssiAnDelayDf.pivot(index='curPosY', columns='curPosX', values='W0level').fillna(0).astype(int)
+        apRssiDf.index = apRssiDf.index.astype(int)
+        apRssiDf.columns = apRssiDf.columns.astype(int)
+        w0ApRssiDict[k] = apRssiDf.reindex(index=range(139), columns=range(265), fill_value=0).values
+        # 计算wlan0基站k在不同位置的时延均值
+        apDelayDf = apRssiAnDelayDf.pivot(index='curPosY', columns='curPosX', values='W0pingrtt').fillna(0).astype(int)
+        apDelayDf.index = apDelayDf.index.astype(int)
+        apDelayDf.columns = apDelayDf.columns.astype(int)
+        w0ApDelayDict[k] = apDelayDf.reindex(index=range(139), columns=range(265), fill_value=0).values
+
+    w1Df = dfAll.loc[:,['curPosX', 'curPosY', 'W1APMac', 'W1level', 'W1pingrtt']]
+    w1ApDict = dict(list(w1Df[((w1Df['curPosX'] != 0) | (w1Df['curPosY'] != 0)) 
+                             & (w1Df['W1level'] != 0) & (w1Df['W1pingrtt'] % 1000 != 0)].groupby('W1APMac')))
+    w1ApRssiDict = dict(); w1ApDelayDict = dict()
+    for k, v in w1ApDict.items():
+        apRssiAnDelayDf = v.groupby(['curPosX', 'curPosY']).mean().reset_index()
+        # 计算wlan1基站k在不同位置的rssi均值
+        apRssiDf = apRssiAnDelayDf.pivot(index='curPosY', columns='curPosX', values='W1level').fillna(0).astype(int)
+        apRssiDf.index = apRssiDf.index.astype(int)
+        apRssiDf.columns = apRssiDf.columns.astype(int)
+        w1ApRssiDict[k] = apRssiDf.reindex(index=range(139), columns=range(265), fill_value=0).values
+        # 计算wlan1基站k在不同位置的时延均值
+        apDelayDf = apRssiAnDelayDf.pivot(index='curPosY', columns='curPosX', values='W1pingrtt').fillna(0).astype(int)
+        apDelayDf.index = apDelayDf.index.astype(int)
+        apDelayDf.columns = apDelayDf.columns.astype(int)
+        w1ApDelayDict[k] = apDelayDf.reindex(index=range(139), columns=range(265), fill_value=0).values
+    # 生成X, Y坐标
+    x = range(265)
+    y = range(139)
+    X, Y = meshgrid(x, y)
+    #####################################################
+    #####################################################
+    print('非图表型统计数据构造')
+    staticsFile = os.path.join(tmpDir, 'statics.csv')
+    statics = dict()
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+
+    # 数据总数
+    statics['w0基站数'] = len(w0ApDict)
+    statics['w1基站数'] = len(w1ApDict)
+    #####################################################
+    print('**********第一阶段结束**********')
+    ###############################################################################
+
+
+    ###############################################################################
+    print('**********第二阶段：将关键统计数据写入文件**********')
+    #####################################################
+    contourDir = os.path.join(tmpDir, 'contourData')
+    if not os.path.isdir(contourDir):
+        os.makedirs(contourDir)
+    for k, v in w0ApRssiDict.items():
+        fileName = 'w0ApRssi-{}.csv'.format(k)
+        pd.DataFrame(v).to_csv(os.path.join(contourDir, fileName), index=False, header=False)
+    for k, v in w0ApDelayDict.items():
+        fileName = 'w0ApDelay-{}.csv'.format(k)
+        pd.DataFrame(v).to_csv(os.path.join(contourDir, fileName), index=False, header=False)
+    for k, v in w1ApRssiDict.items():
+        fileName = 'w1ApRssi-{}.csv'.format(k)
+        pd.DataFrame(v).to_csv(os.path.join(contourDir, fileName), index=False, header=False)
+    for k, v in w1ApDelayDict.items():
+        fileName = 'w1ApDelay-{}.csv'.format(k)
+        pd.DataFrame(v).to_csv(os.path.join(contourDir, fileName), index=False, header=False)
+    #####################################################
+    print('**********第二阶段结束**********')
+    ###############################################################################
+
+
+    # ###############################################################################
+    # print('**********第三阶段：画基站rssi分布等高线图**********')
+    # #####################################################
+    # print('设置图片长宽比，结合dpi确定图片大小')
+    # plt.rcParams['figure.figsize'] = (11.0, 5.7)
+    
+    # print('画CDF图前的初始化：设置标题、坐标轴')
+    # plt.title('AGV连接基站的RSSI分布CDF图')
+
+    # plt.xlim([-110, -10])
+    # plt.xlabel('RSSI(dBm)')
+
+    # plt.ylim([0, 1])
+    # plt.ylabel('CDF')
+    # plt.yticks(np.arange(0, 1.1, 0.1))
+    # #####################################################
+    # #####################################################
+    # print("画WLAN0的RSSI图")
+    # plt.contour(X, Y, w0ApRssiDict.values()[0])
+    # #####################################################
+    # #####################################################
+    # figName = os.path.join(tmpDir, 'WLAN0基站rssi分布等高线图.png')
+    # print('保存到：', figName)
+    # plt.savefig(figName, dpi=150)
+    # plt.pause(1)
+    # plt.close()
+    # plt.pause(1)
+    # #####################################################
+    # print('**********第三阶段结束**********')
+    # ###############################################################################
+
+
+
+
 if __name__ == '__main__':
     # 显示中文
     import locale
@@ -858,6 +994,9 @@ if __name__ == '__main__':
             w0GoodRSSI = -83
             w1GoodRSSI = -68
             drawApCover(w0GoodRSSI, w1GoodRSSI, [scanCsvFile], apCoverDir)
+
+            print('单车数据的基站rssi/时延分布等高线图')
+            drawApContour([csvFile], apCoverDir)
         et = time.time()
         print('单车{}基站覆盖分析耗时{}s'.format(fileName, int(et - st)))
     #####################################################
@@ -896,7 +1035,10 @@ if __name__ == '__main__':
     w0GoodRSSI = -83
     w1GoodRSSI = -68
     drawApCover(w0GoodRSSI, w1GoodRSSI, scanCsvFileList, apCoverDir)
-    
+
+    print('所有车数据的基站rssi/时延分布等高线图')
+    drawApContour(csvFileList, apCoverDir)
+
     et = time.time()
     print('所有车基站覆盖分析耗时{}s'.format(int(et - st)))
     #####################################################
