@@ -8,6 +8,7 @@ import scapy.all as scapy
 import pandas as pd
 import csv
 import re
+import time
 
 # 时间戳精度为us
 class TcpdumpStatus:
@@ -73,45 +74,51 @@ TcpdumpStatusList = []
 def parseTcpdumpForTcp(tcpdumpFile):
     count = 0
     tcpFlags = {2: 'SYN', 1: 'FIN', 4: 'RST'}
-    for p in scapy.rdpcap(tcpdumpFile):
-        try:
-            tcpdumpStatus = TcpdumpStatus()
-            
-            tcpdumpStatus.timestamp = int(p.time * 1e6)
-            tcpdumpStatus.src = p.payload.src
-            tcpdumpStatus.srcPort = p.payload.payload.sport
-            tcpdumpStatus.dst = p.payload.dst
-            tcpdumpStatus.dstPort = p.payload.payload.dport
-            tcpdumpStatus.tcpDataLen = p.payload.len - (p.payload.ihl + p.payload.payload.dataofs) * 4
-            tcpdumpStatus.seq = p.payload.payload.seq
-            tcpdumpStatus.ack = p.payload.payload.ack
-            for bit, flag in tcpFlags.items():
-                if p.payload.payload.flags & bit == 1:
-                    tcpdumpStatus.segType = flag
-            for option in str(p.payload.payload.options).split('>'):
-                try:# option可能为' |'
-                    kind = re.findall('(?<=kind=).*?(?= )', option)[0]
-                except:
-                    kind = None
-                if kind == 'MpTCP':
-                    subtype = re.findall('(?<=subtype=).*?(?= )', option)[0]
-                    if subtype in ['MP_CAPABLE', 'MP_JOIN']:
-                        tcpdumpStatus.segType += '|{}'.format(subtype)
-                    if subtype == 'DSS':
-                        dssFlags = re.findall('(?<=flags=).*?(?= )', option)[0]
-                        if 'A' in dssFlags:
-                            tcpdumpStatus.dataAck = int(re.findall('(?<=data_ack=).*?(?= )', option)[0])
-                        if 'M' in dssFlags:
-                            tcpdumpStatus.dsn = int(re.findall('(?<=dsn=).*?(?= )', option)[0])
-                            tcpdumpStatus.subSeq = int(re.findall('(?<=subflow_seqnum=).*?(?= )', option)[0])
-                            tcpdumpStatus.mptcpDataLen = int(re.findall('(?<=datalevel_len=).*?(?= )', option)[0])
-                if kind == 'Timestamp':
-                    tcpdumpStatus.tsval = int(re.findall('(?<=timestamp_value=).*?(?= )', option)[0])
-                    tcpdumpStatus.tsecr = int(re.findall('(?<=timestamp_echo=).*?(?= )', option)[0])
+    try:
+        ps = scapy.rdpcap(tcpdumpFile)
+    # 2021/3/6: raise Scapy_Exception("Not a pcap capture file (bad magic)")
+    except:
+        print('{}: raise Scapy_Exception("Not a pcap capture file (bad magic)")'.format(tcpdumpFile))
+    else:
+        for p in ps:
+            try:
+                tcpdumpStatus = TcpdumpStatus()
+                
+                tcpdumpStatus.timestamp = int(p.time * 1e6)
+                tcpdumpStatus.src = p.payload.src
+                tcpdumpStatus.srcPort = p.payload.payload.sport
+                tcpdumpStatus.dst = p.payload.dst
+                tcpdumpStatus.dstPort = p.payload.payload.dport
+                tcpdumpStatus.tcpDataLen = p.payload.len - (p.payload.ihl + p.payload.payload.dataofs) * 4
+                tcpdumpStatus.seq = p.payload.payload.seq
+                tcpdumpStatus.ack = p.payload.payload.ack
+                for bit, flag in tcpFlags.items():
+                    if p.payload.payload.flags & bit == 1:
+                        tcpdumpStatus.segType = flag
+                for option in str(p.payload.payload.options).split('>'):
+                    try:# option可能为' |'
+                        kind = re.findall('(?<=kind=).*?(?= )', option)[0]
+                    except:
+                        kind = None
+                    if kind == 'MpTCP':
+                        subtype = re.findall('(?<=subtype=).*?(?= )', option)[0]
+                        if subtype in ['MP_CAPABLE', 'MP_JOIN']:
+                            tcpdumpStatus.segType += '|{}'.format(subtype)
+                        if subtype == 'DSS':
+                            dssFlags = re.findall('(?<=flags=).*?(?= )', option)[0]
+                            if 'A' in dssFlags:
+                                tcpdumpStatus.dataAck = int(re.findall('(?<=data_ack=).*?(?= )', option)[0])
+                            if 'M' in dssFlags:
+                                tcpdumpStatus.dsn = int(re.findall('(?<=dsn=).*?(?= )', option)[0])
+                                tcpdumpStatus.subSeq = int(re.findall('(?<=subflow_seqnum=).*?(?= )', option)[0])
+                                tcpdumpStatus.mptcpDataLen = int(re.findall('(?<=datalevel_len=).*?(?= )', option)[0])
+                    if kind == 'Timestamp':
+                        tcpdumpStatus.tsval = int(re.findall('(?<=timestamp_value=).*?(?= )', option)[0])
+                        tcpdumpStatus.tsecr = int(re.findall('(?<=timestamp_echo=).*?(?= )', option)[0])
 
-            TcpdumpStatusList.append(tcpdumpStatus)
-        except:
-            count += 1
+                TcpdumpStatusList.append(tcpdumpStatus)
+            except:
+                count += 1
     print("try-except错误次数：{}".format(count))
 
 
@@ -145,12 +152,11 @@ def writeTcpdumpStatusIntoCsv(csvPath):
 
 if __name__ == '__main__':
     ###############################################################################
-    print('**********第五阶段：解析文件，提取TcpdumpStatusList写入tcpdumpData.csv**********')
-    #####################################################
-    import time
-    sT = time.time()
+    print('**********第六阶段：解析文件，提取TcpdumpStatusList写入tcpdumpData.csv**********')
     #####################################################
     for i in range(1, 42):
+        st = time.time()
+
         fileName = '30.113.151.' + str(i)
         path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
         tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -171,9 +177,8 @@ if __name__ == '__main__':
             csvPath = tmpPath
             writeTcpdumpStatusIntoCsv(csvPath)
             #####################################################
+        et = time.time()
+        print('为{}生成tcpdumpData.csv耗时{}s'.format(fileName, int(et - st)))
     #####################################################
-    eT = time.time()
-    print('耗时{}'.format(eT - sT))
-    #####################################################
-    print('**********第五阶段结束**********')
+    print('**********第六阶段结束**********')
     ###############################################################################
