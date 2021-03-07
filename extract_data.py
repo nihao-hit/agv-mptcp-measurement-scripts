@@ -1,7 +1,7 @@
 import Status
 import calcTime
 
-from parseComm import parseComm, fillComm
+from parseComm import parseComm, fillComm, classifyLog, classifyReqInfoLog
 from parseConn import parseConn, fillConn, parseConnForConnStatusList
 from parseScan import parseScan, fillScan
 from parsePing127 import parsePing127, fillPing127
@@ -194,6 +194,8 @@ if __name__ == '__main__':
     # print('**********第二阶段：解析文件，提取StatusList, ScanStatusList写入data.csv, scanData.csv**********')
     # #####################################################
     # for i in range(1, 42):
+    #     st = time.time()
+
     #     fileName = '30.113.151.' + str(i)
     #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -201,6 +203,19 @@ if __name__ == '__main__':
     #     if os.path.isdir(path):
     #         if not os.path.isdir(dataPath):
     #             os.makedirs(dataPath)
+    #         #####################################################
+    #         #####################################################
+    #         print('划分日志数据')
+    #         appDir = os.path.join(tmpPath, 'analysisApp')
+    #         if not os.path.isdir(appDir):
+    #             os.makedirs(appDir)
+    #         commCsvFileList = sorted([os.path.join(dataPath, i) for i in os.listdir(dataPath)
+    #                                                             if 'communication' in i])
+    #         classifyLog(commCsvFileList, appDir)
+
+    #         reqInfoLogCsvFile = os.path.join(appDir, 'infoLog/NEW_REQUEST.csv')
+    #         classifyReqInfoLog(reqInfoLogCsvFile, tmpPath)
+    #         #####################################################
     #         #####################################################
     #         print('重置全局变量sList, scanStatusList')
     #         print('connStartTime, startTimes, endTimes')
@@ -244,6 +259,8 @@ if __name__ == '__main__':
     #         writeStatusIntoCsv(csvPath)
     #         writeScanStatusIntoCsv(csvPath)
     #         #####################################################
+    #     et = time.time()
+    #     print('为{}生成data.csv, scanData.csv耗时{}s'.format(fileName, int(et - st)))
     # print('**********第二阶段结束**********')
     # ###############################################################################
 
@@ -253,6 +270,8 @@ if __name__ == '__main__':
     # print('**********第三阶段：解析文件，提取ConnStatusList写入connData.csv**********')
     # #####################################################
     # for i in range(1, 42):
+    #     st = time.time()
+
     #     fileName = '30.113.151.' + str(i)
     #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -273,6 +292,8 @@ if __name__ == '__main__':
     #         csvPath = tmpPath
     #         writeConnStatusIntoCsv(csvPath)
     #         #####################################################
+    #     et = time.time()
+    #     print('为{}生成connData.csv耗时{}s'.format(fileName, int(et - st)))
     # print('**********第三阶段结束**********')
     # ###############################################################################
 
@@ -281,6 +302,8 @@ if __name__ == '__main__':
     # print('**********第四阶段：解析文件，提取TcpprobeStatusList写入tcpprobeData.csv**********')
     # #####################################################
     # for i in range(1, 42):
+    #     st = time.time()
+
     #     fileName = '30.113.151.' + str(i)
     #     path = os.path.join(r'/home/cx/Desktop/sdb-dir/data', fileName)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -301,15 +324,19 @@ if __name__ == '__main__':
     #         csvPath = tmpPath
     #         writeTcpprobeStatusIntoCsv(csvPath)
     #         #####################################################
+    #     et = time.time()
+    #     print('为{}生成tcpprobeData.csv耗时{}s'.format(fileName, int(et - st)))
     # print('**********第四阶段结束**********')
     # ###############################################################################
 
 
     # ###############################################################################
-    # print('**********第六阶段：解析tcpdump文件**********')
+    # print('**********第五阶段：解析tcpdump文件，提取MptcpStatusList, SubflowStatusList写入mptcpData.csv, subflowData.csv**********')
     # #####################################################
     # print('解析tcpdump文件')
     # for i in range(1, 42):
+    #     st = time.time()
+
     #     fileName = '30.113.151.' + str(i)
     #     tmpPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
     #     if os.path.isdir(tmpPath):
@@ -317,8 +344,10 @@ if __name__ == '__main__':
     #         parseTcpdump(dataPath)
     #         staticsFile = os.path.join(tmpPath, 'mptcpData/statics.txt')
     #         parseStatics(staticsFile, tmpPath)
+    #     et = time.time()
+    #     print('为{}生成mptcpData.csv, subflowData.csv耗时{}s'.format(fileName, int(et - st)))
     # #####################################################
-    # print('**********第六阶段结束**********')
+    # print('**********第五阶段结束**********')
     # ###############################################################################
 
 
