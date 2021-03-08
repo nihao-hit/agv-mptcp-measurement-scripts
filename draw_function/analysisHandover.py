@@ -1281,7 +1281,7 @@ if __name__ == '__main__':
     print('**********漫游分析->第二阶段：所有车数据统计**********')
     #####################################################
     st = time.time()
-    
+
     print('构造文件夹')
     topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
     topDataPath = r'/home/cx/Desktop/sdb-dir/'
@@ -1301,7 +1301,7 @@ if __name__ == '__main__':
     drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, handoverDir)
 
     et = time.time()
-    print('所有车{}漫游分析耗时{}s'.format(int(et - st)))
+    print('所有车漫游分析耗时{}s'.format(int(et - st)))
     #####################################################
     print('**********漫游分析->第二阶段结束**********')
     ###############################################################################
