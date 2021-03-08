@@ -1025,7 +1025,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
             #####################################################
             # 保存图片
-            plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(ho['start'], ho['end'])), dpi=200)
+            plt.savefig(os.path.join(fileDir, 'wlan0:{}-{}.png'.format(ho['start'], ho['end'])), dpi=200)
             plt.pause(1)
             plt.close()
             plt.pause(1)
@@ -1135,7 +1135,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
             #####################################################
             # 保存图片
-            plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(ho['start'], ho['end'])), dpi=200)
+            plt.savefig(os.path.join(fileDir, 'wlan1:{}-{}.png'.format(ho['start'], ho['end'])), dpi=200)
             plt.pause(1)
             plt.close()
             plt.pause(1)
