@@ -1,6 +1,6 @@
 # drawHandover : 画单台车的漫游热力图,漫游时长CDF,漫游时长分类柱状图,漫游类型分类柱状图,漫游RSSI增益CDF
 # drawHandoverFineGrained : 画漫游事件全景图，漫游事件RSSI分析图　
-# drawHoRssiAndDelayBreakRecoverTime : 画漫游前后rssi与delay break/recover时间箱型图
+# drawHoRssiAndDelayBreakRecoverTime : 画漫游前后rssi变化与网络中断时长箱型图
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator 
 import seaborn as sns
@@ -125,7 +125,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
                                 W0level[w0Ap1Idx], W0level[i], 
                                 # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
-                                beforeRttInvalid / 1e3, afterRttValid / 1e3,
+                                int(beforeRttInvalid / 1e3), int(afterRttValid / 1e3),
                                 curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
                                 w0HoFlag])
         #####################################################
@@ -178,7 +178,7 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
                                 W1level[w1Ap1Idx], W1level[i], 
                                 # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
-                                beforeRttInvalid / 1e3, afterRttValid / 1e3,
+                                int(beforeRttInvalid / 1e3), int(afterRttValid / 1e3),
                                 curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
                                 w1HoFlag])
         #####################################################
@@ -205,9 +205,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     
     #####################################################
     #####################################################
-    # 2020/3/5: 修改数据时间戳精度为us后，为保持漫游时长精度为ms,增加处理
-    w0HoDf['duration'] /= 1e3
-    w1HoDf['duration'] /= 1e3
+    # 2021/3/5: 修改数据时间戳精度为us后，为保持漫游时长精度为ms,增加处理
+    w0HoDf['duration'] = (w0HoDf['duration'] / 1e3).astype(int)
+    w1HoDf['duration'] = (w1HoDf['duration'] / 1e3).astype(int)
     #####################################################
     #####################################################
     print('为了方便人眼观察，为UNIX时间戳列添加日期时间列')
@@ -332,8 +332,8 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     statics['WLAN0 flag=0漫游次数'] = len(w0TypeCategory[0])
     statics['WLAN0 flag=1漫游次数'] = len(w0TypeCategory[1])
     # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
-    statics['wlan0造成时延Non-Usable总时长(ms)'] = w0RttBreakTime / 1e3
-    statics['wlan1造成时延Non-Usable总时长(ms)'] = w1RttBreakTime / 1e3
+    statics['wlan0造成时延Non-Usable总时长(ms)'] = int(w0RttBreakTime / 1e3)
+    statics['wlan1造成时延Non-Usable总时长(ms)'] = int(w1RttBreakTime / 1e3)
     # 2020/11/19:10 可能没有flag=2的漫游类别
     try:
         statics['WLAN0 flag=2漫游次数'] = len(w0TypeCategory[2])
@@ -814,13 +814,13 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     #####################################################
     #####################################################
     print('读取单台车的connData.csv数据')
-    print('由于从scan文件提取的conn数据没有顺序，因此这里必须按时间戳排序')
+    # print('由于从scan文件提取的conn数据没有顺序，因此这里必须按时间戳排序')
     connDf = pd.read_csv(connCsvFile, na_filter=False, usecols=['timestamp', 
                                                                 'W0APMac', 'W0level'],
                             dtype={'timestamp' : int, 
                                     'W0APMac' : str,
                                     'W0level': int})
-    connDf = connDf.sort_values(by='timestamp').reset_index(drop=True)
+    # connDf = connDf.sort_values(by='timestamp').reset_index(drop=True)
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -832,7 +832,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     # 设置标题
     plt.title('WLAN0漫游事件全景图')
     # 设置坐标轴
-    xticks = [i for i in range(startTime, endTime + 1800 * 1e6, 3600 * 1e6)]
+    # 2021/3/8: TypeError: 'numpy.float64' object cannot be interpreted as an integer
+    xticks = [i for i in range(startTime, endTime + int(1800 * 1e6), int(3600 * 1e6))]
     xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1e6)) for i in xticks]
     plt.xticks(xticks, xlabels, rotation=45)
     plt.yticks([0, 1])
@@ -863,7 +864,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     # 设置标题
     plt.title('WLAN0漫游事件全景图')
     # 设置坐标轴
-    xticks = [i for i in range(startTime, endTime + 1800 * 1e6, 3600 * 1e6)]
+    # 2021/3/8: TypeError: 'numpy.float64' object cannot be interpreted as an integer
+    xticks = [i for i in range(startTime, int(endTime + 1800 * 1e6), int(3600 * 1e6))]
     xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1e6)) for i in xticks]
     plt.xticks(xticks, xlabels, rotation=45)
     plt.yticks([0, 1])
@@ -897,7 +899,8 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
     # 设置标题
     plt.title('WLAN1漫游事件全景图')
     # 设置坐标轴
-    xticks = [i for i in range(startTime, endTime + 1800 * 1e6, 3600 * 1e6)]
+    # 2021/3/8: TypeError: 'numpy.float64' object cannot be interpreted as an integer
+    xticks = [i for i in range(startTime, endTime + int(1800 * 1e6), int(3600 * 1e6))]
     xlabels = [time.strftime('%m月%d日%H时', time.localtime(i/1e6)) for i in xticks]
     plt.xticks(xticks, xlabels, rotation=45)
     plt.yticks([0, 1])
@@ -1022,7 +1025,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
             #####################################################
             # 保存图片
-            plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(analysisStartTime, analysisEndTime)), dpi=200)
+            plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(ho['start'], ho['end'])), dpi=200)
             plt.pause(1)
             plt.close()
             plt.pause(1)
@@ -1132,7 +1135,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
             #####################################################
             #####################################################
             # 保存图片
-            plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(analysisStartTime, analysisEndTime)), dpi=200)
+            plt.savefig(os.path.join(fileDir, '{}-{}.png'.format(ho['start'], ho['end'])), dpi=200)
             plt.pause(1)
             plt.close()
             plt.pause(1)
@@ -1143,7 +1146,7 @@ def drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, tmpD
 
 
 
-# 画漫游前后rssi与delay break/recover时间箱型图
+# 画漫游前后rssi变化与网络中断时长箱型图
 def drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, hoDir):
     ###############################################################################
     print('**********第一阶段：准备数据**********')
@@ -1166,7 +1169,7 @@ def drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, hoDir):
     w1HoDfAll = pd.concat(w1HoDfList, ignore_index=True)
     #####################################################
     #####################################################
-    print('构造漫游前后rssi与delay break/recover时间的分布数据')
+    print('构造漫游前后rssi变化与网络中断时长箱型图的分布数据')
     ratio = np.arange(0, 1.01, 0.01)
 
     w0HoDfAllCdf = w0HoDfAll.quantile(ratio)
@@ -1179,21 +1182,21 @@ def drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, hoDir):
     ###############################################################################
     print('**********第二阶段：将关键统计数据写入文件**********')
     #####################################################
-    w0HoDfAllCdf.to_csv(os.path.join(hoDir, 'wlan0漫游前后rssi与delay break recover时间分布统计数据.csv'))
-    w1HoDfAllCdf.to_csv(os.path.join(hoDir, 'wlan1漫游前后rssi与delay break recover时间分布统计数据.csv'))
+    w0HoDfAllCdf.to_csv(os.path.join(hoDir, 'wlan0漫游前后rssi变化与网络中断时长分布统计数据.csv'))
+    w1HoDfAllCdf.to_csv(os.path.join(hoDir, 'wlan1漫游前后rssi变化与网络中断时长分布统计数据.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
 
 
     ###############################################################################
-    print('**********第三阶段：画漫游前后rssi与delay break/recover时间箱型图**********')
+    print('**********第三阶段：画漫游前后rssi变化与网络中断时长箱型图**********')
     #####################################################
     _, (rssiAx, delayAx) = plt.subplots(1, 2)
-    plt.suptitle('漫游前后rssi与delay break/recover时间箱型图')
+    plt.suptitle('漫游前后rssi变化与网络中断时长箱型图')
     #####################################################
     #####################################################
-    print('画漫游前后rssi箱型图')
+    print('画漫游前后rssi变化箱型图')
     rssiBp1 = rssiAx.boxplot([list(w0HoDfAll['level1']), list(w0HoDfAll['level2'])], positions=[-0.2, 0.8],
                              widths=0.3, patch_artist=True, boxprops=dict(facecolor='C0'))
     rssiBp2 = rssiAx.boxplot([list(w1HoDfAll['level1']), list(w1HoDfAll['level2'])], positions=[0.2, 1.2],
@@ -1204,22 +1207,22 @@ def drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, hoDir):
     rssiAx.legend([rssiBp1["boxes"][0], rssiBp2["boxes"][0]], ['wlan0', 'wlan1'], loc='lower right')
     #####################################################
     #####################################################
-    print('画漫游前后delay break/recover时间箱型图')
+    print('画漫游前后网络中断时长箱型图')
     delayBp1 = delayAx.boxplot([list(w0HoDfAll['rtt1']), list(w0HoDfAll['rtt2'])], positions=[-0.2, 0.8],
                              widths=0.3, patch_artist=True, boxprops=dict(facecolor='C0'), showfliers=False)
     delayBp2 = delayAx.boxplot([list(w1HoDfAll['rtt1']), list(w1HoDfAll['rtt2'])], positions=[0.2, 1.2],
                              widths=0.3, patch_artist=True, boxprops=dict(facecolor='C2'), showfliers=False)
     delayAx.set_xticks([0, 1])
-    delayAx.set_xticklabels(['delay break', 'delay recover'])
+    delayAx.set_xticklabels(['漫游前', '漫游后'])
     yticks = delayAx.get_yticks()
     delayAx.set_yticklabels(list(map(str, list(map(lambda x : int(x / 1e3), yticks)))))
-    delayAx.set_ylabel('break/recover time (s)')
+    delayAx.set_ylabel('网络中断时长 (s)')
     delayAx.legend([delayBp1["boxes"][0], delayBp2["boxes"][0]], ['wlan0', 'wlan1'], loc='upper left')
     #####################################################
     #####################################################
     plt.tight_layout()
     # 保存图片
-    plt.savefig(os.path.join(hoDir, '漫游前后rssi与delay break recover时间箱型图.png'), dpi=200)
+    plt.savefig(os.path.join(hoDir, '漫游前后rssi变化与网络中断时长箱型图.png'), dpi=200)
     plt.pause(1)
     plt.close()
     plt.pause(1)
