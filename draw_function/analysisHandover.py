@@ -1245,6 +1245,8 @@ if __name__ == '__main__':
     print('**********漫游分析->第一阶段：单车数据统计**********')
     #####################################################
     for i in range(1, 42):
+        st = time.time()
+        
         fileName = '30.113.151.' + str(i)
         print(fileName)
         csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
@@ -1268,6 +1270,8 @@ if __name__ == '__main__':
             print('画漫游事件全景图，漫游事件RSSI分析图')
             count = 20
             drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, handoverDir, count)
+        et = time.time()
+        print('单车{}漫游分析耗时{}s'.format(fileName, int(et - st)))
     #####################################################
     print('**********漫游分析->第一阶段结束**********')
     ###############################################################################
@@ -1276,6 +1280,8 @@ if __name__ == '__main__':
     ###############################################################################
     print('**********漫游分析->第二阶段：所有车数据统计**********')
     #####################################################
+    st = time.time()
+    
     print('构造文件夹')
     topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
     topDataPath = r'/home/cx/Desktop/sdb-dir/'
@@ -1293,6 +1299,9 @@ if __name__ == '__main__':
 
     print('画所有车的漫游前后rssi与delay break/recover时间箱型图')
     drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, handoverDir)
+
+    et = time.time()
+    print('所有车{}漫游分析耗时{}s'.format(int(et - st)))
     #####################################################
     print('**********漫游分析->第二阶段结束**********')
     ###############################################################################
