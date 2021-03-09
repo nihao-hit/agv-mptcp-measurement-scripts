@@ -416,7 +416,8 @@ def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, mpt
     #####################################################
     #####################################################
     print('探究漫游与无线网络业务掉线的关系')
-    # 这里实现的不太好，通过apply实现了两层循环：外层以掉线事件迭代，内层以漫游事件迭代，比较掉线事件时间戳与漫游影响时延时段
+    # 这里实现的不太好，通过apply实现了两层循环：外层以掉线事件迭代，内层以漫游事件迭代，
+    # 若掉线事件时间戳在漫游造成网络中断时段内，则说明漫游直接导致掉线．
     def isHo(dropDfRow, hoDf):
         for _, hoDfRow in hoDf.iterrows():
             if dropDfRow['curTimestamp'] * 1e6 > hoDfRow['rttBreakTimestamp'] \
@@ -437,6 +438,20 @@ def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, mpt
     mptcpDropDf['isW0Ho'] = mptcpDropDf.apply(isHo, args=(w0HoDf,), axis=1)
     mptcpDropDf['isW1Ho'] = mptcpDropDf.apply(isHo, args=(w1HoDf,), axis=1)
     #####################################################
+    #####################################################
+    print('非图表型统计数据构造')
+    staticsFile = os.path.join(dropDir, 'statics.csv')
+    statics = dict()
+    if os.path.isfile(staticsFile):
+        statics = pd.read_csv(staticsFile).to_dict('list')
+
+    statics['漫游导致wlan0掉线'] = len(w0HoAndDropDf)
+    statics['漫游导致wlan1掉线'] = len(w1HoAndDropDf)
+    statics['双网络漫游导致mptcp掉线'] = len(mptcpDropDf[mptcpDropDf['isW0Ho'].notnull() 
+                                                    & mptcpDropDf['isW1Ho'].notnull()])
+    statics['wlan0漫游导致mptcp掉线'] = len(mptcpDropDf[mptcpDropDf['isW0Ho'].notnull()])
+    statics['wlan1漫游导致mptcp掉线'] = len(mptcpDropDf[mptcpDropDf['isW1Ho'].notnull()])
+    #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
 
@@ -448,6 +463,9 @@ def exploreHoAndDrop(w0HoCsvFile, w1HoCsvFile, w0DropCsvFile, w1DropCsvFile, mpt
     w0HoAndDropDf.to_csv(os.path.join(dropDir, 'w0HoAndDrop.csv'))
     w1HoAndDropDf.to_csv(os.path.join(dropDir, 'w1HoAndDrop.csv'))
     mptcpDropDf.to_csv(os.path.join(dropDir, 'hoAndMptcpDrop.csv'))
+    
+    print('将非图表型统计数据写入文件')
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(dropDir, 'statics.csv'))
     #####################################################
     print('**********第二阶段结束**********')
     ###############################################################################
