@@ -64,6 +64,19 @@ def countSuspendAndDropAndHo(dfAndJobCsvFile):
     print('w0Hos={}'.format(len(list(filter(lambda e : e is not '', ''.join(dfAndJobDf['w0Hos'].values).split('|'))))))
     print('w1Hos={}'.format(len(list(filter(lambda e : e is not '', ''.join(dfAndJobDf['w1Hos'].values).split('|'))))))
 
+# 提取data.csv数据看看左边通道处wlan0覆盖问题
+def checkCorner(tmpPath):
+    for i in range(1, 42):
+        fileName = '30.113.151.' + str(i)
+        print(fileName)
+        csvPath = os.path.join(tmpPath, fileName)
+        csvFile = os.path.join(csvPath, 'data.csv')
+        if os.path.isdir(csvPath):
+            df = pd.read_csv(csvFile)
+            df[(df['curPosX'] >= 110) & (df['curPosX'] <= 126) \
+             & (df['curPosY'] >= 49) & (df['curPosY'] <= 50)] \
+                 .to_csv(os.path.join(os.path.join(csvPath, 'analysisApCover'), 'corner.csv'))
+
 
 if __name__ == '__main__':
     # fileName = '/home/cx/Desktop/sdb-dir/tmp/30.113.151.1/analysisHandover/WLAN1漫游热力图统计数据.csv'
@@ -77,3 +90,6 @@ if __name__ == '__main__':
 
     # dfAndJobCsvFile = '/home/cx/Desktop/sdb-dir/tmp/30.113.151.1/analysisApp/dfAndJobDf.csv'
     # countSuspendAndDropAndHo(dfAndJobCsvFile)
+
+    # tmpPath = '/home/cx/Desktop/sdb-dir/tmp'
+    # checkCorner(tmpPath)
