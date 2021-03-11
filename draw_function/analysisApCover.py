@@ -853,14 +853,14 @@ def drawApContour(csvFileList, tmpDir):
                              & (w0Df['W0level'] != 0) & (w0Df['W0pingrtt'] % 1000 != 0)].groupby('W0APMac')))
     w0ApRssiDict = dict(); w0ApDelayDict = dict()
     for k, v in w0ApDict.items():
-        apRssiAnDelayDf = v.groupby(['curPosX', 'curPosY']).mean().reset_index()
+        apRssiAndDelayDf = v.groupby(['curPosX', 'curPosY']).mean().reset_index()
         # 计算wlan0基站k在不同位置的rssi均值
-        apRssiDf = apRssiAnDelayDf.pivot(index='curPosY', columns='curPosX', values='W0level').fillna(0).astype(int)
+        apRssiDf = apRssiAndDelayDf.pivot(index='curPosY', columns='curPosX', values='W0level').fillna(0).astype(int)
         apRssiDf.index = apRssiDf.index.astype(int)
         apRssiDf.columns = apRssiDf.columns.astype(int)
         w0ApRssiDict[k] = apRssiDf.reindex(index=range(139), columns=range(265), fill_value=0).values
         # 计算wlan0基站k在不同位置的时延均值
-        apDelayDf = apRssiAnDelayDf.pivot(index='curPosY', columns='curPosX', values='W0pingrtt').fillna(0).astype(int)
+        apDelayDf = apRssiAndDelayDf.pivot(index='curPosY', columns='curPosX', values='W0pingrtt').fillna(0).astype(int)
         apDelayDf.index = apDelayDf.index.astype(int)
         apDelayDf.columns = apDelayDf.columns.astype(int)
         w0ApDelayDict[k] = apDelayDf.reindex(index=range(139), columns=range(265), fill_value=0).values
@@ -870,14 +870,14 @@ def drawApContour(csvFileList, tmpDir):
                              & (w1Df['W1level'] != 0) & (w1Df['W1pingrtt'] % 1000 != 0)].groupby('W1APMac')))
     w1ApRssiDict = dict(); w1ApDelayDict = dict()
     for k, v in w1ApDict.items():
-        apRssiAnDelayDf = v.groupby(['curPosX', 'curPosY']).mean().reset_index()
+        apRssiAndDelayDf = v.groupby(['curPosX', 'curPosY']).mean().reset_index()
         # 计算wlan1基站k在不同位置的rssi均值
-        apRssiDf = apRssiAnDelayDf.pivot(index='curPosY', columns='curPosX', values='W1level').fillna(0).astype(int)
+        apRssiDf = apRssiAndDelayDf.pivot(index='curPosY', columns='curPosX', values='W1level').fillna(0).astype(int)
         apRssiDf.index = apRssiDf.index.astype(int)
         apRssiDf.columns = apRssiDf.columns.astype(int)
         w1ApRssiDict[k] = apRssiDf.reindex(index=range(139), columns=range(265), fill_value=0).values
         # 计算wlan1基站k在不同位置的时延均值
-        apDelayDf = apRssiAnDelayDf.pivot(index='curPosY', columns='curPosX', values='W1pingrtt').fillna(0).astype(int)
+        apDelayDf = apRssiAndDelayDf.pivot(index='curPosY', columns='curPosX', values='W1pingrtt').fillna(0).astype(int)
         apDelayDf.index = apDelayDf.index.astype(int)
         apDelayDf.columns = apDelayDf.columns.astype(int)
         w1ApDelayDict[k] = apDelayDf.reindex(index=range(139), columns=range(265), fill_value=0).values
@@ -904,6 +904,11 @@ def drawApContour(csvFileList, tmpDir):
     ###############################################################################
     print('**********第二阶段：将关键统计数据写入文件**********')
     #####################################################
+    print('将非图表型统计数据写入文件')
+    pd.DataFrame(statics, index=[0]).to_csv(os.path.join(tmpDir, 'statics.csv'))
+    #####################################################
+    #####################################################
+    print('暂存基站rssi/时延分布等高线图数据')
     contourDir = os.path.join(tmpDir, 'contourData')
     if not os.path.isdir(contourDir):
         os.makedirs(contourDir)
