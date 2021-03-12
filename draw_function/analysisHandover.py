@@ -102,17 +102,21 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 beforeRttInvalid = 0
                 afterRttValid = 0
                 # 2020/12/8:21: 将rtt列改为记录一般漫游开始前多久失去正常时延，一般漫游结束后多久恢复正常时延
+                # 2021/3/12: 设定漫游前网络中断时长上限为10秒，漫游后为50秒．
                 for j in range(w0Ap1Idx, -1, -1):
+                    beforeRttInvalid = curTimestamp[w0Ap1Idx] - curTimestamp[j]
                     if W0pingrtt[j] % 1000 != 0:
-                        beforeRttInvalid = curTimestamp[w0Ap1Idx] - curTimestamp[j]
+                        break
+                    if beforeRttInvalid >= 1e7:
+                        beforeRttInvalid = 0
                         break
                 for j in range(i, len(curTimestamp)):
+                    afterRttValid = curTimestamp[j] - curTimestamp[i]
                     if W0pingrtt[j] % 1000 != 0:
-                        afterRttValid = curTimestamp[j] - curTimestamp[i]
                         break
-                
-                # 2020/12/10:21: 统计漫游造成时延Non-Usable总时长
-                w0RttBreakTime += afterRttValid + curTimestamp[i] - curTimestamp[w0Ap1Idx] + beforeRttInvalid
+                    if afterRttValid >= 5e7:
+                        afterRttValid = 0
+                        break
                 
                 # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
                 w0HoStartIdx = w0NotIdx
@@ -122,12 +126,16 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 duration = curTimestamp[i] - curTimestamp[w0HoStartIdx]
                 # # 2020/11/25:17 过滤duration >= 30s的漫游事件
                 # if duration < 30000:
-                w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
-                                W0level[w0Ap1Idx], W0level[i], 
-                                # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
-                                int(beforeRttInvalid / 1e3), int(afterRttValid / 1e3),
-                                curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
-                                w0HoFlag])
+                # 2021/3/12: 过滤漫游时长大于1000s的漫游事件
+                if duration < 1e9:
+                    w0HoList.append([curTimestamp[w0HoStartIdx], curTimestamp[i], duration, 
+                                    W0level[w0Ap1Idx], W0level[i], 
+                                    # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
+                                    int(beforeRttInvalid / 1e3), int(afterRttValid / 1e3),
+                                    curPosX[w0HoStartIdx], curPosY[w0HoStartIdx],
+                                    w0HoFlag])
+                    # 2020/12/10:21: 统计漫游造成时延Non-Usable总时长
+                    w0RttBreakTime += afterRttValid + curTimestamp[i] - curTimestamp[w0Ap1Idx] + beforeRttInvalid
         #####################################################
         # w0循环标志更新
                 w0HoFlag = -1
@@ -155,17 +163,21 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 beforeRttInvalid = 0
                 afterRttValid = 0
                 # 2020/12/8:21: 将rtt列改为记录一般漫游开始前多久失去正常时延，一般漫游结束后多久恢复正常时延
+                # 2021/3/12: 设定漫游前网络中断时长上限为10秒，漫游后为50秒．
                 for j in range(w1Ap1Idx, -1, -1):
+                    beforeRttInvalid = curTimestamp[w1Ap1Idx] - curTimestamp[j]
                     if W1pingrtt[j] % 1000 != 0:
-                        beforeRttInvalid = curTimestamp[w1Ap1Idx] - curTimestamp[j]
+                        break
+                    if beforeRttInvalid >= 1e7:
+                        beforeRttInvalid = 0
                         break
                 for j in range(i, len(curTimestamp)):
+                    afterRttValid = curTimestamp[j] - curTimestamp[i]
                     if W1pingrtt[j] % 1000 != 0:
-                        afterRttValid = curTimestamp[j] - curTimestamp[i]
                         break
-                
-                # 2020/12/10:21: 统计漫游造成时延Non-Usable总时长
-                w1RttBreakTime += afterRttValid + curTimestamp[i] - curTimestamp[w1Ap1Idx] + beforeRttInvalid
+                    if afterRttValid >= 5e7:
+                        afterRttValid = 0
+                        break
                 
                 # 再抽象一层，解决flag=2, ap1->ap2时w0NotIdx == -1的bug
                 w1HoStartIdx = w1NotIdx
@@ -175,12 +187,16 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
                 duration = curTimestamp[i] - curTimestamp[w1HoStartIdx]
                 # # 2020/11/25:17 过滤duration >= 30s的漫游事件
                 # if duration < 30000:
-                w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
-                                W1level[w1Ap1Idx], W1level[i], 
-                                # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
-                                int(beforeRttInvalid / 1e3), int(afterRttValid / 1e3),
-                                curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
-                                w1HoFlag])
+                # 2021/3/12: 过滤漫游时长大于1000s的漫游事件
+                if duration < 1e9:
+                    w1HoList.append([curTimestamp[w1HoStartIdx], curTimestamp[i], duration, 
+                                    W1level[w1Ap1Idx], W1level[i], 
+                                    # 2021/3/5: 在修改时间戳精度为us后，保持网络受漫游影响时长单位为ms.
+                                    int(beforeRttInvalid / 1e3), int(afterRttValid / 1e3),
+                                    curPosX[w1HoStartIdx], curPosY[w1HoStartIdx],
+                                    w1HoFlag])
+                    # 2020/12/10:21: 统计漫游造成时延Non-Usable总时长
+                    w1RttBreakTime += afterRttValid + curTimestamp[i] - curTimestamp[w1Ap1Idx] + beforeRttInvalid
         #####################################################
         # w1循环标志更新
                 w1HoFlag = -1
@@ -316,8 +332,9 @@ def drawHandover(csvFile, connCsvFile, tmpDir):
     #####################################################
     #####################################################
     print('构造After RSSI - Before RSSI的CDF数据')
-    w0RSSIRatio = (w0HoDf['level2'] - w0HoDf['level1']).quantile(ratio)
-    w1RSSIRatio = (w1HoDf['level2'] - w1HoDf['level1']).quantile(ratio)
+    print('2021/3/12: 为漫游rssi增益图去除重关联类型')
+    w0RSSIRatio = w0HoDf[w0HoDf['flag'] == 0]['rssiGain'].quantile(ratio)
+    w1RSSIRatio = w1HoDf[w1HoDf['flag'] == 0]['rssiGain'].quantile(ratio)
     #####################################################
     #####################################################
     print('非图表型统计数据构造')
@@ -1268,7 +1285,7 @@ if __name__ == '__main__':
             drawHoRssiAndDelayBreakRecoverTime([w0HoCsvFile], [w1HoCsvFile], handoverDir)
 
             print('画漫游事件全景图，漫游事件RSSI分析图')
-            count = 20
+            count = 5000
             drawHandoverFineGrained(w0HoCsvFile, w1HoCsvFile, csvFile, connCsvFile, handoverDir, count)
         et = time.time()
         print('单车{}漫游分析耗时{}s'.format(fileName, int(et - st)))
@@ -1298,7 +1315,7 @@ if __name__ == '__main__':
         os.makedirs(hoDir)
 
     print('画所有车的漫游前后rssi与delay break/recover时间箱型图')
-    drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, handoverDir)
+    drawHoRssiAndDelayBreakRecoverTime(w0HoCsvFileList, w1HoCsvFileList, hoDir)
 
     et = time.time()
     print('所有车漫游分析耗时{}s'.format(int(et - st)))
