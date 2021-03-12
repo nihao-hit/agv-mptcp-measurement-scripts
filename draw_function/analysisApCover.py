@@ -77,35 +77,38 @@ def drawConnLevel(csvFileList, tmpDir):
     print('分离w0与w1的数据')
     ratio = np.arange(0, 1.01, 0.01)
 
-    w0Df = dfAll.loc[:,['W0level', 'speed']]
+    w0Df = dfAll.loc[:, ['W0level', 'speed', 'W0pingrtt']]
 
-    w1Df = dfAll.loc[:, ['W1level', 'speed']]
+    w1Df = dfAll.loc[:, ['W1level', 'speed', 'W1pingrtt']]
     #####################################################
     #####################################################
     print('1.过滤level=0也就是除去数据空洞与未关联基站的时刻数据')
     print('2.过滤speed=0也就是车静止的时刻数据')
-    w0DfFiltered = w0Df[(w0Df['W0level'] != 0) & (w0Df['speed'] != 0.0)].reset_index(drop=True)
+    print('2021/3/12: 过滤pingRtt % 1000 == 0的填充数据，避免测量脚本空洞影响')
+    w0DfFiltered = w0Df[(w0Df['W0level'] != 0) 
+                      & (w0Df['speed'] != 0.0) 
+                      & (w0Df['W0pingrtt'] % 1000 != 0)].reset_index(drop=True)
     w0LevelRatio = w0DfFiltered['W0level'].quantile(ratio)
     
-    w1DfFiltered = w1Df[(w1Df['W1level'] != 0) & (w1Df['speed'] != 0.0)].reset_index(drop=True)
+    w1DfFiltered = w1Df[(w1Df['W1level'] != 0) 
+                      & (w1Df['speed'] != 0.0)
+                      & (w1Df['W1pingrtt'] % 1000 != 0)].reset_index(drop=True)
     w1LevelRatio = w1DfFiltered['W1level'].quantile(ratio)
     #####################################################
     #####################################################
     print('2020/11/24:10: 构造rssi与时延关系图')
-    print('过滤level==0的时刻数据，在保留的数据中将pingrtt > 3s | pingrtt % 1000 == 0替换为3s')
-    w0LevelFiltered = dfAll[dfAll['W0level'] != 0]
-    w0LevelFiltered.loc[(w0LevelFiltered['W0pingrtt'] % 1000 == 0) | (w0LevelFiltered['W0pingrtt'] > 3000), 'W0pingrtt'] = 3000
+    print('在过滤后的数据中将pingrtt > 3s替换为3s')
+    w0DfFiltered.loc[(w0DfFiltered['W0pingrtt'] > 3000), 'W0pingrtt'] = 3000
     
-    w0x1 = range(w0LevelFiltered['W0level'].min(), w0LevelFiltered['W0level'].max() + 1)
-    w0y1 = [list(w0LevelFiltered[w0LevelFiltered['W0level'] == ix]['W0pingrtt']) for ix in w0x1]
-    w0y2 = list(map(lambda x : len(x) / len(w0LevelFiltered), w0y1))
+    w0x1 = range(w0DfFiltered['W0level'].min(), w0DfFiltered['W0level'].max() + 1)
+    w0y1 = [list(w0DfFiltered[w0DfFiltered['W0level'] == ix]['W0pingrtt']) for ix in w0x1]
+    w0y2 = list(map(lambda x : len(x) / len(w0DfFiltered), w0y1))
 
-    w1LevelFiltered = dfAll[dfAll['W1level'] != 0]
-    w1LevelFiltered.loc[(w1LevelFiltered['W1pingrtt'] % 1000 == 0) | (w1LevelFiltered['W1pingrtt'] > 3000), 'W1pingrtt'] = 3000
+    w1DfFiltered.loc[(w1DfFiltered['W1pingrtt'] > 3000), 'W1pingrtt'] = 3000
     
-    w1x1 = range(w1LevelFiltered['W1level'].min(), w1LevelFiltered['W1level'].max() + 1)
-    w1y1 = [list(w1LevelFiltered[w1LevelFiltered['W1level'] == ix]['W1pingrtt']) for ix in w1x1]
-    w1y2 = list(map(lambda x : len(x) / len(w1LevelFiltered), w1y1))
+    w1x1 = range(w1DfFiltered['W1level'].min(), w1DfFiltered['W1level'].max() + 1)
+    w1y1 = [list(w1DfFiltered[w1DfFiltered['W1level'] == ix]['W1pingrtt']) for ix in w1x1]
+    w1y2 = list(map(lambda x : len(x) / len(w1DfFiltered), w1y1))
     #####################################################
     #####################################################
     print('非图表型统计数据构造')
@@ -116,10 +119,8 @@ def drawConnLevel(csvFileList, tmpDir):
         
     # 数据总数，时间跨度，时间粒度
     statics['连接基站的rssi数据总数'] = len(dfAll)
-    statics['wlan0过滤level=0speed=0后数据总数'] = len(w0DfFiltered)
-    statics['wlan1过滤level=0speed=0后数据总数'] = len(w1DfFiltered)
-    statics['wlan0过滤level=0后数据总数'] = len(w0LevelFiltered)
-    statics['wlan1过滤level=0后数据总数'] = len(w1LevelFiltered)
+    statics['wlan0过滤level=0speed=0pingrtt%1000==0后数据总数'] = len(w0DfFiltered)
+    statics['wlan1过滤level=0speed=0pingrtt%1000==0后数据总数'] = len(w1DfFiltered)
     statics['start'] = dfAll['curTimestamp'].min()
     statics['end'] = dfAll['curTimestamp'].max()
     statics['duration'] = statics['end'] - statics['start']
