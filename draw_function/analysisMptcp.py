@@ -395,6 +395,8 @@ if __name__ == '__main__':
         fileName = '30.113.151.' + str(i)
         print(fileName)
         csvPath = os.path.join(r'/home/cx/Desktop/sdb-dir/tmp', fileName)
+        mptcpCsvFile = os.path.join(csvPath, 'mptcpData.csv')
+        subCsvFile = os.path.join(csvPath, 'subflowData.csv')
         csvFile = os.path.join(csvPath, 'data.csv')
         tcpprobeCsvFile = os.path.join(csvPath, 'tcpprobeData.csv')
         tcpdumpCsvFile = os.path.join(csvPath, 'tcpdumpData.csv')
@@ -404,6 +406,9 @@ if __name__ == '__main__':
             print(mptcpDir)
             if not os.path.isdir(mptcpDir):
                 os.makedirs(mptcpDir)
+            print('使用提取的完整mptcp连接画mptcp连接长度小提琴图，流量分配饼状图')
+            drawMptcpFeature([mptcpCsvFile], [subCsvFile], mptcpDir)
+
             print('提取漫游事件前后tcp状态做时序图')
             count = 5000
             w0HoCsvFile = os.path.join(csvPath, 'analysisHandover/WLAN0漫游时段汇总.csv')
@@ -418,7 +423,7 @@ if __name__ == '__main__':
 
 
     ###############################################################################
-    print('**********MPTCP协议分析->第一阶段：所有车数据统计**********')
+    print('**********MPTCP协议分析->第二阶段：所有车数据统计**********')
     #####################################################
     print('构造文件夹')
     topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
@@ -438,5 +443,5 @@ if __name__ == '__main__':
     
     drawMptcpFeature(mptcpCsvFileList, subCsvFileList, mptcpDir)
     #####################################################
-    print('**********MPTCP协议分析->第一阶段结束**********')
+    print('**********MPTCP协议分析->第二阶段结束**********')
     ###############################################################################
