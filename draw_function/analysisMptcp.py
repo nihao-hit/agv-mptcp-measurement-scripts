@@ -425,6 +425,8 @@ if __name__ == '__main__':
     ###############################################################################
     print('**********MPTCP协议分析->第二阶段：所有车数据统计**********')
     #####################################################
+    st = time.time()
+    
     print('构造文件夹')
     topTmpPath = r'/home/cx/Desktop/sdb-dir/tmp'
     topDataPath = r'/home/cx/Desktop/sdb-dir/'
@@ -442,6 +444,9 @@ if __name__ == '__main__':
         os.makedirs(mptcpDir)
     
     drawMptcpFeature(mptcpCsvFileList, subCsvFileList, mptcpDir)
+
+    et = time.time()
+    print('所有车MPTCP协议分析耗时{}s'.format(int(et - st)))
     #####################################################
     print('**********MPTCP协议分析->第二阶段结束**********')
     ###############################################################################
