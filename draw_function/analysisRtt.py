@@ -159,10 +159,11 @@ def drawCDFAndBar(csvFileList, delayDir):
     print('读入所有data.csv文件，并连接为一个df')
     dfList = []
     for csvFile in csvFileList:
-        df = pd.read_csv(csvFile, usecols=['W0pingrtt', 'W1pingrtt', 'srtt'],
+        df = pd.read_csv(csvFile, usecols=['W0pingrtt', 'W1pingrtt', 'srtt', 'src'],
                                 dtype={'W0pingrtt' : int, 
                                        'W1pingrtt' : int,
-                                       'srtt' : int})
+                                       'srtt' : int,
+                                       'src': str})
         dfList.append(df)
     dfAll = pd.concat(dfList, ignore_index=True)
 
@@ -174,6 +175,9 @@ def drawCDFAndBar(csvFileList, delayDir):
     w1PingRttFiltered = dfAll[(dfAll['W1pingrtt'] % 1000 != 0)]['W1pingrtt']
     minPingRttFiltered = dfAll[(dfAll['minPingRtt'] % 1000 != 0)]['minPingRtt']
     srttFiltered = dfAll[(dfAll['srtt'] % 1000 != 0)]['srtt']
+
+    srttFilteredW0 = dfAll[(dfAll['srtt'] % 1000 != 0) & (dfAll.src.str.contains('151'))]['srtt']
+    srttFilteredW1 = dfAll[(dfAll['srtt'] % 1000 != 0) & (dfAll.src.str.contains('127'))]['srtt']
     #####################################################
     #####################################################
     print('构造CDF数据')
@@ -182,6 +186,9 @@ def drawCDFAndBar(csvFileList, delayDir):
     w1RttRatio = w1PingRttFiltered.quantile(ratio)
     minRttRatio = minPingRttFiltered.quantile(ratio)
     srttRatio = srttFiltered.quantile(ratio)
+
+    w0SrttRatio = srttFilteredW0.quantile(ratio)
+    w1SrttRatio = srttFilteredW1.quantile(ratio)
     #####################################################
     #####################################################
     print('2020/12/10:16: 构造分类柱状图数据')
@@ -212,6 +219,8 @@ def drawCDFAndBar(csvFileList, delayDir):
     statics['过滤后w1PingRtt总数'] = len(w1PingRttFiltered)
     statics['过滤后minPingRtt总数'] = len(minPingRttFiltered)
     statics['过滤后srtt总数'] = len(srttFiltered)
+    statics['过滤后w0Srtt总数'] = len(srttFilteredW0)
+    statics['过滤后w1Srtt总数'] = len(srttFilteredW1)
     #####################################################
     print('**********第一阶段结束**********')
     ###############################################################################
@@ -226,7 +235,9 @@ def drawCDFAndBar(csvFileList, delayDir):
     pd.DataFrame({'w0PingRtt':list(w0RttRatio), 
                   'w1PingRtt':list(w1RttRatio), 
                   'minPingRtt':list(minRttRatio), 
-                  'srtt':list(srttRatio)}).to_csv(os.path.join(delayDir, '时延cdf数据.csv'))
+                  'srtt':list(srttRatio),
+                  'w0Srtt':list(w0SrttRatio),
+                  'w1Srtt':list(w1SrttRatio)}).to_csv(os.path.join(delayDir, '时延cdf数据.csv'))
     print('**********第二阶段结束**********')
     ###############################################################################
 
@@ -256,24 +267,29 @@ def drawCDFAndBar(csvFileList, delayDir):
     cdfW0pingrtt, = plt.plot(list(w0RttRatio), list(w0RttRatio.index), c='red')
     #####################################################
     #####################################################
-    print("画w1rtt的CDF图")
-    cdfW1pingrtt, = plt.plot(list(w1RttRatio), list(w1RttRatio.index), c='yellow')
+    print("画w0Srtt的CDF图")
+    cdfW0Srtt, = plt.plot(list(w0SrttRatio), list(w0SrttRatio.index), c='orange')
     #####################################################
     #####################################################
     print("画w0rtt与w1rtt最小值的CDF图")
-    cdfminW0AndW1, = plt.plot(list(minRttRatio), list(minRttRatio.index), c='blue')
+    cdfminW0AndW1, = plt.plot(list(minRttRatio), list(minRttRatio.index), c='green')
     #####################################################
     #####################################################
-    print("画srtt的CDF图")
-    cdfsrtt, = plt.plot(list(srttRatio), list(srttRatio.index), c='green')
+    print("画w1rtt的CDF图")
+    cdfW1pingrtt, = plt.plot(list(w1RttRatio), list(w1RttRatio.index), c='indigo')
+    #####################################################
+    #####################################################
+    print("画w1Srtt的CDF图")
+    cdfW1Srtt, = plt.plot(list(w1SrttRatio), list(w1SrttRatio.index), c='violet')
     #####################################################
     #####################################################
     print("设置标注")
-    plt.legend([cdfW0pingrtt, cdfW1pingrtt, cdfminW0AndW1, cdfsrtt],
-            ['wlan0时延', 
-             'wlan1时延', 
-             '双网络最低时延', 
-             'mptcp时延'],
+    plt.legend([cdfW0pingrtt, cdfW0Srtt, cdfminW0AndW1, cdfW1pingrtt, cdfW1Srtt],
+            ['wlan0PingRtt', 
+             'wlan0Srtt',
+             'minPingRtt', 
+             'wlan1PingRtt', 
+             'wlan1Srtt'],
             loc='lower right')
     #####################################################
     #####################################################
