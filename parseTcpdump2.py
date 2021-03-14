@@ -93,7 +93,7 @@ def parseTcpdumpForTcp(tcpdumpFile):
                 tcpdumpStatus.seq = p.payload.payload.seq
                 tcpdumpStatus.ack = p.payload.payload.ack
                 for bit, flag in tcpFlags.items():
-                    if p.payload.payload.flags & bit == 1:
+                    if p.payload.payload.flags & bit == bit:
                         tcpdumpStatus.segType = flag
                 for option in str(p.payload.payload.options).split('>'):
                     try:# option可能为' |'
@@ -102,8 +102,10 @@ def parseTcpdumpForTcp(tcpdumpFile):
                         kind = None
                     if kind == 'MpTCP':
                         subtype = re.findall('(?<=subtype=).*?(?= )', option)[0]
-                        if subtype in ['MP_CAPABLE', 'MP_JOIN']:
-                            tcpdumpStatus.segType += '|{}'.format(subtype)
+                        if subtype in ['MP_CAPABLE', 'MP_JOIN', 'ADD_ADDR', 'REMOVE_ADDR', 'MP_PRIO', 'MP_FAIL']:
+                            if tcpdumpStatus.segType != '':
+                                tcpdumpStatus.segType += '|'
+                            tcpdumpStatus.segType += subtype
                         if subtype == 'DSS':
                             dssFlags = re.findall('(?<=flags=).*?(?= )', option)[0]
                             if 'A' in dssFlags:
