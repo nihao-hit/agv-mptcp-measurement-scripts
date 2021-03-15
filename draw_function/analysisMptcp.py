@@ -321,16 +321,16 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, tcpdumpCsvFile, w0HoCsvFile, w
                 df['timestamp'] = (df['curTimestamp'] * 1e6).astype(int)
                 df['bin'] = pd.cut(df['timestamp'], bins=[startTime, endTime], right=False)
                 rttDf = list(df.groupby('bin'))[0][1]
-                # # w0PingRtt
-                # w0PingRttDf = rttDf[rttDf['W0pingrtt'] % 1000 != 0][['timestamp', 'W0pingrtt']]
-                # w0PingRttDf = w0PingRttDf.rename(columns={'W0pingrtt': 'data'})
-                # w0PingRttDf['data_type'] = 'w0PingRtt'
-                # w0PingRttDf['wlan'] = 'wlan0'
-                # # w1PingRtt
-                # w1PingRttDf = rttDf[rttDf['W1pingrtt'] % 1000 != 0][['timestamp', 'W1pingrtt']]
-                # w1PingRttDf = w1PingRttDf.rename(columns={'W1pingrtt': 'data'})
-                # w1PingRttDf['data_type'] = 'w1PingRtt'
-                # w1PingRttDf['wlan'] = 'wlan1'
+                # w0PingRtt
+                w0PingRttDf = rttDf[rttDf['W0pingrtt'] % 1000 != 0][['timestamp', 'W0pingrtt']]
+                w0PingRttDf = w0PingRttDf.rename(columns={'W0pingrtt': 'data'})
+                w0PingRttDf['data_type'] = 'pingRtt'
+                w0PingRttDf['wlan'] = 'wlan0'
+                # w1PingRtt
+                w1PingRttDf = rttDf[rttDf['W1pingrtt'] % 1000 != 0][['timestamp', 'W1pingrtt']]
+                w1PingRttDf = w1PingRttDf.rename(columns={'W1pingrtt': 'data'})
+                w1PingRttDf['data_type'] = 'pingRtt'
+                w1PingRttDf['wlan'] = 'wlan1'
                 # srtt
                 srttDf = innerTpDf[['timestamp', 'srtt', 'wlan']]
                 srttDf = srttDf.rename(columns={'srtt': 'data'})
@@ -348,12 +348,12 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, tcpdumpCsvFile, w0HoCsvFile, w
                     .rename(columns={'timestamp_end': 'timestamp', 'rtt': 'data'})
                 tsoptRttDf['data_type'] = 'rtt'
 
-                delayDf = pd.concat([srttDf, tsoptRttDf], ignore_index=True)
+                delayDf = pd.concat([w0PingRttDf, w1PingRttDf, srttDf, tsoptRttDf], ignore_index=True)
                 # 画时延
                 delayAx = plt.twinx()
                 sns.lineplot(data=delayDf, x='timestamp', y='data', 
                     hue='wlan', palette={'wlan0': 'C0', 'wlan1': 'C1'},
-                    style='data_type', ms=4, markers={'srtt': 'o', 'rtt': 's'},
+                    style='data_type', ms=4, markers={'pingRtt': '*', 'srtt': 'o', 'rtt': 's'},
                     ax=delayAx)
                 delayAx.set_ylabel('delay (ms)')
                 delayAx.get_yaxis().set_major_locator(MaxNLocator(integer=True))
