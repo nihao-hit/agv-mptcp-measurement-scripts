@@ -351,7 +351,8 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, tcpdumpCsvFile, w0HoCsvFile, w
                 delayDf = pd.concat([srttDf, tsoptRttDf], ignore_index=True)
                 # 画时延
                 delayAx = plt.twinx()
-                sns.lineplot(data=delayDf, x='timestamp', y='data', hue='wlan', 
+                sns.lineplot(data=delayDf, x='timestamp', y='data', 
+                    hue='wlan', palette={'wlan0': 'C0', 'wlan1': 'C1'},
                     style='data_type', ms=4, markers={'srtt': 'o', 'rtt': 's'},
                     ax=delayAx)
                 delayAx.set_ylabel('delay (ms)')
