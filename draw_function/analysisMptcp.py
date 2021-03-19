@@ -270,6 +270,22 @@ def drawMptcpInHandover(csvFile, tcpprobeCsvFile, tcpdumpCsvFile, w0HoCsvFile, w
                 serverToAgvDf = innerTdDf[(innerTdDf['src'] == '30.113.129.7')
                                         & (innerTdDf['dataAck'] != 0)]
                 #####################################################
+                # #####################################################
+                # # 标注segType
+                # # 实际作图后发现，由于带SYN,MP_CAPABLE等标志的包dsn往往为0,图上显示不出来．
+                # segTypeDf = innerTdDf[innerTdDf['segType'].notnull()]
+                # if segTypeDf.empty:
+                #     continue
+                # for _, row in segTypeDf.iterrows():
+                #     x = row['timestamp']
+                #     if row['dst'] == '30.113.129.7':
+                #         y = row['dsn'] + row['mptcpDataLen']
+                #     else:
+                #         y = row['dataAck']
+                #     ytext = y + 500
+                #     print('segType:{}, xy:({}, {}), xytext:({}, {})'.format(row['segType'], x, y, x, ytext))
+                #     plt.annotate(row['segType'], xy=(x, y), xytext=(x, ytext), arrowprops={'arrowstyle': '->'})
+                # #####################################################
                 #####################################################
                 # 画dataAck横线
                 try:
