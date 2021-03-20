@@ -238,25 +238,29 @@ def classifyReqInfoLog(reqInfoLogCsvFile, tmpDir):
     jobDf.to_csv(os.path.join(tmpDir, 'job.csv'))
     #####################################################
     #####################################################
+    print("2021/3/20: 30.113.151.25, KeyError: '/DUBackend/das/duEvent/record'")
     print('进一步解析path=/DUBackend/das/duEvent/record，得到recordDf并写入文件')
-    recordDf = dict(list(reqDf.groupby('path', sort=False)))['/DUBackend/das/duEvent/record']
-    recordDf['lastRobotState'] = recordDf.apply(lambda row : int(re.findall('(?<=lastRobotState=).*?(?=, )', row['content'])[0]), axis=1)
-    recordDf['opstate'] = recordDf.apply(lambda row : int(re.findall('(?<=opstate=).*?(?=, )', row['content'])[0]), axis=1)
-    recordDf['workingPattern'] = recordDf.apply(lambda row : re.findall('(?<=workingPattern=).*?(?=, )', row['content'])[0], axis=1)
-    recordDf['eventID'] = recordDf.apply(lambda row : re.findall('(?<=eventID=).*?(?=, )', row['content'])[0], axis=1)
-    recordDf['eventType'] = recordDf.apply(lambda row : re.findall('(?<=eventType=).*?(?=, )', row['content'])[0], axis=1)
-    recordDf['waypointID'] = recordDf.apply(lambda row : int(re.findall('(?<=waypointID=).*?(?=, )', row['content'])[0]), axis=1)
-    recordDf['x'] = recordDf.apply(lambda row : int(re.findall('(?<=x=).*?(?=, )', row['content'])[0]), axis=1)
-    recordDf['y'] = recordDf.apply(lambda row : int(re.findall('(?<=y=).*?(?=, )', row['content'])[0]), axis=1)
-    recordDf['heading'] = recordDf.apply(lambda row : int(re.findall('(?<=heading=).*?(?=, )', row['content'])[0]), axis=1)
-    recordDf['speed'] = recordDf.apply(lambda row : float(re.findall('(?<=speed=).*?(?=, )', row['content'])[0]), axis=1)
-    # bucketId可能为null
-    recordDf['bucketID'] = recordDf.apply(getBucketId, axis=1)
-    # jobId可能为null
-    recordDf['jobId'] = recordDf.apply(getJobId, axis=1)
-    recordDf['power'] = recordDf.apply(lambda row : float(re.findall('(?<=power=).*?(?=, )', row['content'])[0]), axis=1)
-    recordDf.drop(['content','path'], axis=1, inplace=True)
-    recordDf.to_csv(os.path.join(tmpDir, 'record.csv'))
+    try:
+        recordDf = dict(list(reqDf.groupby('path', sort=False)))['/DUBackend/das/duEvent/record']
+        recordDf['lastRobotState'] = recordDf.apply(lambda row : int(re.findall('(?<=lastRobotState=).*?(?=, )', row['content'])[0]), axis=1)
+        recordDf['opstate'] = recordDf.apply(lambda row : int(re.findall('(?<=opstate=).*?(?=, )', row['content'])[0]), axis=1)
+        recordDf['workingPattern'] = recordDf.apply(lambda row : re.findall('(?<=workingPattern=).*?(?=, )', row['content'])[0], axis=1)
+        recordDf['eventID'] = recordDf.apply(lambda row : re.findall('(?<=eventID=).*?(?=, )', row['content'])[0], axis=1)
+        recordDf['eventType'] = recordDf.apply(lambda row : re.findall('(?<=eventType=).*?(?=, )', row['content'])[0], axis=1)
+        recordDf['waypointID'] = recordDf.apply(lambda row : int(re.findall('(?<=waypointID=).*?(?=, )', row['content'])[0]), axis=1)
+        recordDf['x'] = recordDf.apply(lambda row : int(re.findall('(?<=x=).*?(?=, )', row['content'])[0]), axis=1)
+        recordDf['y'] = recordDf.apply(lambda row : int(re.findall('(?<=y=).*?(?=, )', row['content'])[0]), axis=1)
+        recordDf['heading'] = recordDf.apply(lambda row : int(re.findall('(?<=heading=).*?(?=, )', row['content'])[0]), axis=1)
+        recordDf['speed'] = recordDf.apply(lambda row : float(re.findall('(?<=speed=).*?(?=, )', row['content'])[0]), axis=1)
+        # bucketId可能为null
+        recordDf['bucketID'] = recordDf.apply(getBucketId, axis=1)
+        # jobId可能为null
+        recordDf['jobId'] = recordDf.apply(getJobId, axis=1)
+        recordDf['power'] = recordDf.apply(lambda row : float(re.findall('(?<=power=).*?(?=, )', row['content'])[0]), axis=1)
+        recordDf.drop(['content','path'], axis=1, inplace=True)
+        recordDf.to_csv(os.path.join(tmpDir, 'record.csv'))
+    except Exception as e:
+        print('{}:{}'.format(tmpDir, e))
     #####################################################
     #####################################################
     print('进一步解析path=/DUBackend/zkProxy/sendNotification，得到notifyDf并写入文件')
